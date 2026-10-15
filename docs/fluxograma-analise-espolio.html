@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fluxograma · Análise de Espólio</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&family=Quicksand:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{--teal:#199cb1;--petrol:#0f5e73;--ink:#13323a;--muted:#6f8a94;--linha:#cdddE3;--fundo:#eef4f7;
+  --green:#1f9d6b;--amber:#d98a1b;--red:#d8463b;--prev:#e4f3f6;--amber-bg:#fbf0db;--red-bg:#fbe7e5;--green-bg:#e4f5ee}
+body{margin:0;background:var(--fundo);font-family:"Nunito Sans",system-ui,sans-serif;color:var(--ink)}
+header{max-width:1040px;margin:0 auto;padding:22px 20px 6px}
+header h1{font-family:Quicksand,sans-serif;font-size:20px;margin:0;color:var(--petrol)}
+header p{margin:4px 0 0;font-size:13px;color:var(--muted);font-weight:600}
+.wrap{max-width:1040px;margin:0 auto;padding:10px 20px 50px}
+svg{width:100%;height:auto;display:block;background:#fff;border:1px solid var(--linha);border-radius:14px}
+text{font-family:"Nunito Sans",system-ui,sans-serif;font-size:12.5px;fill:var(--ink)}
+.sec{font-family:Quicksand,sans-serif;font-weight:700;font-size:14px;fill:var(--petrol)}
+.secsub{font-size:11.5px;fill:var(--muted);font-weight:600}
+.box{fill:#fff;stroke:#b9cfd6;stroke-width:1.3}
+.box.io{fill:#f6fafb}
+.box.sys{fill:var(--prev);stroke:#8fc8d4}
+.box.fila{fill:#0f5e73;stroke:#0f5e73}
+text.inv tspan, text.inv{fill:#fff}
+.box.out{fill:#fff;stroke:#b9cfd6;stroke-dasharray:4 3}
+.box.exc{fill:var(--red-bg);stroke:#e9a8a1}
+.box.ok{fill:var(--green-bg);stroke:#9ed6bd}
+.dia{fill:var(--amber-bg);stroke:#e6c17a;stroke-width:1.3}
+.edge{fill:none;stroke:#5a7a85;stroke-width:1.6;marker-end:url(#arr)}
+.edge.loop{stroke:var(--amber);stroke-dasharray:5 4}
+.edge.exc{stroke:var(--red)}
+.lbl{font-size:11px;font-weight:800;fill:#5a7a85}
+.lbl.loop{fill:#b57a12}.lbl.exc{fill:var(--red)}
+.num{font-family:Quicksand,sans-serif;font-weight:700;font-size:12px;fill:#fff}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted);font-weight:600;margin-top:12px}
+.legend i{display:inline-block;width:14px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-2px;border:1px solid #b9cfd6}
+</style>
+</head>
+<body>
+<header>
+  <h1>Análise de Espólio · fluxo do processo</h1>
+  <p>Cobrança · Coordenação · Como o módulo vai conduzir a verificação, a implantação, a fila e a reanálise em lote</p>
+</header>
+<div class="wrap">
+<svg id="f" viewBox="0 0 1000 1640" aria-label="Fluxograma da análise de espólio">
+  <defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5a7a85"/></marker></defs>
+</svg>
+<div class="legend">
+  <span><i style="background:#f6fafb"></i>Entrada / ação sua</span>
+  <span><i style="background:#e4f3f6;border-color:#8fc8d4"></i>Feito pelo sistema</span>
+  <span><i style="background:#fbf0db;border-color:#e6c17a"></i>Decisão</span>
+  <span><i style="background:#0f5e73;border-color:#0f5e73"></i>Fila de acompanhamento</span>
+  <span><i style="background:#fff;border-style:dashed"></i>Saída / documento</span>
+</div>
+</div>
+
+<script>
+const svg = document.getElementById('f');
+const NS = 'http://www.w3.org/2000/svg';
+const el = (t, a, txt) => { const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); if (txt != null) e.textContent = txt; svg.appendChild(e); return e; };
+
+function text(x, y, lines, cls, anchor) {
+  const t = el('text', { x, y, class: cls || '', 'text-anchor': anchor || 'middle' });
+  lines.forEach((l, i) => { const s = document.createElementNS(NS, 'tspan'); s.setAttribute('x', x); s.setAttribute('dy', i ? 15 : 0); if (typeof l === 'object') { s.setAttribute('font-weight', '800'); l = l.b; } s.textContent = l; t.appendChild(s); });
+  return t;
+}
+function box(x, y, w, lines, cls, num) {
+  const h = 16 + lines.length * 15 + 8;
+  el('rect', { x, y, width: w, height: h, rx: 10, class: 'box ' + (cls || '') });
+  if (num) { el('circle', { cx: x + 16, cy: y + h / 2, r: 10, fill: '#0f5e73' }); text(x + 16, y + h / 2 + 4, [String(num)], 'num'); }
+  const inv = cls === 'fila' ? 'inv' : '';
+  text(x + w / 2 + (num ? 10 : 0), y + 22, lines, inv);
+  return { x, y, w, h, cx: x + w / 2, bottom: y + h, right: x + w, left: x };
+}
+function dia(cx, cy, w, h, lines) {
+  el('path', { d: `M${cx},${cy - h / 2} L${cx + w / 2},${cy} L${cx},${cy + h / 2} L${cx - w / 2},${cy} z`, class: 'dia' });
+  text(cx, cy - (lines.length - 1) * 7 + 4, lines);
+  return { cx, cy, w, h, bottom: cy + h / 2, top: cy - h / 2, left: cx - w / 2, right: cx + w / 2 };
+}
+function edge(pts, cls, label, lx, ly) {
+  el('path', { d: 'M' + pts.map(p => p.join(',')).join(' L'), class: 'edge ' + (cls || '') });
+  if (label) text(lx, ly, [label], 'lbl ' + (cls || ''));
+}
+function section(y, title, sub) {
+  el('line', { x1: 30, y1: y, x2: 970, y2: y, stroke: '#dde8ec' });
+  el('rect', { x: 30, y: y - 11, width: 8 + title.length * 8.2, height: 22, rx: 6, fill: '#fff' });
+  text(36, y + 4, [title], 'sec', 'start');
+  if (sub) text(970, y + 4, [sub], 'secsub', 'end');
+}
+
+const CX = 500, W = 440, L = CX - W / 2;
+
+/* ===== 1 · Verificação mensal ===== */
+section(40, '1 · Verificação mensal', 'hoje: planilha "Controle de Verificação de Espólios"');
+const n1 = box(L, 60, W, ['Condomínios com vigência iniciada no mês', 'lista do portal (335 cadastrados) ou do BI'], 'io', 1);
+const n2 = box(L, 125, W, ['E-mail de sinalização de espólios enviado pela Cobrança', 'PDF · traz unidade, titular e CPF · remetente vira "analista"'], 'io', 2);
+const d1 = dia(CX, 220, 230, 58, ['Há espólio', 'sinalizado?']);
+const s1 = box(730, 196, 240, ['Registrado como "sem espólio"', 'fica no histórico do mês', 'e no resumo mensal'], 'out');
+edge([[n1.cx, n1.bottom], [n2.cx, n2.y]]);
+edge([[n2.cx, n2.bottom], [d1.cx, d1.top]]);
+edge([[d1.right, d1.cy], [s1.left, s1.y + s1.h / 2]], '', 'não', 690, 213);
+edge([[d1.cx, d1.bottom], [d1.cx, 318]], '', 'sim', 514, 275);
+
+/* ===== 2 · Implantação ===== */
+section(300, '2 · Implantação · 1ª análise, um condomínio por vez', 'base Preventivo · regras 1 a 5');
+const n3 = box(L, 318, W, ['Anexar os PDFs: Vouch, inadimplência anterior e e-mail', 'base do BI do dia já carregada e compartilhada'], 'io', 3);
+const n4 = box(L, 386, W, ['Leitura automática', 'condomínio e CNPJ · idade da garantia · resultado do BI', 'espólios do e-mail · taxas em aberto por unidade', 'conferência com o "Total (N taxas em M unidades)" do relatório'], 'sys', 4);
+const n5 = box(L, 484, W, ['Classificação pelas regras 1 a 5', 'casamento por CPF, senão nome + unidade'], 'sys', 5);
+const n6 = box(L, 552, W, ['Revisão', 'ajuste manual exige motivo · pendência 5.5 bloqueia a conclusão'], 'io', 6);
+const n7 = box(L, 620, W, ['Concluir rodada · protocolo AE-2026-NNNN', 'rodada concluída não se edita; correção gera nova rodada'], 'io', 7);
+const o1 = box(730, 612, 240, ['Ficha PDF do condomínio', 'um arquivo, baixado um a um', 'gravada na base · aviso à', 'assistente de crédito'], 'out');
+edge([[n3.cx, n3.bottom], [n4.cx, n4.y]]);
+edge([[n4.cx, n4.bottom], [n5.cx, n5.y]]);
+edge([[n5.cx, n5.bottom], [n6.cx, n6.y]]);
+edge([[n6.cx, n6.bottom], [n7.cx, n7.y]]);
+edge([[n7.right, n7.y + n7.h / 2], [o1.left, o1.y + o1.h / 2]]);
+const d2 = dia(CX, 730, 250, 58, ['Resultado', 'de cada unidade']);
+edge([[n7.cx, n7.bottom], [d2.cx, d2.top]]);
+const x1 = box(30, 706, 240, ['Excluir da garantia', 'arquivada · sai do acompanhamento'], 'exc');
+edge([[d2.left, d2.cy], [x1.right, x1.y + x1.h / 2]], 'exc', 'excluir', 318, 718);
+
+/* ===== 3 · Fila ===== */
+section(800, '3 · Fila de acompanhamento', 'dashboard · vencidas em vermelho');
+const fila = box(L, 818, W, ['FILA · unidades sob análise, agrupadas por condomínio', 'prazo de 90 dias a partir da análise · ordenada por vencimento', 'carga inicial: 35 condomínios com espólio da planilha de controle'], 'fila');
+edge([[d2.cx, d2.bottom], [fila.cx, fila.y]], '', 'sob análise · preventivo', 575, 790);
+const s2 = box(730, 826, 240, ['Espólio novo sinalizado em', 'condomínio já acompanhado', 'entra na rodada em aberto'], 'out');
+edge([[s2.left, s2.y + s2.h / 2], [fila.right, fila.y + fila.h / 2]]);
+
+/* ===== 4 · Reanálise do dia ===== */
+section(920, '4 · Reanálise do dia · vários condomínios em lote', 'base Reanálise · só o Vouch entra');
+const n8 = box(L, 938, W, ['Selecionar na fila os condomínios do dia', 'sugestão automática: vencidos primeiro'], 'io', 8);
+const n9 = box(L, 1003, W, ['Arrastar todos os PDFs do Vouch de uma vez', 'o sistema identifica cada condomínio pelo cabeçalho (razão social e CNPJ)'], 'io', 9);
+const n10 = box(L, 1071, W, ['Para cada condomínio', 'carrega as unidades da rodada anterior · conta taxas em aberto', 'reconcilia o que entrou e o que foi pago · confere com o total do relatório'], 'sys', 10);
+const n11 = box(L, 1154, W, ['Revisão por exceção', 'em destaque: mudou de status · leitura divergente · casamento fraco', 'as demais só confirmar'], 'io', 11);
+const n12 = box(L, 1237, W, ['Concluir condomínio por condomínio', 'ficha PDF individual · prazo renovado · histórico atualizado'], 'io', 12);
+const o2 = box(730, 1229, 240, ['Ficha PDF do condomínio', 'um arquivo por condomínio', 'baixado um a um'], 'out');
+edge([[fila.cx, fila.bottom], [n8.cx, n8.y]]);
+edge([[n8.cx, n8.bottom], [n9.cx, n9.y]]);
+edge([[n9.cx, n9.bottom], [n10.cx, n10.y]]);
+edge([[n10.cx, n10.bottom], [n11.cx, n11.y]]);
+edge([[n11.cx, n11.bottom], [n12.cx, n12.y]]);
+edge([[n12.right, n12.y + n12.h / 2], [o2.left, o2.y + o2.h / 2]]);
+const d3 = dia(CX, 1352, 270, 64, ['Resultado', 'de cada unidade']);
+edge([[n12.cx, n12.bottom], [d3.cx, d3.top]]);
+const x2 = box(30, 1318, 240, ['3 ou mais taxas no Vouch', 'Excluir da garantia · sai da fila'], 'exc');
+const x3 = box(30, 1382, 240, ['Troca de titularidade concluída', 'acompanhamento encerrado · sai da fila'], 'ok');
+edge([[d3.left, d3.cy], [x2.right, x2.y + x2.h / 2]], 'exc', 'excluir', 310, 1335);
+edge([[d3.cx, d3.bottom], [d3.cx, 1404], [x3.right, 1404]], '', 'encerrar', 330, 1398);
+/* loop: permanece → volta à fila */
+edge([[d3.right, d3.cy], [985, d3.cy], [985, fila.y + fila.h / 2 + 30], [fila.right, fila.y + fila.h / 2 + 30]], 'loop');
+text(985, 1300, ['menos de 3 taxas · permanece', 'volta à fila em 90 dias'], 'lbl loop', 'end');
+
+/* ===== 5 · Saídas ===== */
+section(1470, '5 · Saídas e registros', 'tudo gravado na base do portal');
+const o3 = box(30, 1490, 300, ['Histórico por condomínio e unidade', 'evolução das taxas rodada a rodada', 'quem alterou o quê, com motivo'], 'out');
+const o4 = box(350, 1490, 300, ['Fichas e planilhas de acompanhamento', 'rebaixáveis a qualquer momento', 'evidências dos PDFs guardadas'], 'out');
+const o5 = box(670, 1490, 300, ['Resumo mensal', 'verificados · com espólio · excluídos', 'pendências · fila vencida'], 'out');
+text(500, 1590, ['Regra de saída da fila por tempo ou por rodadas zeradas: pendente de definição da política. Até lá, só exclusão ou troca de titularidade encerram o acompanhamento.'], 'secsub');
+</script>
+</body>
+</html>
