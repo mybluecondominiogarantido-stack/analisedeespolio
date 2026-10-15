@@ -1,0 +1,5 @@
+test/.e2e.tmp.html
+test/.harness.tmp.html
+test/*.pdf
+node_modules/
+*.tgz

@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup · Análise de Espólio</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --teal:#199cb1;--teal-d:#147f90;--petrol:#0f5e73;--ink:#13323a;--ink-2:#3c5660;--muted:#6f8a94;--faint:#9db3bc;
+  --surface:#fff;--surface-2:#f6fafb;--fundo:#eef4f7;--linha:#dde8ec;--borda:#cdddE3;
+  --green:#1f9d6b;--green-bg:#e4f5ee;--amber:#d98a1b;--amber-bg:#fbf0db;--red:#d8463b;--red-bg:#fbe7e5;--prev-bg:#e4f3f6;
+  --font:"Nunito Sans",system-ui,sans-serif;--display:"Quicksand",system-ui,sans-serif;
+  --shadow-sm:0 1px 2px rgba(19,50,58,.06),0 1px 3px rgba(19,50,58,.05);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--fundo);color:var(--ink);font-family:var(--font);font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased;
+  background-image:radial-gradient(1000px 500px at 90% -10%,rgba(25,156,177,.10),transparent 60%)}
+h1,h2,h3{margin:0;font-family:var(--display);font-weight:700}
+button{font:inherit;cursor:pointer}
+.mock-banner{background:var(--petrol);color:#cfe6ec;font-size:12px;text-align:center;padding:6px 12px;font-weight:600}
+.mock-banner b{color:#fff}
+
+/* header */
+.topo{background:var(--surface);border-bottom:1px solid var(--linha);position:sticky;top:0;z-index:10}
+.topo-in{max-width:980px;margin:0 auto;padding:14px 20px 0;display:flex;flex-direction:column;gap:12px}
+.linha1{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:12px}
+.logo{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,var(--teal),#0b76ba);display:grid;place-items:center;color:#fff;font-family:var(--display);font-weight:700;font-size:15px}
+.brand b{display:block;font-family:var(--display);font-size:17px}
+.brand span{font-size:12px;color:var(--muted);font-weight:600}
+.acesso{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--muted);font-weight:600;flex-wrap:wrap}
+.sync{display:inline-flex;align-items:center;gap:6px;background:var(--green-bg);color:var(--green);padding:4px 10px;border-radius:999px;font-weight:800;font-size:11.5px}
+.sync i{width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block}
+.chip{background:var(--surface-2);border:1px solid var(--linha);padding:4px 10px;border-radius:999px}
+.tabs{display:flex;gap:2px;overflow-x:auto;margin:0 -20px;padding:0 20px}
+.tab{border:0;background:none;padding:10px 14px;font-weight:700;color:var(--muted);border-bottom:3px solid transparent;white-space:nowrap;display:flex;gap:7px;align-items:center}
+.tab .n{background:var(--surface-2);border:1px solid var(--linha);border-radius:999px;font-size:11px;padding:1px 7px;color:var(--ink-2)}
+.tab.ativa{color:var(--petrol);border-bottom-color:var(--teal)}
+.tab.ativa .n{background:var(--prev-bg);border-color:#bfe0e7;color:var(--petrol)}
+
+main{max-width:980px;margin:0 auto;padding:18px 20px 80px}
+.painel{display:none}.painel.ativa{display:block}
+.card{background:var(--surface);border:1px solid var(--linha);border-radius:14px;box-shadow:var(--shadow-sm);margin-bottom:14px}
+.card>header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 18px;border-bottom:1px solid var(--linha)}
+.card>header h2{font-size:15px}
+.card>header .dica{font-size:12px;color:var(--muted);font-weight:600}
+.corpo{padding:16px 18px}
+.btn{font-weight:700;font-size:13px;border:1px solid transparent;padding:8px 15px;border-radius:999px;background:linear-gradient(180deg,var(--teal),var(--teal-d));color:#fff;white-space:nowrap}
+.btn.sec{background:var(--surface);color:var(--ink-2);border-color:var(--borda)}
+.btn.mini{padding:5px 11px;font-size:12px}
+.acoes{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+/* tiles */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:14px}
+.tile{background:var(--surface);border:1px solid var(--linha);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow-sm)}
+.tile small{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);font-weight:800}
+.tile strong{display:block;font-family:var(--display);font-size:28px;margin:4px 0 2px;color:var(--ink)}
+.tile em{font-style:normal;font-size:12px;color:var(--muted);font-weight:600}
+.tile.alerta{border-color:#f0cdc7;background:#fff8f7}
+.tile.alerta strong{color:var(--red)}
+
+/* chart */
+.chart{display:flex;flex-direction:column;gap:6px}
+.legenda{display:flex;gap:16px;font-size:12px;color:var(--ink-2);font-weight:600;flex-wrap:wrap}
+.legenda i{width:10px;height:10px;border-radius:2px;display:inline-block;margin-right:6px;vertical-align:-1px}
+svg text{font-family:var(--font);fill:var(--muted);font-size:11px}
+.dois{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:720px){.dois{grid-template-columns:1fr}}
+table{width:100%;border-collapse:collapse}
+th{font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);text-align:left;font-weight:800;padding:9px 10px;border-bottom:1px solid var(--linha);background:var(--surface-2)}
+td{padding:9px 10px;border-bottom:1px solid var(--linha);font-size:13px;color:var(--ink-2);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+.selo{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:800;white-space:nowrap}
+.s-prev{background:var(--prev-bg);color:var(--petrol)}.s-rean{background:var(--amber-bg);color:#b57a12}.s-exc{background:var(--red-bg);color:var(--red)}
+.s-ok{background:var(--green-bg);color:var(--green)}.s-rasc{background:var(--surface-2);color:var(--muted);border:1px solid var(--linha)}
+.venc{color:var(--red);font-weight:800}
+.link{color:var(--teal-d);font-weight:700;text-decoration:underline;background:none;border:0;padding:0}
+
+/* stepper */
+.stepper{display:flex;flex-direction:column;gap:0}
+.step{display:grid;grid-template-columns:34px 1fr;gap:14px;position:relative}
+.step:not(:last-child)::before{content:"";position:absolute;left:16px;top:36px;bottom:0;width:2px;background:var(--linha)}
+.bola{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:13px;background:var(--surface-2);border:2px solid var(--borda);color:var(--muted);z-index:1}
+.step.feito .bola{background:var(--green);border-color:var(--green);color:#fff}
+.step.atual .bola{background:var(--petrol);border-color:var(--petrol);color:#fff}
+.step .card{margin-bottom:22px}
+.step.feito .card{opacity:.92}
+.grade{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.3px;color:var(--muted);margin-bottom:5px;font-weight:800}
+.campo{width:100%;padding:9px 11px;border:1px solid var(--borda);border-radius:9px;background:var(--surface-2);font:inherit;font-size:13.5px;color:var(--ink)}
+.campo.auto{border-color:#bfe0e7;background:#f3fafc}
+.ajuda{font-size:12px;color:var(--muted);margin:6px 0 0;font-weight:600}
+.doc{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--linha);border-radius:10px;background:var(--surface-2)}
+.doc .ico{width:34px;height:34px;border-radius:8px;display:grid;place-items:center;font-weight:800;font-size:11px;background:var(--prev-bg);color:var(--petrol)}
+.doc b{display:block;font-size:13px}.doc span{font-size:11.5px;color:var(--muted);font-weight:600}
+.doc.ok .ico{background:var(--green-bg);color:var(--green)}
+.doc.falta{border-style:dashed}.doc.falta .ico{background:var(--surface);border:1px dashed var(--borda);color:var(--faint)}
+.seg{display:inline-flex;border:1px solid var(--borda);border-radius:9px;overflow:hidden;background:#fff}
+.seg button{border:0;background:#fff;padding:7px 14px;font-size:12.5px;font-weight:700;color:#5a6b72}
+.seg button.ativo{background:var(--petrol);color:#fff}
+.seg button+button{border-left:1px solid var(--borda)}
+
+/* unit cards */
+.unid{border:1px solid var(--linha);border-radius:12px;margin-bottom:10px;overflow:hidden}
+.unid>summary{list-style:none;display:grid;grid-template-columns:54px 1fr auto;gap:12px;align-items:center;padding:12px 14px;cursor:pointer;background:var(--surface)}
+.unid>summary::-webkit-details-marker{display:none}
+.unid .num{font-family:var(--display);font-weight:700;font-size:18px;color:var(--petrol)}
+.unid .quem b{display:block;font-size:14px}
+.unid .quem span{font-size:12px;color:var(--muted);font-weight:600}
+.taxas{display:flex;gap:14px;font-size:12px;color:var(--ink-2);font-weight:600;margin-top:4px;flex-wrap:wrap}
+.taxas b{font-family:var(--display);font-size:14px;color:var(--ink)}
+.unid .res{text-align:right}
+.unid .res .motivo{font-size:11.5px;color:var(--muted);font-weight:600;margin-top:4px;max-width:260px}
+.unid .det{padding:12px 14px 14px;border-top:1px solid var(--linha);background:var(--surface-2)}
+.unid .det .grade{margin-bottom:10px}
+.prova{font-family:ui-monospace,Consolas,monospace;font-size:11.5px;color:#44585f;background:#fff;border:1px solid var(--linha);border-radius:8px;padding:8px 10px}
+.prova div{padding:2px 0}
+.resumo{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.pill{background:var(--surface-2);border:1px solid var(--linha);border-radius:999px;padding:5px 12px;font-size:12px;font-weight:700;color:var(--muted)}
+.pill b{color:var(--petrol);font-family:var(--display);font-size:13.5px}
+.aviso{background:var(--amber-bg);border-left:3px solid var(--amber);color:#7a5a1c;padding:10px 13px;font-size:12.5px;border-radius:0 9px 9px 0;margin-top:10px;font-weight:600}
+
+/* ficha */
+.ficha{background:#fff;border:1px solid var(--linha);border-radius:14px;padding:26px 30px;color:#1d2b32}
+.f-titulo{font-family:var(--display);font-size:24px;color:var(--petrol);margin:0 0 2px}
+.f-sub{font-size:12px;color:var(--muted);margin-bottom:14px;font-weight:600}
+.f-secao{font-size:11px;font-weight:800;letter-spacing:.7px;color:var(--petrol);text-transform:uppercase;border-left:4px solid var(--teal);padding-left:8px;margin:14px 0 8px}
+.f-id th{background:var(--prev-bg);color:var(--petrol);width:16%;border:1px solid var(--linha);text-transform:none;letter-spacing:0;font-size:12px}
+.f-id td{border:1px solid var(--linha);font-size:12.5px}
+.f-tab th{background:var(--petrol);color:#fff;font-size:10.5px}
+.f-tab td{border:1px solid var(--linha);font-size:12px}
+.f-tab td.r{font-weight:800;text-align:center}
+.f-caixas{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-top:14px}
+.f-caixa h4{font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:var(--petrol);border-left:4px solid var(--teal);padding-left:8px;margin:0 0 6px}
+.f-caixa p{margin:0;background:#f5f9fb;border:1px solid var(--linha);padding:9px 11px;font-size:12px;min-height:50px;border-radius:9px}
+.cx-exc h4{border-left-color:var(--red)}.cx-rean h4{border-left-color:var(--amber)}
+
+/* filtros */
+.filtros{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.filtros .campo{width:auto;min-width:150px}
+.nota-mock{font-size:12px;color:var(--muted);font-weight:600;background:var(--surface);border:1px dashed var(--borda);border-radius:10px;padding:10px 14px;margin-bottom:14px}
+.nota-mock b{color:var(--petrol)}
+.lista-regras{margin:0;padding-left:18px;font-size:13px}
+.lista-regras li{padding:5px 0 5px 10px;margin-bottom:4px;border-left:4px solid var(--linha);list-style:none}
+.r-exc{border-left-color:var(--red)!important}.r-sob{border-left-color:var(--amber)!important}
+.perm{display:flex;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--linha);border-radius:10px;background:var(--surface-2)}
+.avatar{width:30px;height:30px;border-radius:50%;background:var(--petrol);color:#fff;display:grid;place-items:center;font-weight:800;font-size:12px}
+</style>
+</head>
+<body>
+<div class="mock-banner"><b>MOCKUP</b> · dados fictícios · navegue pelas abas para ver cada tela · nada aqui grava</div>
+
+<header class="topo"><div class="topo-in">
+  <div class="linha1">
+    <div class="brand"><div class="logo">MB</div><div><b>Análise de Espólio</b><span>Cobrança · Coordenação · MyBlue</span></div></div>
+    <div class="acesso">
+      <span class="sync"><i></i>Base compartilhada · ao vivo</span>
+      <span class="chip">Rodada aberta: <b>Cond. Fênix Residence</b> · AE-2026-0014</span>
+      <span class="chip">Raphael · coordenação</span>
+    </div>
+  </div>
+  <nav class="tabs" id="tabs">
+    <button class="tab ativa" data-tab="dash">Dashboard</button>
+    <button class="tab" data-tab="nova">Nova análise <span class="n">etapa 4/4</span></button>
+    <button class="tab" data-tab="ficha">Ficha</button>
+    <button class="tab" data-tab="hist">Histórico e acompanhamento <span class="n">3 vencidas</span></button>
+    <button class="tab" data-tab="conf">Configurações</button>
+  </nav>
+</div></header>
+
+<main>
+
+<!-- ============ DASHBOARD ============ -->
+<section class="painel ativa" id="p-dash">
+  <div class="tiles">
+    <div class="tile"><small>Análises em outubro</small><strong>7</strong><em>4 implantação · 3 acompanhamento</em></div>
+    <div class="tile"><small>Espólios sinalizados</small><strong>31</strong><em>nas 7 rodadas do mês</em></div>
+    <div class="tile"><small>Excluídos da garantia</small><strong>9</strong><em>29% dos sinalizados</em></div>
+    <div class="tile"><small>Sob análise</small><strong>22</strong><em>14 preventivo · 8 reanálise</em></div>
+    <div class="tile alerta"><small>Reanálises vencidas</small><strong>3</strong><em>mais de 90 dias sem nova rodada</em></div>
+  </div>
+
+  <div class="card">
+    <header><h2>Resultado por mês</h2><span class="dica">últimos 6 meses · unidades classificadas</span></header>
+    <div class="corpo chart">
+      <div class="legenda"><span><i style="background:#d8463b"></i>Excluir</span><span><i style="background:#d98a1b"></i>Sob análise · Reanálise</span><span><i style="background:#199cb1"></i>Sob análise · Preventivo</span></div>
+      <svg viewBox="0 0 900 230" width="100%" aria-label="Unidades classificadas por mês">
+        <g stroke="#e4ecef" stroke-width="1"><line x1="40" x2="890" y1="30" y2="30"/><line x1="40" x2="890" y1="90" y2="90"/><line x1="40" x2="890" y1="150" y2="150"/><line x1="40" x2="890" y1="200" y2="200" stroke="#cdddE3"/></g>
+        <text x="34" y="34" text-anchor="end">40</text><text x="34" y="94" text-anchor="end">25</text><text x="34" y="154" text-anchor="end">10</text><text x="34" y="204" text-anchor="end">0</text>
+        <!-- maio -->
+        <g><rect x="80" y="152" width="70" height="48" fill="#199cb1" rx="0"/><rect x="80" y="128" width="70" height="22" fill="#d98a1b"/><rect x="80" y="104" width="70" height="22" fill="#d8463b" rx="4"/><text x="115" y="222" text-anchor="middle">mai</text><text x="115" y="98" text-anchor="middle" fill="#3c5660" font-weight="700">24</text></g>
+        <g><rect x="215" y="144" width="70" height="56" fill="#199cb1"/><rect x="215" y="112" width="70" height="30" fill="#d98a1b"/><rect x="215" y="88" width="70" height="22" fill="#d8463b" rx="4"/><text x="250" y="222" text-anchor="middle">jun</text><text x="250" y="82" text-anchor="middle" fill="#3c5660" font-weight="700">28</text></g>
+        <g><rect x="350" y="160" width="70" height="40" fill="#199cb1"/><rect x="350" y="134" width="70" height="24" fill="#d98a1b"/><rect x="350" y="122" width="70" height="10" fill="#d8463b" rx="4"/><text x="485" y="222"/><text x="385" y="222" text-anchor="middle">jul</text><text x="385" y="116" text-anchor="middle" fill="#3c5660" font-weight="700">19</text></g>
+        <g><rect x="485" y="136" width="70" height="64" fill="#199cb1"/><rect x="485" y="100" width="70" height="34" fill="#d98a1b"/><rect x="485" y="68" width="70" height="30" fill="#d8463b" rx="4"/><text x="520" y="222" text-anchor="middle">ago</text><text x="520" y="62" text-anchor="middle" fill="#3c5660" font-weight="700">33</text></g>
+        <g><rect x="620" y="148" width="70" height="52" fill="#199cb1"/><rect x="620" y="120" width="70" height="26" fill="#d98a1b"/><rect x="620" y="96" width="70" height="22" fill="#d8463b" rx="4"/><text x="655" y="222" text-anchor="middle">set</text><text x="655" y="90" text-anchor="middle" fill="#3c5660" font-weight="700">26</text></g>
+        <g><rect x="755" y="144" width="70" height="56" fill="#199cb1"/><rect x="755" y="110" width="70" height="32" fill="#d98a1b"/><rect x="755" y="72" width="70" height="36" fill="#d8463b" rx="4"/><text x="790" y="222" text-anchor="middle">out</text><text x="790" y="66" text-anchor="middle" fill="#3c5660" font-weight="700">31</text></g>
+      </svg>
+    </div>
+  </div>
+
+  <div class="dois">
+    <div class="card">
+      <header><h2>Próximas reanálises</h2><span class="dica">unidades sob análise · prazo de 90 dias</span></header>
+      <table>
+        <thead><tr><th>Condomínio</th><th>Unid.</th><th>Última rodada</th><th>Prazo</th><th></th></tr></thead>
+        <tbody>
+          <tr><td>Cond. Palladium Business</td><td>4</td><td>02/07/2026</td><td class="venc">vencida há 15 dias</td><td><button class="link">reanalisar</button></td></tr>
+          <tr><td>Cond. Vila das Flores</td><td>2</td><td>09/07/2026</td><td class="venc">vencida há 8 dias</td><td><button class="link">reanalisar</button></td></tr>
+          <tr><td>Cond. Fantastique 3</td><td>3</td><td>14/07/2026</td><td class="venc">vencida há 3 dias</td><td><button class="link">reanalisar</button></td></tr>
+          <tr><td>Cond. Jardim Europa</td><td>5</td><td>21/07/2026</td><td>em 4 dias</td><td><button class="link">reanalisar</button></td></tr>
+          <tr><td>Cond. Mirante do Lago</td><td>1</td><td>30/07/2026</td><td>em 13 dias</td><td><button class="link">reanalisar</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <header><h2>Condomínios com mais exclusões</h2><span class="dica">acumulado 2026</span></header>
+      <table>
+        <thead><tr><th>Condomínio</th><th>Sinalizados</th><th>Excluídos</th><th>Rodadas</th></tr></thead>
+        <tbody>
+          <tr><td>Cond. Fênix Residence</td><td>11</td><td><b>5</b></td><td>3</td></tr>
+          <tr><td>Cond. Palladium Business</td><td>9</td><td><b>4</b></td><td>2</td></tr>
+          <tr><td>Cond. Fantastique 3</td><td>8</td><td><b>3</b></td><td>2</td></tr>
+          <tr><td>Cond. Jardim Europa</td><td>7</td><td><b>2</b></td><td>2</td></tr>
+          <tr><td>Cond. Vila das Flores</td><td>6</td><td><b>1</b></td><td>1</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ============ NOVA ANÁLISE ============ -->
+<section class="painel" id="p-nova">
+  <div class="nota-mock"><b>Como funciona:</b> as quatro etapas ficam uma embaixo da outra. Cada uma marca verde quando concluída. O bloco de cada unidade substitui a tabela larga de hoje e abre para mostrar as evidências.</div>
+  <div class="resumo">
+    <span class="pill">Sinalizados <b>6</b></span><span class="pill">Sob análise <b>4</b></span><span class="pill">Excluir <b>2</b></span><span class="pill">Pendências <b>1</b></span>
+    <span style="flex:1"></span>
+    <button class="btn sec mini">Salvar rascunho</button><button class="btn mini">Concluir análise</button>
+  </div>
+
+  <div class="stepper">
+    <div class="step feito"><div class="bola">✓</div>
+      <div class="card"><header><h2>1 · Documentos</h2><span class="dica">3 de 4 anexados · texto extraído guardado como evidência</span></header>
+        <div class="corpo grade">
+          <div class="doc ok"><div class="ico">PDF</div><div><b>Inadimplência MyBlue (Vouch)</b><span>vouch_fenix_out26.pdf · 14 devedores</span></div></div>
+          <div class="doc ok"><div class="ico">PDF</div><div><b>Inadimplência anterior</b><span>relatorio_admin_fenix.pdf · 9 devedores</span></div></div>
+          <div class="doc ok"><div class="ico">PDF</div><div><b>E-mail de sinalização</b><span>6 espólios · analista: Ana Paula Ribeiro</span></div></div>
+          <div class="doc falta"><div class="ico">BI</div><div><b>Power BI · base do dia</b><span>usando a base de 14/10 (compartilhada)</span></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step feito"><div class="bola">✓</div>
+      <div class="card"><header><h2>2 · Condomínio e contrato</h2><span class="dica">campos azulados vieram dos documentos</span></header>
+        <div class="corpo">
+          <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:14px">
+            <span style="font-weight:700;color:var(--petrol);font-size:13px">Tipo de análise</span>
+            <div class="seg"><button class="ativo">Implantação</button><button>Acompanhamento</button></div>
+            <span class="ajuda" style="margin:0">Em acompanhamento, as unidades da rodada anterior já vêm carregadas.</span>
+          </div>
+          <div class="grade">
+            <div><label>Condomínio</label><input class="campo auto" value="Condomínio Fênix Residence" readonly><p class="ajuda">escolhido da base de 335 condomínios</p></div>
+            <div><label>CNPJ</label><input class="campo auto" value="12.345.678/0001-90" readonly></div>
+            <div><label>Idade da garantia</label><input class="campo auto" value="4 meses" readonly><p class="ajuda">contrato recente · regra 5</p></div>
+            <div><label>Resultado do BI</label><input class="campo auto" value="− R$ 2.953,10" readonly></div>
+            <div><label>Analista (remetente)</label><input class="campo auto" value="Ana Paula Ribeiro" readonly></div>
+            <div><label>Protocolo</label><input class="campo" value="AE-2026-0014" readonly><p class="ajuda">sequencial automático</p></div>
+            <div><label>Data da análise</label><input class="campo" value="17/10/2026" readonly></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step feito"><div class="bola">✓</div>
+      <div class="card"><header><h2>3 · Espólios sinalizados</h2><span class="dica">6 unidades · vindas do e-mail</span></header>
+        <div class="corpo">
+          <table>
+            <thead><tr><th>Unid.</th><th>Titular</th><th>CPF</th><th>Casamento Vouch</th><th>Casamento anterior</th></tr></thead>
+            <tbody>
+              <tr><td>101</td><td>MARIA DE SOUZA LIMA</td><td>123.456.789-00</td><td><span class="selo s-ok">CPF</span></td><td><span class="selo s-ok">nome + unid.</span></td></tr>
+              <tr><td>204</td><td>JOÃO PEREIRA DOS SANTOS</td><td>234.567.890-11</td><td><span class="selo s-ok">CPF</span></td><td><span class="selo s-rasc">não localizado</span></td></tr>
+              <tr><td>307</td><td>ANA LIMA CARVALHO</td><td>—</td><td><span class="selo s-rean">nome (conferir)</span></td><td><span class="selo s-ok">nome + unid.</span></td></tr>
+              <tr><td>402</td><td>CARLOS EDUARDO MOTA</td><td>456.789.012-33</td><td><span class="selo s-rasc">não localizado</span></td><td><span class="selo s-rasc">não localizado</span></td></tr>
+              <tr><td>508</td><td>FRANCISCA ALVES NETO</td><td>567.890.123-44</td><td><span class="selo s-ok">CPF</span></td><td><span class="selo s-ok">CPF</span></td></tr>
+              <tr><td>B-12</td><td>PEDRO HENRIQUE ROCHA</td><td>678.901.234-55</td><td><span class="selo s-ok">CPF</span></td><td><span class="selo s-rasc">não localizado</span></td></tr>
+            </tbody>
+          </table>
+          <div class="acoes" style="margin-top:12px"><button class="btn sec mini">Adicionar unidade</button><button class="btn sec mini">Recontar taxas</button></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step atual"><div class="bola">4</div>
+      <div class="card"><header><h2>4 · Classificação</h2><span class="dica">regras 1 a 5 na ordem da política · clique na unidade para ver as evidências</span></header>
+        <div class="corpo">
+
+          <details class="unid" open>
+            <summary><div class="num">101</div>
+              <div class="quem"><b>MARIA DE SOUZA LIMA</b><span>123.456.789-00</span>
+                <div class="taxas"><span>Vouch <b>3</b></span><span>Anterior <b>2</b></span></div></div>
+              <div class="res"><span class="selo s-exc">Excluir</span><div class="motivo">Regra 1 · 3 no Vouch e 2 na base anterior.</div></div>
+            </summary>
+            <div class="det">
+              <div class="grade">
+                <div><label>Ajuste do analista</label><select class="campo"><option>Automático</option><option>Sob análise</option><option>Excluir</option></select></div>
+                <div><label>Motivo do ajuste (obrigatório se alterar)</label><input class="campo" placeholder="ex.: alvará judicial apresentado"></div>
+                <div><label>Observação para a ficha</label><input class="campo" placeholder="titular divergente, inventário..."></div>
+              </div>
+              <label>Evidências · Vouch (3 competências)</label>
+              <div class="prova"><div>☑ 05/2026 — 0101 · MARIA DE SOUZA LIMA · venc. 10/05/2026 · R$ 412,30</div><div>☑ 06/2026 — 0101 · MARIA DE SOUZA LIMA · venc. 10/06/2026 · R$ 412,30</div><div>☑ 07/2026 — 0101 · MARIA DE SOUZA LIMA · venc. 10/07/2026 · R$ 418,90</div></div>
+            </div>
+          </details>
+
+          <details class="unid">
+            <summary><div class="num">204</div>
+              <div class="quem"><b>JOÃO PEREIRA DOS SANTOS</b><span>234.567.890-11</span>
+                <div class="taxas"><span>Vouch <b>1</b></span><span>Anterior <b>0</b></span></div></div>
+              <div class="res"><span class="selo s-prev">Sob análise · Preventivo</span><div class="motivo">Regra 5 · contrato recente (4 meses) e 1 cobrança.</div></div>
+            </summary>
+            <div class="det"><p class="ajuda" style="margin:0">Detalhes e evidências abrem aqui.</p></div>
+          </details>
+
+          <details class="unid">
+            <summary><div class="num">307</div>
+              <div class="quem"><b>ANA LIMA CARVALHO</b><span>sem CPF · casamento por nome</span>
+                <div class="taxas"><span>Vouch <b>0</b></span><span>Anterior <b>4</b></span></div></div>
+              <div class="res"><span class="selo s-prev">Sob análise · Preventivo</span><div class="motivo">Regra 2 · sem Vouch; recorrência anterior (4).</div></div>
+            </summary>
+            <div class="det"><p class="ajuda" style="margin:0">Detalhes e evidências abrem aqui.</p></div>
+          </details>
+
+          <details class="unid">
+            <summary><div class="num">402</div>
+              <div class="quem"><b>CARLOS EDUARDO MOTA</b><span>456.789.012-33</span>
+                <div class="taxas"><span>Vouch <b>0</b></span><span>Anterior <b>0</b></span></div></div>
+              <div class="res"><span class="selo s-prev">Sob análise · Preventivo</span><div class="motivo">Regra 3 · implantação sem inadimplência (esperado).</div></div>
+            </summary>
+            <div class="det"><p class="ajuda" style="margin:0">Detalhes e evidências abrem aqui.</p></div>
+          </details>
+
+          <details class="unid">
+            <summary><div class="num">508</div>
+              <div class="quem"><b>FRANCISCA ALVES NETO</b><span>567.890.123-44</span>
+                <div class="taxas"><span>Vouch <b>4</b></span><span>Anterior <b>—</b></span></div></div>
+              <div class="res"><span class="selo s-rean">Pendência · 5.5</span><div class="motivo">Sem leitura do relatório anterior para este devedor.</div></div>
+            </summary>
+            <div class="det"><p class="ajuda" style="margin:0">Detalhes e evidências abrem aqui.</p></div>
+          </details>
+
+          <details class="unid">
+            <summary><div class="num">B-12</div>
+              <div class="quem"><b>PEDRO HENRIQUE ROCHA</b><span>678.901.234-55</span>
+                <div class="taxas"><span>Vouch <b>5</b></span><span>Anterior <b>3</b></span></div></div>
+              <div class="res"><span class="selo s-exc">Excluir</span><div class="motivo">Regra 1 · 5 no Vouch e 3 na base anterior.</div></div>
+            </summary>
+            <div class="det"><p class="ajuda" style="margin:0">Detalhes e evidências abrem aqui.</p></div>
+          </details>
+
+          <div class="aviso">1 pendência (unidade 508) impede a conclusão. Resolva a pendência ou registre o motivo para concluir com ressalva.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FICHA ============ -->
+<section class="painel" id="p-ficha">
+  <div class="acoes" style="justify-content:flex-end;margin-bottom:12px"><button class="btn sec">Planilha de acompanhamento</button><button class="btn">Imprimir ficha (A4)</button></div>
+  <div class="ficha">
+    <div class="f-titulo">Análise de Espólio</div>
+    <div class="f-sub">Protocolo AE-2026-0014 • 17/10/2026 • Cobrança / Coordenação</div>
+    <div class="f-secao">Condomínio analisado</div>
+    <table class="f-id"><tr><th>Razão social</th><td>Condomínio Fênix Residence</td><th>CNPJ</th><td>12.345.678/0001-90</td></tr>
+      <tr><th>Tipo de análise</th><td>Implantação (1ª análise)</td><th>Analista</th><td>Ana Paula Ribeiro</td></tr>
+      <tr><th>Idade da garantia</th><td>4 meses</td><th>Resultado do BI</th><td>− R$ 2.953,10</td></tr></table>
+    <div class="f-secao">Unidades sinalizadas × relatórios de inadimplência</div>
+    <table class="f-tab"><thead><tr><th>Unid.</th><th>Titular</th><th>CPF</th><th>Inadimplência anterior</th><th>Vouch</th><th>Resultado</th></tr></thead>
+      <tbody>
+        <tr><td><b>101</b></td><td>MARIA DE SOUZA LIMA</td><td>123.456.789-00</td><td>Inadimplente (2 taxas)</td><td>Inadimplente (3 taxas)</td><td class="r" style="background:var(--red-bg);color:var(--red)">Excluir<br><small>Regra 1</small></td></tr>
+        <tr><td><b>204</b></td><td>JOÃO PEREIRA DOS SANTOS</td><td>234.567.890-11</td><td>Sem cobrança</td><td>Inadimplente (1 taxa)</td><td class="r" style="background:var(--prev-bg);color:var(--petrol)">Sob análise · Preventivo<br><small>Regra 5</small></td></tr>
+        <tr><td><b>307</b></td><td>ANA LIMA CARVALHO</td><td>—</td><td>Inadimplente (4 taxas)</td><td>Sem cobrança</td><td class="r" style="background:var(--prev-bg);color:var(--petrol)">Sob análise · Preventivo<br><small>Regra 2</small></td></tr>
+        <tr><td><b>402</b></td><td>CARLOS EDUARDO MOTA</td><td>456.789.012-33</td><td>Sem cobrança</td><td>Sem cobrança</td><td class="r" style="background:var(--prev-bg);color:var(--petrol)">Sob análise · Preventivo<br><small>Regra 3</small></td></tr>
+        <tr><td><b>508</b></td><td>FRANCISCA ALVES NETO</td><td>567.890.123-44</td><td>Não informado</td><td>Inadimplente (4 taxas)</td><td class="r" style="background:var(--amber-bg);color:#b57a12">Sob análise<br><small>Regra 5.5</small></td></tr>
+        <tr><td><b>B-12</b></td><td>PEDRO HENRIQUE ROCHA</td><td>678.901.234-55</td><td>Inadimplente (3 taxas)</td><td>Inadimplente (5 taxas)</td><td class="r" style="background:var(--red-bg);color:var(--red)">Excluir<br><small>Regra 1</small></td></tr>
+      </tbody></table>
+    <div class="f-caixas">
+      <div class="f-caixa cx-exc"><h4>Sugestão: excluir da garantia</h4><p>101 — MARIA DE SOUZA LIMA; B-12 — PEDRO HENRIQUE ROCHA</p></div>
+      <div class="f-caixa"><h4>Sob análise · Preventivo</h4><p>204 — JOÃO PEREIRA DOS SANTOS; 307 — ANA LIMA CARVALHO; 402 — CARLOS EDUARDO MOTA; 508 — FRANCISCA ALVES NETO</p></div>
+      <div class="f-caixa"><h4>Observações</h4><p>508: relatório anterior não cobre a unidade — pendência registrada.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ HISTÓRICO ============ -->
+<section class="painel" id="p-hist">
+  <div class="nota-mock"><b>Aqui mora o ganho do banco:</b> toda rodada fica salva. Abrir um condomínio em acompanhamento carrega as unidades da rodada anterior e mostra a evolução das taxas.</div>
+  <div class="card">
+    <header><h2>Rodadas de análise</h2><span class="dica">23 rodadas em 2026</span></header>
+    <div class="corpo">
+      <div class="filtros">
+        <input class="campo" placeholder="Buscar condomínio ou protocolo">
+        <select class="campo"><option>Todos os tipos</option><option>Implantação</option><option>Acompanhamento</option></select>
+        <select class="campo"><option>Todos os status</option><option>Rascunho</option><option>Concluída</option></select>
+        <select class="campo"><option>Últimos 90 dias</option><option>2026</option><option>Tudo</option></select>
+      </div>
+      <table>
+        <thead><tr><th>Protocolo</th><th>Condomínio</th><th>Tipo</th><th>Data</th><th>Sinalizados</th><th>Excluídos</th><th>Status</th><th>Próxima reanálise</th></tr></thead>
+        <tbody>
+          <tr><td>AE-2026-0014</td><td>Cond. Fênix Residence</td><td>Implantação</td><td>17/10/2026</td><td>6</td><td>2</td><td><span class="selo s-rasc">Rascunho</span></td><td>—</td></tr>
+          <tr><td>AE-2026-0013</td><td>Cond. Mirante do Lago</td><td>Acompanhamento</td><td>15/10/2026</td><td>3</td><td>1</td><td><span class="selo s-ok">Concluída</span></td><td>13/01/2027</td></tr>
+          <tr><td>AE-2026-0012</td><td>Cond. Jardim Europa</td><td>Implantação</td><td>09/10/2026</td><td>5</td><td>2</td><td><span class="selo s-ok">Concluída</span></td><td>07/01/2027</td></tr>
+          <tr><td>AE-2026-0011</td><td>Cond. Vila das Flores</td><td>Acompanhamento</td><td>02/10/2026</td><td>4</td><td>0</td><td><span class="selo s-ok">Concluída</span></td><td>31/12/2026</td></tr>
+          <tr><td>AE-2026-0010</td><td>Cond. Palladium Business</td><td>Implantação</td><td>02/07/2026</td><td>9</td><td>4</td><td><span class="selo s-ok">Concluída</span></td><td class="venc">vencida há 15 dias</td></tr>
+          <tr><td>AE-2026-0009</td><td>Cond. Fantastique 3</td><td>Acompanhamento</td><td>14/07/2026</td><td>5</td><td>2</td><td><span class="selo s-ok">Concluída</span></td><td class="venc">vencida há 3 dias</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <header><h2>Evolução · Cond. Fênix Residence · unid. 101</h2><span class="dica">como fica ao abrir uma unidade no histórico</span></header>
+    <div class="corpo">
+      <table>
+        <thead><tr><th>Rodada</th><th>Tipo</th><th>Taxas Vouch</th><th>Taxas anterior</th><th>Resultado</th><th>Ajuste</th><th>Por</th></tr></thead>
+        <tbody>
+          <tr><td>AE-2026-0003 · 12/04/2026</td><td>Implantação</td><td>1</td><td>2</td><td><span class="selo s-prev">Preventivo</span></td><td>—</td><td>Raphael</td></tr>
+          <tr><td>AE-2026-0008 · 11/07/2026</td><td>Acompanhamento</td><td>2</td><td>2</td><td><span class="selo s-rean">Reanálise</span></td><td>—</td><td>Raphael</td></tr>
+          <tr><td>AE-2026-0014 · 17/10/2026</td><td>Acompanhamento</td><td>3</td><td>2</td><td><span class="selo s-exc">Excluir</span></td><td>—</td><td>Raphael</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CONFIGURAÇÕES ============ -->
+<section class="painel" id="p-conf">
+  <div class="dois">
+    <div class="card">
+      <header><h2>Quem pode usar</h2><span class="dica">definido no portal</span></header>
+      <div class="corpo" style="display:flex;flex-direction:column;gap:8px">
+        <div class="perm"><div class="avatar">RA</div><div><b>Raphael</b><div class="ajuda" style="margin:0">Coordenação de Cobrança · analisa e conclui</div></div></div>
+        <div class="perm"><div class="avatar" style="background:var(--muted)">SU</div><div><b>Supervisão / Gerência</b><div class="ajuda" style="margin:0">somente leitura: dashboard, histórico e fichas</div></div></div>
+        <p class="ajuda">Somente a coordenação de Cobrança cria e conclui análises. Os demais perfis, se liberados, só consultam.</p>
+      </div>
+    </div>
+    <div class="card">
+      <header><h2>Base do Power BI</h2><span class="dica">compartilhada pela equipe</span></header>
+      <div class="corpo">
+        <div class="doc ok"><div class="ico">XLS</div><div><b>base_bi_2026-10-14.xlsx</b><span>312 condomínios · enviada por Raphael às 08:40</span></div></div>
+        <div class="acoes" style="margin-top:10px"><button class="btn sec mini">Subir nova base</button></div>
+        <p class="ajuda">A base vale para todos. Hoje ela fica presa ao navegador de quem subiu.</p>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <header><h2>Regras da política</h2><span class="dica">texto exibido na etapa de classificação</span></header>
+    <div class="corpo">
+      <p class="ajuda" style="margin:0 0 10px"><b>Implantação → base Preventivo.</b> Exclusão pelas regras 1 a 5.</p>
+      <ol class="lista-regras">
+        <li class="r-exc"><b>Vouch + anterior → Excluir.</b></li>
+        <li class="r-sob"><b>Sem Vouch + anterior recorrente (3+) → Preventivo.</b></li>
+        <li class="r-sob"><b>Sem Vouch (sem anterior ou pontual) → Preventivo.</b></li>
+        <li class="r-sob"><b>Só Vouch + BI positivo.</b> 3 ou mais → Excluir; menos de 3 → Preventivo.</li>
+        <li class="r-exc"><b>Só Vouch + BI negativo.</b> Preventivo só se vigência &lt; 6 meses e menos de 3 cobranças; senão Excluir.</li>
+      </ol>
+      <p class="ajuda"><b>Acompanhamento → base Reanálise.</b> 3 ou mais taxas no Vouch → Excluir; abaixo de 3 permanece em Reanálise. Item 5.5: faltando insumo, fica no status-base com pendência registrada.</p>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<script>
+document.getElementById('tabs').addEventListener('click', e => {
+  const b = e.target.closest('.tab'); if(!b) return;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('ativa', t === b));
+  document.querySelectorAll('.painel').forEach(p => p.classList.toggle('ativa', p.id === 'p-' + b.dataset.tab));
+  window.scrollTo({top:0});
+});
+document.querySelectorAll('.link').forEach(l => l.addEventListener('click', () => {
+  document.querySelector('[data-tab="nova"]').click();
+}));
+</script>
+</body>
+</html>

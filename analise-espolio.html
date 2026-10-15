@@ -1,0 +1,2141 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Análise de Espólio — MyBlue</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --teal:#199cb1;--teal-d:#147f90;--petrol:#0f5e73;--ink:#13323a;--ink-2:#3c5660;--muted:#6f8a94;--faint:#9db3bc;
+  --surface:#fff;--surface-2:#f6fafb;--fundo:#eef4f7;--linha:#dde8ec;--borda:#cdddE3;
+  --green:#1f9d6b;--green-bg:#e4f5ee;--amber:#d98a1b;--amber-bg:#fbf0db;--red:#d8463b;--red-bg:#fbe7e5;--prev-bg:#e4f3f6;
+  --font:"Nunito Sans",system-ui,sans-serif;--display:"Quicksand",system-ui,sans-serif;
+  --shadow-sm:0 1px 2px rgba(19,50,58,.06),0 1px 3px rgba(19,50,58,.05);
+}
+*{box-sizing:border-box}
+html{color-scheme:light}
+body{margin:0;background:var(--fundo);color:var(--ink);font-family:var(--font);font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased;
+  background-image:radial-gradient(1000px 500px at 90% -10%,rgba(25,156,177,.10),transparent 60%)}
+h1,h2,h3{margin:0;font-family:var(--display);font-weight:700}
+button{font:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+[hidden]{display:none!important}
+
+/* ===== cabeçalho ===== */
+.topo{background:var(--surface);border-bottom:1px solid var(--linha);position:sticky;top:0;z-index:20}
+.topo-in{max-width:1000px;margin:0 auto;padding:12px 20px 0;display:flex;flex-direction:column;gap:10px}
+.linha1{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:12px}
+.brand img{height:36px;width:auto;display:block}
+.brand b{display:block;font-family:var(--display);font-size:17px}
+.brand span{font-size:12px;color:var(--muted);font-weight:600}
+.acesso{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--muted);font-weight:600;flex-wrap:wrap}
+.sync{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-weight:800;font-size:11.5px;background:var(--surface-2);color:var(--muted);border:1px solid var(--linha)}
+.sync i{width:7px;height:7px;border-radius:50%;background:var(--faint);display:inline-block}
+.sync.on{background:var(--green-bg);color:var(--green);border-color:transparent}.sync.on i{background:var(--green)}
+.sync.err{background:var(--red-bg);color:var(--red);border-color:transparent}.sync.err i{background:var(--red)}
+.sync.local{background:var(--amber-bg);color:#b57a12;border-color:transparent}.sync.local i{background:var(--amber)}
+.chip{background:var(--surface-2);border:1px solid var(--linha);padding:4px 10px;border-radius:999px}
+.tabs{display:flex;gap:2px;overflow-x:auto;margin:0 -20px;padding:0 20px;scrollbar-width:none}
+.tab{border:0;background:none;padding:10px 13px;font-weight:700;color:var(--muted);border-bottom:3px solid transparent;white-space:nowrap;display:flex;gap:7px;align-items:center}
+.tab .n{background:var(--surface-2);border:1px solid var(--linha);border-radius:999px;font-size:11px;padding:1px 7px;color:var(--ink-2)}
+.tab .n.alerta{background:var(--red-bg);border-color:#f0cdc7;color:var(--red)}
+.tab.ativa{color:var(--petrol);border-bottom-color:var(--teal)}
+.tab.ativa .n{background:var(--prev-bg);border-color:#bfe0e7;color:var(--petrol)}
+
+main{max-width:1000px;margin:0 auto;padding:18px 20px 90px}
+.painel{display:none}.painel.ativa{display:block}
+.card{background:var(--surface);border:1px solid var(--linha);border-radius:14px;box-shadow:var(--shadow-sm);margin-bottom:14px}
+.card>header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 18px;border-bottom:1px solid var(--linha);flex-wrap:wrap}
+.card>header h2{font-size:15px}
+.card>header .dica{font-size:12px;color:var(--muted);font-weight:600}
+.corpo{padding:16px 18px}
+.btn{font-weight:700;font-size:13px;border:1px solid transparent;padding:8px 15px;border-radius:999px;background:linear-gradient(180deg,var(--teal),var(--teal-d));color:#fff;white-space:nowrap;display:inline-flex;align-items:center;gap:7px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.sec{background:var(--surface);color:var(--ink-2);border-color:var(--borda)}
+.btn.sec:hover{border-color:var(--teal);color:var(--teal-d)}
+.btn.mini{padding:5px 11px;font-size:12px}
+.btn.perigo{background:var(--surface);color:var(--red);border-color:#f0cdc7}
+.acoes{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.link{color:var(--teal-d);font-weight:700;text-decoration:underline;background:none;border:0;padding:0;cursor:pointer}
+.ajuda{font-size:12px;color:var(--muted);margin:6px 0 0;font-weight:600}
+.aviso{background:var(--amber-bg);border-left:3px solid var(--amber);color:#7a5a1c;padding:10px 13px;font-size:12.5px;border-radius:0 9px 9px 0;margin-top:10px;font-weight:600}
+.erro{background:var(--red-bg);border-left:3px solid var(--red);color:#8a2d24;padding:10px 13px;font-size:12.5px;border-radius:0 9px 9px 0;margin-top:10px;font-weight:600}
+.ok{background:var(--green-bg);border-left:3px solid var(--green);color:#1b5e45;padding:10px 13px;font-size:12.5px;border-radius:0 9px 9px 0;margin-top:10px;font-weight:600}
+.vazio{padding:30px 18px;text-align:center;color:var(--faint);font-size:13.5px;font-weight:600;border:1.5px dashed var(--borda);border-radius:12px}
+.nota{font-size:12px;color:var(--muted);font-weight:600;background:var(--surface);border:1px dashed var(--borda);border-radius:10px;padding:10px 14px;margin-bottom:14px}
+.nota b{color:var(--petrol)}
+
+/* ===== formulários ===== */
+label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.3px;color:var(--muted);margin-bottom:5px;font-weight:800}
+.campo,input[type=text],input[type=date],input[type=number],input[type=month],select,textarea{width:100%;padding:9px 11px;border:1px solid var(--borda);border-radius:9px;background:var(--surface-2);font:inherit;font-size:13.5px;color:var(--ink);outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--teal);background:#fff}
+input[data-auto]{border-color:#bfe0e7;background:#f3fafc}
+input[type=file]{padding:7px}
+textarea{min-height:100px;font-family:ui-monospace,Consolas,monospace;font-size:12px;resize:vertical}
+input[type=checkbox]{width:auto}
+.grade{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.check{display:flex;gap:8px;align-items:center;font-size:13px;font-weight:600;color:var(--ink-2)}
+.seg{display:inline-flex;border:1px solid var(--borda);border-radius:9px;overflow:hidden;background:#fff}
+.seg button{border:0;background:#fff;padding:7px 14px;font-size:12.5px;font-weight:700;color:#5a6b72}
+.seg button.ativo{background:var(--petrol);color:#fff}
+.seg button+button{border-left:1px solid var(--borda)}
+.sinal button{padding:7px 12px;font-size:15px}
+.sinal button:first-child.ativo{background:var(--red)}.sinal button:last-child.ativo{background:var(--green)}
+.filtros{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.filtros .campo,.filtros select,.filtros input{width:auto;min-width:150px}
+
+/* ===== tiles / dashboard ===== */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:14px}
+.tile{background:var(--surface);border:1px solid var(--linha);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow-sm)}
+.tile small{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);font-weight:800}
+.tile strong{display:block;font-family:var(--display);font-size:28px;margin:4px 0 2px;color:var(--ink)}
+.tile em{font-style:normal;font-size:12px;color:var(--muted);font-weight:600}
+.tile.alerta{border-color:#f0cdc7;background:#fff8f7}.tile.alerta strong{color:var(--red)}
+.chart{display:flex;flex-direction:column;gap:6px}
+.legenda{display:flex;gap:16px;font-size:12px;color:var(--ink-2);font-weight:600;flex-wrap:wrap}
+.legenda i{width:10px;height:10px;border-radius:2px;display:inline-block;margin-right:6px;vertical-align:-1px}
+svg.graf text{font-family:var(--font);fill:var(--muted);font-size:11px}
+.dois{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:720px){.dois{grid-template-columns:1fr}}
+
+/* ===== tabelas ===== */
+table{width:100%;border-collapse:collapse}
+th{font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);text-align:left;font-weight:800;padding:9px 10px;border-bottom:1px solid var(--linha);background:var(--surface-2);white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid var(--linha);font-size:13px;color:var(--ink-2);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+tr.clic{cursor:pointer}tr.clic:hover td{background:var(--surface-2)}
+.tabela-wrap{overflow-x:auto}
+.selo{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:800;white-space:nowrap}
+.s-prev{background:var(--prev-bg);color:var(--petrol)}.s-rean{background:var(--amber-bg);color:#b57a12}.s-exc{background:var(--red-bg);color:var(--red)}
+.s-ok{background:var(--green-bg);color:var(--green)}.s-rasc{background:var(--surface-2);color:var(--muted);border:1px solid var(--linha)}.s-enc{background:#e9eef0;color:#4a6670}
+.venc{color:var(--red);font-weight:800}
+.pill{background:var(--surface-2);border:1px solid var(--linha);border-radius:999px;padding:5px 12px;font-size:12px;font-weight:700;color:var(--muted)}
+.pill b{color:var(--petrol);font-family:var(--display);font-size:13.5px}
+.resumo{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+
+/* ===== stepper ===== */
+.stepper{display:flex;flex-direction:column}
+.step{display:grid;grid-template-columns:34px 1fr;gap:14px;position:relative}
+.step:not(:last-child)::before{content:"";position:absolute;left:16px;top:36px;bottom:0;width:2px;background:var(--linha)}
+.bola{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:13px;background:var(--surface-2);border:2px solid var(--borda);color:var(--muted);z-index:1}
+.step.feito .bola{background:var(--green);border-color:var(--green);color:#fff}
+.step.atual .bola{background:var(--petrol);border-color:var(--petrol);color:#fff}
+.step .card{margin-bottom:22px}
+.doc{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--linha);border-radius:10px;background:var(--surface-2);position:relative}
+.doc .ico{width:34px;height:34px;border-radius:8px;display:grid;place-items:center;font-weight:800;font-size:11px;background:var(--prev-bg);color:var(--petrol);flex:none}
+.doc b{display:block;font-size:13px}.doc span{font-size:11.5px;color:var(--muted);font-weight:600;display:block}
+.doc.ok .ico{background:var(--green-bg);color:var(--green)}
+.doc.erro .ico{background:var(--red-bg);color:var(--red)}
+.doc input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.dropzone{border:2px dashed var(--borda);border-radius:14px;padding:26px 18px;text-align:center;color:var(--muted);font-weight:700;background:var(--surface-2);position:relative}
+.dropzone.sobre{border-color:var(--teal);background:#f3fafc;color:var(--teal-d)}
+.dropzone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+
+/* ===== cartões de unidade ===== */
+.unid{border:1px solid var(--linha);border-radius:12px;margin-bottom:10px;overflow:hidden;background:var(--surface)}
+.unid.destaque{border-color:#e6c17a;box-shadow:0 0 0 2px var(--amber-bg)}
+.unid>summary{list-style:none;display:grid;grid-template-columns:minmax(54px,auto) 1fr auto;gap:12px;align-items:center;padding:12px 14px;cursor:pointer}
+.unid>summary::-webkit-details-marker{display:none}
+.unid .num{font-family:var(--display);font-weight:700;font-size:16px;color:var(--petrol);white-space:nowrap}
+.unid .quem b{display:block;font-size:14px}
+.unid .quem span{font-size:12px;color:var(--muted);font-weight:600}
+.taxas{display:flex;gap:14px;font-size:12px;color:var(--ink-2);font-weight:600;margin-top:4px;flex-wrap:wrap}
+.taxas b{font-family:var(--display);font-size:14px;color:var(--ink)}
+.unid .res{text-align:right}
+.unid .res .motivo{font-size:11.5px;color:var(--muted);font-weight:600;margin-top:4px;max-width:260px}
+.unid .det{padding:12px 14px 14px;border-top:1px solid var(--linha);background:var(--surface-2)}
+.unid .det .grade{margin-bottom:10px}
+.prova{font-family:ui-monospace,Consolas,monospace;font-size:11.5px;color:#44585f;background:#fff;border:1px solid var(--linha);border-radius:8px;padding:8px 10px;max-height:220px;overflow:auto}
+.prova div{padding:2px 0;display:flex;gap:8px;align-items:flex-start}
+.casamento{font-size:12px;font-weight:700;color:var(--green)}.casamento.fraco{color:#b57a12}.casamento.nao{color:var(--red)}
+@media(max-width:600px){.unid>summary{grid-template-columns:44px 1fr}.unid .res{grid-column:1/-1;text-align:left}}
+
+/* ===== lote ===== */
+.lote-cond{border:1px solid var(--linha);border-radius:14px;margin-bottom:14px;background:var(--surface)}
+.lote-cond>header{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--linha);flex-wrap:wrap}
+.lote-cond>header h3{font-size:15px}
+.lote-cond .corpo{padding:12px 16px}
+
+/* ===== ficha (deliverável impresso) ===== */
+.ficha{background:#fff;border:1px solid var(--linha);border-radius:14px;padding:26px 30px;color:#1d2b32;font-size:13px}
+.f-logo{max-height:44px;display:block}
+.f-titulo{font-family:var(--display);font-size:26px;font-weight:700;color:var(--petrol);margin:12px 0 2px}
+.f-sub{font-size:12px;color:var(--muted);margin-bottom:14px;font-weight:600}
+.f-secao{font-size:11px;font-weight:800;letter-spacing:.7px;color:var(--petrol);text-transform:uppercase;border-left:4px solid var(--teal);padding-left:8px;margin:14px 0 8px}
+.f-id th{background:var(--prev-bg);color:var(--petrol);width:16%;border:1px solid var(--linha);text-transform:none;letter-spacing:0;font-size:12px;padding:7px 10px}
+.f-id td{border:1px solid var(--linha);font-size:12.5px;padding:7px 10px}
+.f-destaques{display:flex;gap:14px;margin-top:12px;flex-wrap:wrap}
+.f-classif{flex:1 1 300px;background:#f2f7f9;border-left:5px solid var(--teal);padding:12px 16px;border-radius:0 10px 10px 0}
+.f-classif small{font-size:10.5px;letter-spacing:.8px;color:var(--muted);text-transform:uppercase;font-weight:800}
+.f-classif div{font-family:var(--display);font-size:18px;font-weight:700;color:var(--petrol);margin-top:4px}
+.f-resumo{flex:1 1 300px;background:var(--petrol);color:#fff;padding:12px 18px;border-radius:12px;display:flex;gap:26px}
+.f-resumo small{font-size:10.5px;letter-spacing:.8px;opacity:.8;text-transform:uppercase;font-weight:800}
+.f-resumo strong{display:block;font-family:var(--display);font-size:16px;margin-top:4px}
+.f-nota{font-size:12px;color:#4a5f68;font-style:italic;margin-top:10px}
+.f-tab{width:100%;border-collapse:collapse;font-size:12px;margin-top:6px}
+.f-tab thead th{background:var(--petrol);color:#fff;padding:7px 8px;border:1px solid var(--petrol);font-size:10.5px}
+.f-tab td{border:1px solid var(--linha);padding:6px 8px}
+.f-tab td.res{font-weight:800;text-align:center}
+.f-tab td.res small{display:block;font-weight:400;font-size:10px;opacity:.85}
+.res-PREV{background:#e4f3f6;color:#0f5e73}.res-REAN{background:#fdf4e3;color:#a9720f}.res-EXCLUIR{background:#fbecea;color:#a5301f}.res-ENC{background:#e9eef0;color:#4a6670}
+.f-legenda{display:flex;gap:16px;font-size:10.5px;color:var(--muted);margin-top:6px;flex-wrap:wrap;font-weight:600}
+.f-legenda span{display:flex;align-items:center;gap:5px}
+.f-legenda i{width:11px;height:11px;border-radius:2px;display:inline-block}
+.f-rodape-tab{font-size:10.5px;color:var(--muted);font-style:italic;margin-top:6px}
+.f-caixas{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
+.f-caixa h4{font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:var(--petrol);border-left:4px solid var(--teal);padding-left:8px;margin:0 0 6px}
+.f-caixa p{margin:0;background:#f5f9fb;border:1px solid var(--linha);padding:9px 11px;font-size:12px;min-height:50px;border-radius:9px}
+.cx-EXCLUIR h4{border-left-color:var(--red)}.cx-REAN h4{border-left-color:var(--amber)}
+.f-rodape{margin-top:18px;padding-top:10px;border-top:1px solid var(--linha);font-size:10.5px;color:var(--muted);display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+@media(max-width:700px){.f-caixas{grid-template-columns:1fr 1fr}}
+/* versão compacta usada na geração do PDF (1 página A4 paisagem) */
+.ficha.pdf{font-size:11.5px;padding:18px 26px}
+.ficha.pdf .f-logo{max-height:36px}.ficha.pdf .f-titulo{font-size:21px;margin:8px 0 0}.ficha.pdf .f-sub{margin-bottom:8px}
+.ficha.pdf .f-secao{margin:9px 0 5px}.ficha.pdf .f-id th,.ficha.pdf .f-id td{padding:4px 8px;font-size:11px}
+.ficha.pdf .f-destaques{margin-top:8px}.ficha.pdf .f-classif,.ficha.pdf .f-resumo{padding:8px 14px}.ficha.pdf .f-classif div{font-size:15px}.ficha.pdf .f-resumo strong{font-size:14px}
+.ficha.pdf .f-tab{font-size:11px}.ficha.pdf .f-tab thead th{padding:5px 7px}.ficha.pdf .f-tab td{padding:4px 7px}
+.ficha.pdf .f-caixas{margin-top:8px;gap:8px}.ficha.pdf .f-caixa p{min-height:34px;padding:6px 9px;font-size:11px}.ficha.pdf .f-rodape{margin-top:10px;padding-top:6px}
+
+/* ===== modal ===== */
+.modal{position:fixed;inset:0;background:rgba(19,50,58,.45);display:grid;place-items:center;z-index:50;padding:20px}
+.modal .caixa{background:var(--surface);border-radius:16px;max-width:1040px;width:100%;max-height:92vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.modal .caixa>header{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 18px;border-bottom:1px solid var(--linha);position:sticky;top:0;background:var(--surface);z-index:1;flex-wrap:wrap}
+.modal .caixa .corpo{padding:16px 18px}
+.fechar{background:none;border:0;font-size:22px;color:var(--muted);line-height:1;padding:4px 8px;border-radius:8px}
+.fechar:hover{background:var(--surface-2)}
+
+/* ===== toast ===== */
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;border-radius:999px;font-weight:700;font-size:13px;z-index:60;box-shadow:0 8px 24px rgba(0,0,0,.25);opacity:0;transition:opacity .2s}
+.toast.on{opacity:1}
+
+@media print{
+  body{background:#fff;background-image:none}
+  .topo,main>*:not(#areaImpressao),.toast,.modal{display:none!important}
+  main{max-width:none;padding:0}
+  #areaImpressao{display:block!important}
+  .ficha{border:0;box-shadow:none;padding:0;border-radius:0}
+  @page{size:A4 landscape;margin:10mm}
+}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+<body>
+
+<header class="topo"><div class="topo-in">
+  <div class="linha1">
+    <div class="brand"><img src="data:image/png;base64,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" alt="MyBlue Condomínio Garantido"><div><b>Análise de Espólio</b><span>Cobrança · Coordenação · MyBlue</span></div></div>
+    <div class="acesso">
+      <span class="sync" id="sync"><i></i>Conectando…</span>
+      <span class="chip" id="chipUsuario" hidden></span>
+    </div>
+  </div>
+  <nav class="tabs" id="tabs">
+    <button class="tab ativa" data-tab="dash">Dashboard</button>
+    <button class="tab" data-tab="verif">Verificação mensal</button>
+    <button class="tab" data-tab="nova">Nova análise <span class="n" id="nNova" hidden></span></button>
+    <button class="tab" data-tab="lote">Reanálise do dia <span class="n" id="nFila" hidden></span></button>
+    <button class="tab" data-tab="hist">Histórico</button>
+    <button class="tab" data-tab="conf">Configurações</button>
+  </nav>
+</div></header>
+
+<main>
+
+<!-- ================= DASHBOARD ================= -->
+<section class="painel ativa" id="p-dash">
+  <div class="tiles" id="dashTiles"></div>
+  <div class="card">
+    <header><h2>Resultado por mês</h2><span class="dica">unidades classificadas nas rodadas concluídas · últimos 6 meses</span></header>
+    <div class="corpo chart" id="dashGrafico"></div>
+  </div>
+  <div class="dois">
+    <div class="card">
+      <header><h2>Próximas reanálises</h2><span class="dica">prazo de 90 dias por condomínio</span></header>
+      <div class="tabela-wrap" id="dashFila"></div>
+    </div>
+    <div class="card">
+      <header><h2>Condomínios com mais exclusões</h2><span class="dica">acumulado do ano</span></header>
+      <div class="tabela-wrap" id="dashExclusoes"></div>
+    </div>
+  </div>
+  <div class="card">
+    <header><h2>Resumo mensal</h2><div class="acoes"><input type="month" id="resumoMes" class="campo" style="width:auto"><button class="btn sec mini" id="btnResumo">Gerar resumo</button></div></header>
+    <div class="corpo" id="resumoMensal"><div class="vazio">Escolha o mês e clique em “Gerar resumo”.</div></div>
+  </div>
+</section>
+
+<!-- ================= VERIFICAÇÃO MENSAL ================= -->
+<section class="painel" id="p-verif">
+  <div class="nota"><b>Verificação mensal:</b> cada condomínio com vigência iniciada no mês é verificado e marcado como com ou sem espólio. Os que têm espólio seguem para a análise de implantação. Substitui a planilha “Controle de Verificação de Espólios”.</div>
+  <div class="card">
+    <header><h2>Condomínios verificados</h2>
+      <div class="acoes"><input type="month" id="verifMes" class="campo" style="width:auto"><button class="btn sec mini" id="btnVerifAdd">Adicionar condomínio</button></div></header>
+    <div class="corpo">
+      <div class="resumo" id="verifResumo"></div>
+      <div class="tabela-wrap" id="verifTabela"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= NOVA ANÁLISE (IMPLANTAÇÃO) ================= -->
+<section class="painel" id="p-nova">
+  <div id="novaLista"></div>
+  <div id="novaEditor" hidden>
+    <div class="resumo" id="novaResumo"></div>
+    <div class="stepper">
+      <div class="step atual" id="step1"><div class="bola">1</div>
+        <div class="card"><header><h2>1 · Documentos</h2><span class="dica" id="dicaDocs">Anexe os PDFs — os campos preenchem sozinhos</span></header>
+          <div class="corpo">
+            <div class="grade" id="docsGrade">
+              <div class="doc" id="docVouch"><div class="ico">PDF</div><div><b>Inadimplência MyBlue (Vouch)</b><span>Relatório consolidado do Vouch</span></div><input type="file" accept="application/pdf" data-doc="vouch"></div>
+              <div class="doc" id="docAnt"><div class="ico">PDF</div><div><b>Inadimplência anterior</b><span>Relatório da administradora anterior</span></div><input type="file" accept="application/pdf" data-doc="ant"></div>
+              <div class="doc" id="docEmail"><div class="ico">PDF</div><div><b>E-mail de sinalização</b><span>Espólios sinalizados pela Cobrança</span></div><input type="file" accept="application/pdf" data-doc="email"></div>
+              <div class="doc" id="docBi"><div class="ico">BI</div><div><b>Power BI · base do dia</b><span id="docBiStatus">Nenhuma base carregada</span></div><input type="file" accept=".xlsx,.xls,.csv,application/pdf" data-doc="bi"></div>
+            </div>
+            <details style="margin-top:12px">
+              <summary style="cursor:pointer;font-size:13px;color:var(--petrol);font-weight:700">Texto extraído dos documentos (revisar ou colar manualmente)</summary>
+              <div class="grade" style="margin-top:10px">
+                <div><label>Vouch</label><textarea id="relVouch" placeholder="Texto extraído do PDF — editável"></textarea></div>
+                <div><label>Anterior</label><textarea id="relAdmin" placeholder="Texto extraído do PDF — editável"></textarea></div>
+                <div><label>E-mail</label><textarea id="relEmail" placeholder="Texto extraído do PDF do e-mail — editável"></textarea></div>
+              </div>
+              <div class="acoes" style="margin-top:10px">
+                <button class="btn sec mini" id="btnReprocessar">Reprocessar textos</button>
+                <span class="check"><input type="checkbox" id="soValor" checked><span>Anterior: contar só linhas com valor em R$</span></span>
+              </div>
+            </details>
+            <div id="diagnostico"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step" id="step2"><div class="bola">2</div>
+        <div class="card"><header><h2>2 · Condomínio e contrato</h2><span class="dica">Campos azulados vieram dos documentos — edite se precisar</span></header>
+          <div class="corpo">
+            <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:14px">
+              <span style="font-weight:700;color:var(--petrol);font-size:13px">Tipo de análise</span>
+              <div class="seg" id="tipoAnalise"><button type="button" data-tipo="implantacao" class="ativo">Implantação</button><button type="button" data-tipo="acompanhamento">Acompanhamento</button></div>
+              <span class="ajuda" style="margin:0" id="tipoAjuda">Implantação: 1ª análise, base Preventivo, regras 1 a 5.</span>
+            </div>
+            <div class="grade">
+              <div><label for="razao">Condomínio (razão social)</label><input type="text" id="razao" list="listaCondominios" placeholder="Condomínio ..."><datalist id="listaCondominios"></datalist></div>
+              <div><label for="cnpj">CNPJ</label><input type="text" id="cnpj" placeholder="00.000.000/0001-00"></div>
+              <div><label for="inicio">Idade da garantia (meses)</label><input type="number" id="inicio" min="0" step="1" placeholder="18"></div>
+              <div><label for="analista">Analista (remetente do e-mail)</label><input type="text" id="analista"></div>
+              <div><label for="bi">Resultado do BI (R$)</label>
+                <div style="display:flex;gap:6px;align-items:center">
+                  <div class="seg sinal" id="sinalBi"><button type="button" data-sinal="-" class="ativo">−</button><button type="button" data-sinal="+">+</button></div>
+                  <input type="number" id="bi" step="0.01" min="0" placeholder="1234,56" style="flex:1">
+                </div>
+                <p class="ajuda" id="statusBiVal">Vem da base do BI. Confira o sinal.</p>
+              </div>
+              <div><label for="dataAnalise">Data da análise</label><input type="date" id="dataAnalise"></div>
+            </div>
+            <div class="acoes" style="margin-top:12px">
+              <span class="check"><input type="checkbox" id="semAnterior"><span>Não há relatório de inadimplência anterior</span></span>
+              <span class="check"><input type="checkbox" id="semBi"><span>Resultado do BI não informado</span></span>
+            </div>
+            <p class="ajuda" id="vigenciaInfo"></p>
+            <div style="margin-top:12px"><label for="nota">Nota de contexto da ficha</label><input type="text" id="nota" placeholder="Ex.: resultado negativo esperado no 1º mês de garantia."></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step" id="step3"><div class="bola">3</div>
+        <div class="card"><header><h2>3 · Espólios sinalizados</h2><span class="dica">Vêm do e-mail — o nome é a chave da busca</span></header>
+          <div class="corpo">
+            <label for="sinal">Espólios (do e-mail) — ou digite: um por linha</label>
+            <textarea id="sinal" placeholder="MARIA DE SOUZA&#10;101&#9;JOÃO PEREIRA&#9;123.456.789-00&#10;Apto 204 - ANA LIMA" style="min-height:80px"></textarea>
+            <p class="ajuda">Unidade e CPF são opcionais e ajudam a confirmar o casamento com os relatórios.</p>
+            <div class="acoes" style="margin-top:10px">
+              <button class="btn sec mini" id="btnSinal">Cadastrar espólios</button>
+              <button class="btn sec mini" id="btnAddUnid">Adicionar linha em branco</button>
+              <button class="btn sec mini" id="btnRecontar">Recontar taxas</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step" id="step4"><div class="bola">4</div>
+        <div class="card"><header><h2>4 · Classificação</h2><span class="dica">Regras aplicadas na ordem da política · clique na unidade para ver evidências e ajustar</span></header>
+          <details class="regras" style="border-bottom:1px solid var(--linha);background:var(--surface-2)">
+            <summary style="cursor:pointer;padding:11px 18px;font-size:13px;color:var(--teal-d);font-weight:700">Ver as regras (Política de Análise de Espólio)</summary>
+            <div style="padding:0 18px 12px;font-size:12.5px;color:var(--ink-2)" id="textoRegras"></div>
+          </details>
+          <div class="corpo" id="unidadesWrap"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <header><h2>Ficha</h2><div class="acoes"><button class="btn sec mini" id="btnImprimir">Imprimir</button><button class="btn mini" id="btnBaixarFicha">Baixar ficha PDF</button></div></header>
+      <div class="corpo"><div class="ficha" id="fichaPreview"></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= REANÁLISE DO DIA ================= -->
+<section class="painel" id="p-lote">
+  <div class="nota"><b>Reanálise em lote:</b> selecione os condomínios da fila, arraste os PDFs do Vouch de uma vez e o sistema identifica cada condomínio pelo cabeçalho. Só o Vouch entra; as unidades vêm da rodada anterior. Conclusão e ficha são por condomínio.</div>
+  <div class="card">
+    <header><h2>Fila de acompanhamento</h2><div class="acoes"><span class="pill" id="loteContagem"></span><button class="btn sec mini" id="btnSelVencidos">Selecionar vencidos</button><button class="btn sec mini" id="btnSelNenhum">Limpar seleção</button></div></header>
+    <div class="tabela-wrap" id="loteFila"></div>
+  </div>
+  <div class="card">
+    <header><h2>PDFs do Vouch</h2><span class="dica">um relatório por condomínio · pode arrastar vários</span></header>
+    <div class="corpo">
+      <div class="dropzone" id="loteDrop">Arraste aqui os PDFs do Vouch dos condomínios selecionados, ou clique para escolher<input type="file" accept="application/pdf" multiple id="loteArquivos"></div>
+      <div id="loteLeitura"></div>
+    </div>
+  </div>
+  <div id="loteRevisao"></div>
+</section>
+
+<!-- ================= HISTÓRICO ================= -->
+<section class="painel" id="p-hist">
+  <div class="card">
+    <header><h2>Rodadas de análise</h2><span class="dica" id="histContagem"></span></header>
+    <div class="corpo">
+      <div class="filtros">
+        <input type="text" id="histBusca" class="campo" placeholder="Buscar condomínio ou protocolo">
+        <select id="histTipo"><option value="">Todos os tipos</option><option value="implantacao">Implantação</option><option value="acompanhamento">Acompanhamento</option><option value="carga">Carga inicial</option></select>
+        <select id="histStatus"><option value="">Todos os status</option><option value="rascunho">Rascunho</option><option value="concluida">Concluída</option></select>
+        <select id="histPeriodo"><option value="90">Últimos 90 dias</option><option value="365">Últimos 12 meses</option><option value="">Tudo</option></select>
+      </div>
+      <div class="tabela-wrap" id="histTabela"></div>
+    </div>
+  </div>
+  <div class="card">
+    <header><h2>Evolução por condomínio</h2><span class="dica">escolha um condomínio para ver as unidades rodada a rodada</span></header>
+    <div class="corpo">
+      <div class="filtros"><select id="evoCond"><option value="">Escolha o condomínio</option></select></div>
+      <div class="tabela-wrap" id="evoTabela"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CONFIGURAÇÕES ================= -->
+<section class="painel" id="p-conf">
+  <div class="dois">
+    <div class="card">
+      <header><h2>Acesso</h2><span class="dica">definido no portal</span></header>
+      <div class="corpo" id="confAcesso"></div>
+    </div>
+    <div class="card">
+      <header><h2>Base do Power BI</h2><span class="dica">compartilhada pela equipe</span></header>
+      <div class="corpo">
+        <div id="confBiInfo" class="ajuda" style="margin:0 0 10px"></div>
+        <div class="doc"><div class="ico">XLS</div><div><b>Subir nova base do dia</b><span>Excel ou CSV com Condomínio, Idade (meses) e Resultado</span></div><input type="file" accept=".xlsx,.xls,.csv" id="confBiArquivo"></div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <header><h2>Carga inicial · planilha de controle</h2><span class="dica">importa a verificação mensal e cria a fila a partir dos condomínios com espólio</span></header>
+    <div class="corpo">
+      <p class="ajuda" style="margin:0 0 10px">Aceita a planilha “Controle de Verificação de Espólios” (uma aba por mês: Quant., Status, Comarca, Condomínio, Vigência, Responsável, Observações). Condomínios com espólio viram rodadas de carga inicial com as unidades das observações; “VÁRIAS” fica marcado para completar na primeira reanálise.</p>
+      <div class="doc"><div class="ico">XLS</div><div><b>Importar planilha de controle</b><span>Pode repetir: linhas já importadas não duplicam</span></div><input type="file" accept=".xlsx,.xls" id="confCargaArquivo"></div>
+      <div id="confCargaStatus"></div>
+    </div>
+  </div>
+  <div class="dois">
+    <div class="card">
+      <header><h2>Regras da política</h2><span class="dica">texto exibido na etapa de classificação</span></header>
+      <div class="corpo" id="confRegras"></div>
+    </div>
+    <div class="card">
+      <header><h2>Dados</h2><span class="dica">cópia de segurança</span></header>
+      <div class="corpo">
+        <div class="acoes"><button class="btn sec mini" id="btnBackup">Exportar tudo (JSON)</button><button class="btn sec mini" id="btnPlanilhaAcomp">Planilha de acompanhamento (CSV)</button></div>
+        <p class="ajuda">O backup contém rodadas, verificações, base do BI e protocolo. Guarde fora do portal.</p>
+        <div id="confLocalAviso"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div id="areaImpressao" hidden></div>
+</main>
+
+<div id="modal" hidden></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===== 10-util.js ===== */
+'use strict';
+/* ======================================================================
+   Análise de Espólio · MyBlue · módulo do portal
+   Arquivo gerado por build.js a partir de src/ — edite em src/.
+   ====================================================================== */
+
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const MESES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+const MESES_FULL = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const PRAZO_REANALISE_DIAS = 90;
+
+const hojeISO = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); };
+const nowISO = () => new Date().toISOString();
+const fmtData = v => { if(!v) return '—'; const [a,m,d] = String(v).slice(0,10).split('-'); return d && m && a ? `${d}/${m}/${a}` : v; };
+const fmtMesAno = v => { if(!v) return '—'; const [a,m] = String(v).split('-'); return MESES[+m-1] + '/' + a; };
+const fmtBRL = n => (n === null || n === undefined || isNaN(n)) ? '—' : Number(n).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const somaDias = (iso, n) => { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0,10); };
+const diasEntre = (a, b) => Math.round((new Date(b + 'T12:00:00') - new Date(a + 'T12:00:00')) / 86400000);
+const mesDe = iso => String(iso || '').slice(0,7);
+
+/* ===== nomes ===== */
+const SOBRE = ['DE','DA','DO','DOS','DAS','E'];
+function normNome(s){
+  return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/[^A-Z ]/g,' ').replace(/\s+/g,' ').trim();
+}
+const tokensNome = s => normNome(s).split(' ').filter(t => t.length > 1 && !SOBRE.includes(t));
+function scoreNome(a, b){
+  const A = tokensNome(a), B = tokensNome(b);
+  if(!A.length || !B.length) return 0;
+  const comuns = A.filter(t => B.includes(t)).length;
+  let s = comuns / Math.min(A.length, B.length);
+  if(A[0] === B[0]) s += 0.2;
+  if(A[A.length-1] === B[B.length-1]) s += 0.1;
+  return s;
+}
+const soDigitos = s => String(s||'').replace(/\D/g,'');
+const normUnid = u => String(u||'').toUpperCase().replace(/[^A-Z0-9]/g,'').replace(/^0+/,'');
+const digitosUnid = u => String(u||'').replace(/\D/g,'').replace(/^0+/,'');
+/* chave de condomínio: CNPJ se houver, senão nome normalizado (preserva dígitos) */
+const normCond = s => String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase()
+  .replace(/\b(CONDOMINIO|COND\.?|RESIDENCIAL|RES\.?|EDIFICIO|ED\.?)\b/g,' ').replace(/[^A-Z0-9]/g,' ').replace(/\s+/g,' ').trim();
+const chaveCond = (nome, cnpj) => soDigitos(cnpj).length === 14 ? 'cnpj:' + soDigitos(cnpj) : 'nome:' + normCond(nome);
+const biTok = s => String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/[^A-Z0-9]/g,' ').split(/\s+/).filter(t => t && !SOBRE.includes(t));
+/* coeficiente de Dice entre dois nomes de condomínio */
+function diceCond(a, b){
+  const A = biTok(normCond(a)), B = biTok(normCond(b));
+  if(!A.length || !B.length) return 0;
+  const comuns = A.filter(t => B.includes(t)).length;
+  return 2 * comuns / (A.length + B.length);
+}
+function completaCpf(dig){
+  dig = String(dig||'').replace(/\D/g,'');
+  if(dig.length === 10) dig = '0' + dig;
+  if(dig.length !== 11) return dig;
+  return dig.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+}
+function fmtCnpj(d){ d = soDigitos(d); return d.length === 14 ? d.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5') : d; }
+function numBR(raw){
+  if(raw === null || raw === undefined || raw === '') return null;
+  if(typeof raw === 'number') return raw;
+  let s = String(raw).trim().replace(/R\$|\s/g,'');
+  if(/,\d{1,2}$/.test(s)) s = s.replace(/\./g,'').replace(',','.');
+  s = s.replace(/[^\d.\-]/g,'');
+  const n = parseFloat(s);
+  return isNaN(n) ? null : n;
+}
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+
+/* ===== UI helpers ===== */
+let toastTimer = null;
+function toast(msg, ms){
+  const t = $('#toast'); t.textContent = msg; t.classList.add('on');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('on'), ms || 2600);
+}
+function abrirModal(titulo, html, acoesHtml){
+  const m = $('#modal');
+  m.innerHTML = `<div class="modal"><div class="caixa"><header><h2 style="font-size:16px">${esc(titulo)}</h2><div class="acoes">${acoesHtml||''}<button class="fechar" data-fechar title="Fechar">×</button></div></header><div class="corpo">${html}</div></div></div>`;
+  m.hidden = false;
+  m.querySelector('[data-fechar]').onclick = fecharModal;
+  m.querySelector('.modal').addEventListener('click', e => { if(e.target.classList.contains('modal')) fecharModal(); });
+  return m;
+}
+function fecharModal(){ const m = $('#modal'); m.hidden = true; m.innerHTML = ''; }
+function confirmar(msg){ return Promise.resolve(window.confirm(msg)); }
+function baixarArquivo(nome, conteudo, tipo){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([conteudo], {type: tipo || 'application/octet-stream'}));
+  a.download = nome; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+const nomeArquivoSeguro = s => String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^A-Za-z0-9 \-_.]/g,' ').replace(/\s+/g,' ').trim();
+
+/* ===== 20-db.js ===== */
+/* ======================================================================
+   Camada de dados
+   - No portal: window.claude.use('db') (adaptador claude-db → Supabase)
+   - Fora do portal: LocalDB em localStorage, mesma interface, com aviso.
+   Interface usada (subconjunto do adaptador):
+     DB.collection(c).add(obj) / .get() / .onSnapshot(cb, err) / .orderBy(f,dir) / .limit(n)
+     DB.doc('c/id').set(obj) / .update(patch) / .delete() / .get() / .onSnapshot(cb, err)
+     snapshot: .docs[] (id, data()), .exists, .data(), .docChanges()
+   ====================================================================== */
+const COLECOES = { rodadas:'rodadas', evidencias:'evidencias', verificacoes:'verificacoes', meta:'meta', bi:'bi_base', historico:'historico' };
+
+function LocalDB(prefixo){
+  const KEY = prefixo || 'myblue_espolio_local';
+  const load = () => { try{ return JSON.parse(localStorage.getItem(KEY) || '{}'); }catch(_){ return {}; } };
+  const save = d => { try{ localStorage.setItem(KEY, JSON.stringify(d)); }catch(e){ console.warn('LocalDB: não gravou', e); } };
+  const ouvintes = [];
+  const notificar = () => ouvintes.forEach(fn => { try{ fn(); }catch(e){ console.error(e); } });
+  const snapDoc = (id, data) => ({ id, exists: data !== undefined, data: () => data === undefined ? undefined : JSON.parse(JSON.stringify(data)) });
+  const col = (nome, ord, lim) => ({
+    add(obj){ const d = load(); d[nome] = d[nome] || {}; const id = uid(); d[nome][id] = JSON.parse(JSON.stringify(obj)); save(d); notificar(); return Promise.resolve({ id }); },
+    orderBy(f, dir){ return col(nome, {f, dir: dir || 'asc'}, lim); },
+    limit(n){ return col(nome, ord, n); },
+    _snap(){
+      const d = load(); let docs = Object.entries(d[nome] || {}).map(([id, v]) => snapDoc(id, v));
+      if(ord){ docs.sort((a,b) => { const x = a.data()[ord.f], y = b.data()[ord.f]; return (x > y ? 1 : x < y ? -1 : 0) * (ord.dir === 'desc' ? -1 : 1); }); }
+      if(lim) docs = docs.slice(0, lim);
+      return { docs, docChanges: () => docs.map(doc => ({ type:'added', doc })) };
+    },
+    get(){ return Promise.resolve(this._snap()); },
+    onSnapshot(cb){ const fn = () => cb(this._snap()); ouvintes.push(fn); setTimeout(fn, 0); return () => { const i = ouvintes.indexOf(fn); if(i >= 0) ouvintes.splice(i,1); }; }
+  });
+  const doc = path => {
+    const [nome, id] = path.split('/');
+    return {
+      set(obj){ const d = load(); d[nome] = d[nome] || {}; d[nome][id] = JSON.parse(JSON.stringify(obj)); save(d); notificar(); return Promise.resolve(); },
+      update(patch){ const d = load(); if(!d[nome] || !d[nome][id]) return Promise.reject(Object.assign(new Error('not found'), {code:'not_found'})); Object.assign(d[nome][id], JSON.parse(JSON.stringify(patch))); save(d); notificar(); return Promise.resolve(); },
+      delete(){ const d = load(); if(d[nome]) delete d[nome][id]; save(d); notificar(); return Promise.resolve(); },
+      get(){ const d = load(); return Promise.resolve(snapDoc(id, (d[nome]||{})[id])); },
+      onSnapshot(cb){ const fn = () => { const d = load(); cb(snapDoc(id, (d[nome]||{})[id])); }; ouvintes.push(fn); setTimeout(fn, 0); return () => {}; }
+    };
+  };
+  return { collection: nome => col(nome), doc, _local: true, _dump: load, _restore: d => { save(d); notificar(); } };
+}
+
+function dbErr(e){
+  const c = e && e.code;
+  if(c === 'quota_exceeded') return 'A base atingiu o limite de armazenamento. Avise o responsável pelo portal.';
+  if(c === 'resource_exhausted') return 'Muitas operações seguidas. Aguarde alguns segundos e tente de novo.';
+  if(c === 'revoked') return 'Seu acesso a esta base foi retirado. Recarregue a página.';
+  if(c === 'permission_denied' || c === 'invalid_argument') return 'Você não tem permissão para gravar nesta base.';
+  return 'Falha ao acessar a base: ' + ((e && e.message) || e || 'erro desconhecido');
+}
+
+let DB = null, NS_USER = null, ME = { id:null, name:'' }, CAN_WRITE = true;
+
+async function conectarBase(){
+  const sync = $('#sync');
+  const cl = window.claude;
+  if(cl && cl.use){
+    try{ [DB, NS_USER] = await Promise.all([cl.use('db'), cl.use('user')]); }catch(e){ DB = null; }
+    if(!DB){ sync.className = 'sync err'; sync.innerHTML = '<i></i>Sem acesso à base'; throw new Error('Não foi possível conectar à base compartilhada. Confirme seu acesso no portal e recarregue a página.'); }
+    if(NS_USER){ try{ ME = await NS_USER.me() || ME; CAN_WRITE = await NS_USER.can('data.write'); }catch(_){} }
+    sync.className = 'sync on'; sync.innerHTML = '<i></i>Base compartilhada · ao vivo';
+  } else {
+    DB = LocalDB();
+    sync.className = 'sync local'; sync.innerHTML = '<i></i>Modo local · só neste navegador';
+    ME = { id:'local', name: localStorage.getItem('myblue_espolio_nome') || 'Coordenação de Cobrança' };
+    $('#confLocalAviso').innerHTML = '<div class="aviso">Esta página está aberta fora do portal MyBlue. Os dados ficam só neste navegador. Para a base compartilhada, abra pelo portal.</div>';
+  }
+  const chip = $('#chipUsuario');
+  if(ME.name){ chip.textContent = ME.name + (CAN_WRITE ? '' : ' · somente leitura'); chip.hidden = false; }
+}
+
+/* grava com update; se o doc não existe, set */
+async function gravarDoc(path, patch, base){
+  const ref = DB.doc(path);
+  try{ await ref.update(patch); }
+  catch(e){ await ref.set({ ...(base || {}), ...patch }); }
+}
+function registrarHistorico(tipo, detalhe){
+  try{ DB.collection(COLECOES.historico).add({ tipo, quando: nowISO(), por: ME.id, porNome: ME.name, ...(detalhe || {}) }); }catch(e){ console.warn(e); }
+}
+
+/* ===== 30-parsers.js ===== */
+/* ======================================================================
+   Leitura de documentos
+   ====================================================================== */
+
+/* ---------- PDF → texto (uma linha por linha visual, células separadas por " | ") ---------- */
+async function pdfParaTexto(file){
+  if(typeof pdfjsLib === 'undefined') throw new Error('leitor de PDF indisponível (sem internet) — cole o texto do relatório');
+  pdfjsLib.GlobalWorkerOptions.workerSrc = (window.PDFJS_WORKER_SRC || 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js');
+  const doc = await pdfjsLib.getDocument({data: await file.arrayBuffer()}).promise;
+  const saida = [];
+  for(let p = 1; p <= doc.numPages; p++){
+    const c = await (await doc.getPage(p)).getTextContent();
+    const itens = c.items.filter(i => i.str.trim())
+      .map(i => ({x:i.transform[4], y:i.transform[5], t:i.str.trim()}))
+      .sort((a,b) => b.y - a.y || a.x - b.x);
+    let linha = [], base = null;
+    const fechar = () => { if(linha.length) saida.push(linha.sort((a,b)=>a.x-b.x).map(i=>i.t).join(' | ')); linha=[]; };
+    itens.forEach(i => {
+      if(base === null || Math.abs(i.y - base) <= 2.5){ if(base===null) base=i.y; linha.push(i); }
+      else { fechar(); base = i.y; linha.push(i); }
+    });
+    fechar();
+  }
+  return saida.join('\n');
+}
+
+/* ---------- expressões comuns ---------- */
+const RE_CPF    = /\b\d{3}\.?\d{3}\.?\d{3}-\d{2}\b/;
+const RE_CNPJ   = /\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}\b/;
+const RE_VALOR  = /(?:R\$\s*)?\d{1,3}(?:\.\d{3})*,\d{2}/;
+const RE_DATA   = /\b(\d{1,2})\/(\d{1,2})\/(\d{2,4})\b/;
+const MES_TXT = {jan:'01',fev:'02',mar:'03',abr:'04',mai:'05',jun:'06',jul:'07',ago:'08',set:'09',out:'10',nov:'11',dez:'12'};
+const MES_FULL = {janeiro:'01',fevereiro:'02','março':'03',marco:'03',abril:'04',maio:'05',junho:'06',julho:'07',agosto:'08',setembro:'09',outubro:'10',novembro:'11',dezembro:'12'};
+const RE_MES_NOME = /\b(janeiro|fevereiro|mar[çc]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\b/i;
+
+function dataVenc(linha){
+  let m = linha.match(/\b(\d{1,2})\/(\d{1,2})\/(\d{2,4})\b/);
+  if(m) return m[2].padStart(2,'0') + '/' + (m[3].length===2 ? '20'+m[3] : m[3]);
+  m = linha.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);
+  if(m) return m[2] + '/' + m[1];
+  m = linha.match(/\b(\d{1,2})\/(\d{4})\b/);
+  if(m) return m[1].padStart(2,'0') + '/' + m[2];
+  return null;
+}
+function competenciaDe(linha){
+  const d = dataVenc(linha);
+  if(d) return d;
+  let m = linha.match(/\b(janeiro|fevereiro|mar[çc]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)[\/\-. ]*(\d{4})\b/i);
+  if(m) return MES_FULL[m[1].toLowerCase()] + '/' + m[2];
+  m = linha.match(/\b(\d{4})\s*-\s*(janeiro|fevereiro|mar[çc]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\b/i);
+  if(m) return MES_FULL[m[2].toLowerCase()] + '/' + m[1];
+  m = linha.match(/\b(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)[a-zç]*[\/\-. ](\d{2,4})\b/i);
+  if(m) return MES_TXT[m[1].toLowerCase()] + '/' + (m[2].length===2 ? '20'+m[2] : m[2]);
+  return null;
+}
+
+/* ======================================================================
+   1) Relatório de Inadimplências do Vouch (consolidado) — leitor dedicado
+   Estrutura (linhas do pdf.js):
+     Condomínio NOME - CNPJ 00.000.000/0001-00
+     Relatório de Inadimplências - Consolidado (Até dd/mm/aaaa) | Emissão: dd/mm/aaaa hh:mm:ss
+     Total (N taxas em M unidades, ...)
+     BLOCO - UNID | NOME | CPF | telefones      ← cabeçalho do devedor (CPF/telefones opcionais)
+     DOCUMENTO | competência | referência | dd/mm/aaaa | [Detalhe] | [Sim] | valores…
+     (linhas de continuação com o mês da competência, "Judicial", "#007550 (3/7)", valores)
+     Subtotal | …
+   ====================================================================== */
+const RE_VOUCH_DEVEDOR = /^(?:([A-Za-z0-9]{1,6})\s*-\s*)?([A-Za-z]{0,3}\d{1,5}[A-Za-z]?)\s*\|\s*([^|]*[A-Za-zÀ-ú]{3,}[^|]*?)\s*(?:\|\s*(\d{3}\.?\d{3}\.?\d{3}-?\d{2}|\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2})\b[^|]*)?(?:\|.*)?$/;
+const RE_VOUCH_TAXA = /^(\d{7,9})\s*\|\s*(.+)$/;
+
+function ehRelatorioVouch(txt){ return /Relat[óo]rio de Inadimpl[êe]ncias?\s*-\s*Consolidado/i.test(txt) || /FAN R&V/i.test(txt); }
+
+function lerVouch(txt){
+  const linhas = String(txt||'').split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const r = { condominio:'', cnpj:'', corte:'', emissao:'', totalTaxas:null, totalUnidades:null, devedores:[], avisos:[] };
+  let atual = null, taxa = null;
+
+  const fecharDevedor = () => { if(atual){ r.devedores.push(atual); } atual = null; taxa = null; };
+  const mesDeCelulas = cels => {
+    for(const c of cels){
+      const m = c.match(/^(\d{4})\s*-\s*([A-Za-zç]+)$/);
+      if(m && MES_FULL[m[2].toLowerCase()]) return MES_FULL[m[2].toLowerCase()] + '/' + m[1];
+      const m2 = c.match(/^-?\s*([A-Za-zç]+)$/);
+      if(m2 && MES_FULL[m2[1].toLowerCase()]) return MES_FULL[m2[1].toLowerCase()];
+    }
+    return null;
+  };
+  const ultimoValor = cels => { for(let i = cels.length-1; i >= 0; i--){ const m = cels[i].match(/(?:R\$\s*)?(\d{1,3}(?:\.\d{3})*,\d{2})$/); if(m) return numBR(m[1]); } return null; };
+
+  for(const linha of linhas){
+    let m;
+    if((m = linha.match(/^Condom[íi]nio\s+(.+?)\s+-\s+CNPJ\s+([\d.\/-]{14,18})/i))){ r.condominio = m[1].trim(); r.cnpj = m[2]; continue; }
+    if((m = linha.match(/Consolidado\s*\(At[ée]\s+(\d{2}\/\d{2}\/\d{4})\)/i))){ r.corte = m[1]; const e = linha.match(/Emiss[ãa]o:\s*(\d{2}\/\d{2}\/\d{4})/i); if(e) r.emissao = e[1]; continue; }
+    if((m = linha.match(/^Total\s*\((\d+)\s+taxas?\s+em\s+(\d+)\s+unidades?/i))){ if(r.totalTaxas === null){ r.totalTaxas = +m[1]; r.totalUnidades = +m[2]; } fecharDevedor(); continue; }
+    if(/^Subtotal\b/i.test(linha)){ fecharDevedor(); continue; }
+    if(/^(Documento\b|Valor\b|Relat[óo]rio|FAN R&V|Tel:|Total\b)/i.test(linha)) continue;
+
+    if((m = linha.match(RE_VOUCH_TAXA))){
+      if(!atual){ r.avisos.push('Taxa sem devedor: ' + linha.slice(0,60)); continue; }
+      const cels = m[2].split('|').map(c => c.trim()).filter(Boolean);
+      const venc = cels.find(c => /^\d{2}\/\d{2}\/\d{4}$/.test(c)) || '';
+      if(!venc){ taxa = null; continue; }   // sem vencimento: não é linha de taxa (ex.: continuação com número)
+      const compCel = cels[0] || '';
+      let comp = null;
+      const mc = compCel.match(/^(\d{4})\s*-\s*([A-Za-zç]+)$/);
+      if(mc && MES_FULL[mc[2].toLowerCase()]) comp = MES_FULL[mc[2].toLowerCase()] + '/' + mc[1];
+      const refCel = cels.find(c => /arrecada|acordo|rateio|taxa|multa|fundo/i.test(c)) || cels[1] || '';
+      const tipo = /acordo/i.test(refCel) ? 'acordo' : /arrecada/i.test(refCel) ? 'arrecadacao' : 'outro';
+      const marc = [];
+      if(cels.some(c => /^Jur[íi]dico$/i.test(c))) marc.push('Jurídico');
+      if(cels.some(c => /Em N\.?V/i.test(c))) marc.push('Novo vencimento');
+      if(cels.some(c => /^Sim$/i.test(c))) marc.push('Antecipado');
+      const ultimaCel = cels[cels.length-1] || '';
+      const valorNaLinha = /\d,\d{2}$/.test(ultimaCel) ? ultimoValor([ultimaCel]) : null;
+      taxa = { documento: m[1], comp, compAno: compCel.match(/^(\d{4})/) ? compCel.match(/^(\d{4})/)[1] : null, venc, referencia: refCel, tipo, marcadores: marc,
+               valor: valorNaLinha, _valorPendente: valorNaLinha === null, texto: linha.slice(0,160), incluir: true };
+      atual.cobrancas.push(taxa);
+      continue;
+    }
+
+    if(!/^\d{7,9}\b/.test(linha) && (m = linha.match(RE_VOUCH_DEVEDOR))){
+      const nome = m[3].replace(/\s+/g,' ').trim();
+      if(!/^(Subtotal|Total)/i.test(nome) && !RE_MES_NOME.test(nome.split(' ')[0]) ){
+        fecharDevedor();
+        const bloco = m[1] || '', unid = m[2];
+        const docm = m[4] ? (soDigitos(m[4]).length === 11 ? completaCpf(m[4]) : fmtCnpj(m[4])) : '';
+        atual = { bloco, unidade: unid, unidadeTxt: bloco ? `${bloco} - ${unid}` : unid, nome, cpf: soDigitos(docm).length === 11 ? docm : '', cnpj: soDigitos(docm).length === 14 ? docm : '', cobrancas: [] };
+        continue;
+      }
+    }
+
+    /* linha de continuação de uma taxa: completa competência, referência e valor */
+    if(taxa){
+      const cels = linha.split('|').map(c => c.trim()).filter(Boolean);
+      if(!taxa.comp){
+        const mes = mesDeCelulas(cels);
+        if(mes){ taxa.comp = mes.includes('/') ? mes : mes + '/' + (taxa.compAno || taxa.venc.slice(6)); }
+      }
+      if(/^Judicial\b/i.test(cels[0] || '')) taxa.referencia = (taxa.referencia + ' Judicial').trim();
+      const np = cels.find(c => /^#\d+/.test(c)); if(np) taxa.referencia = (taxa.referencia + ' ' + np).trim();
+      if(taxa._valorPendente){ const v = ultimoValor(cels); if(v !== null){ taxa.valor = v; taxa._valorPendente = false; } }
+    }
+  }
+  fecharDevedor();
+
+  r.devedores.forEach(d => d.cobrancas.forEach(t => { if(!t.comp) t.comp = t.venc.slice(3); delete t._valorPendente; delete t.compAno; }));
+  r.lidas = r.devedores.reduce((s,d) => s + d.cobrancas.length, 0);
+  r.devedores = r.devedores.filter(d => d.cobrancas.length);
+  r.conferido = r.totalTaxas !== null && r.lidas === r.totalTaxas && r.devedores.length === r.totalUnidades;
+  if(r.totalTaxas !== null && !r.conferido)
+    r.avisos.push(`Leitura divergente: li ${r.lidas} taxas em ${r.devedores.length} unidades, o relatório informa ${r.totalTaxas} em ${r.totalUnidades}.`);
+  if(r.totalTaxas === null) r.avisos.push('Não encontrei a linha "Total (N taxas em M unidades)" — não foi possível conferir a leitura.');
+  return r;
+}
+
+/* ======================================================================
+   2) Relatórios genéricos (administradora anterior) — leitor heurístico
+   ====================================================================== */
+const RE_EXCLUI = /multa|juros|corre[çc]|honor|mora\b|atualiza[çc]|desconto|saldo|^total|subtotal/i;
+const RE_NAO_NOME = /relat[óo]rio|condom[íi]nio|per[íi]odo|inadimplen|^total|p[áa]gina|emiss|vencimento|compet[êe]ncia|hist[óo]rico|banco|cnpj|endere|telefone|e-?mail|www|ltda|\bs\.?\/?a\.?\b|securitiza|pend[êe]ncia|refer[êe]ncia|documento|arrecada|detalhe|antecipado|jur[íi]dico|d[ée]bito/i;
+const RE_UNIDADE = /(?:\b(?:bloco|bl|torre|quadra|qd)\.?\s*([A-Za-z0-9]{1,4})\b[^|]{0,12})?\b(?:ap(?:to|t|artamento)?|unid(?:ade)?|casa|sala|loja|lote)\b\.?\s*[:\-]?\s*([A-Za-z]?\d{1,5}[A-Za-z]?)\b/i;
+const RE_RODAPE = /residence|\bclub\b|condom[íi]nio|residencial|avenida|\brua\b|quadra|setor|\bcep\b|business|@|\bde\s+\d+\s*$|^\s*\d+\s*\/\s*\d+\s*$|^\s*p[áa]gina|inadimplen|valores atualizados/i;
+
+function extrairDevedoresTransposto(txt){
+  const linhas = txt.split(/\r?\n/).map(l => l.trim());
+  const pega = rot => { const l = linhas.find(x => new RegExp('^' + rot + '\\b', 'i').test(x) && x.includes('|')); return l ? l.split('|').slice(1).map(s => s.trim()).filter(s => s !== '') : null; };
+  const units = pega('Unidade'), nomes = pega('Devedor'), vencs = pega('Vencimento');
+  if(!units || !nomes || !vencs) return null;
+  const n = Math.min(units.length, nomes.length, vencs.length);
+  if(n === 0) return null;
+  const mapa = new Map();
+  for(let i = 0; i < n; i++){
+    const comp = dataVenc(vencs[i]) || vencs[i];
+    const chave = normUnid(units[i]) + '|' + normNome(nomes[i]);
+    if(!mapa.has(chave)) mapa.set(chave, { unidade: units[i], unidadeTxt: units[i], nome: nomes[i], cpf:'', cobrancas: [] });
+    mapa.get(chave).cobrancas.push({ texto: `${units[i]} · ${nomes[i]} · venc. ${vencs[i]}`, comp, venc: vencs[i], incluir: true });
+  }
+  return [...mapa.values()];
+}
+
+function extrairDevedores(txt, soValor){
+  if(ehRelatorioVouch(txt)) return lerVouch(txt).devedores;
+  const trans = extrairDevedoresTransposto(txt);
+  if(trans) return trans.filter(b => b.cobrancas.length);
+  const lista = [];
+  let unidAtual = '', atual = null;
+  const exigirValor = soValor && RE_VALOR.test(txt);
+  txt.split(/\r?\n/).forEach(bruta => {
+    const linha = bruta.trim(); if(!linha) return;
+    const mU = linha.match(RE_UNIDADE);
+    const unidLinha = mU ? [mU[1], mU[2]].filter(Boolean).join('-') : '';
+    if(unidLinha && !RE_CPF.test(linha) && !dataVenc(linha)) unidAtual = unidLinha;
+    const cpfM = linha.match(RE_CPF);
+    const celulas = linha.split('|').map(c => c.trim()).filter(Boolean);
+    if(!cpfM && !dataVenc(linha)){
+      const mCod = linha.match(/^([A-Za-z0-9]{1,4}(?:\s+[A-Za-z0-9]{1,4})?)\s*\|?\s*[-–]\s+(.+)$/);
+      if(mCod && /\d/.test(mCod[1])){
+        const codUnid = mCod[1].replace(/\s+/g,' ').trim();
+        const nomeDev = mCod[2].split('/')[0].replace(/\|/g,' ').replace(/\s+/g,' ').trim();
+        if(tokensNome(nomeDev).length >= 2){ atual = { unidade: codUnid, unidadeTxt: codUnid, nome: nomeDev, cpf:'', cobrancas: [] }; lista.push(atual); return; }
+      }
+    }
+    let nome = '';
+    if(cpfM){
+      const antes = linha.split(cpfM[0])[0];
+      const cand = (antes.split('|').filter(c => /[A-Za-zÀ-ú]/.test(c) && !/\d/.test(c)).pop() || '').trim();
+      nome = cand || celulas.find(c => /[A-Za-zÀ-ú]/.test(c) && !/\d/.test(c)) || '';
+    } else if(!dataVenc(linha) && celulas.length <= 2){
+      const c = celulas[0] || '';
+      if(/^[A-Za-zÀ-ú][A-Za-zÀ-ú' .]{5,}$/.test(c) && tokensNome(c).length >= 2 && !RE_NAO_NOME.test(c) && !RE_RODAPE.test(c)) nome = c;
+    }
+    if(nome && tokensNome(nome).length >= 2){
+      let un = unidLinha;
+      if(!un){ const c0 = celulas[0] || ''; if(c0 !== nome && /^[A-Za-z]{0,3}\d{1,5}[A-Za-z]?$/.test(c0)) un = c0; }
+      atual = { unidade: un || unidAtual, unidadeTxt: un || unidAtual, nome: nome.replace(/\s+/g,' '), cpf: cpfM ? cpfM[0] : '', cobrancas: [] };
+      lista.push(atual); return;
+    }
+    const comp = dataVenc(linha);
+    if(!comp || !atual) return;
+    if(RE_EXCLUI.test(linha)) return;
+    if(exigirValor && !RE_VALOR.test(linha)) return;
+    atual.cobrancas.push({ texto: linha.slice(0,170), comp, venc: (linha.match(RE_DATA)||[''])[0], incluir: true });
+  });
+  const merged = new Map();
+  for(const b of lista){
+    const k = normUnid(b.unidade) + '|' + normNome(b.nome);
+    if(!merged.has(k)){ merged.set(k, b); continue; }
+    const m = merged.get(k); const vistos = new Set(m.cobrancas.map(c => c.texto));
+    for(const c of b.cobrancas) if(!vistos.has(c.texto)){ m.cobrancas.push(c); vistos.add(c.texto); }
+  }
+  return [...merged.values()].filter(b => b.cobrancas.length);
+}
+
+/* cabeçalho de relatório genérico: condomínio e CNPJ */
+function lerCabecalhoGenerico(txt){
+  const linhas = txt.split(/\r?\n/).map(l => l.trim());
+  let cond = '', cnpj = '';
+  for(const l of linhas){
+    let m = l.match(/^condom[íi]nio\s+([A-Za-zÀ-ú0-9 .'&]+?)(?:\s*[-|]\s*cnpj.*)?$/i);
+    if(m && !/securitiza|garantia|fan\b/i.test(l)){ const nome = m[1].trim(); if(nome && nome.length > 2) cond = nome; }
+    const c = l.match(/cnpj\s*[:\-]?\s*(\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2})/i);
+    if(c && /condom[íi]nio/i.test(l)) cnpj = c[1];
+    if(cond && cnpj) break;
+  }
+  return { condominio: cond, cnpj };
+}
+
+/* ======================================================================
+   3) E-mail de sinalização de espólios
+   ====================================================================== */
+const RE_ESPOLIO_LIXO = /an[áa]lise|propriet|sistema|assertiva|identificad|\bstatus\b|falecid|d[úu]vida|disposi[çc]|atenciosa|prezad|cordial|permanec/i;
+
+function lerTabelaEmail(linhas){
+  const esp = [];
+  for(let i = 0; i < linhas.length; i++){
+    const l = linhas[i];
+    const m = l.match(/^\s*([A-Za-z]?\d{1,5}[A-Za-z]?)\s*\|\s*(\d{10,11})\s*\|\s*(.+)$/);
+    if(!m) continue;
+    const cels = m[3].split('|').map(s => s.trim());
+    const sufixo = cels.filter(s => /[A-Za-zÀ-ú]/.test(s) && !/^(sim|n[ãa]o)$/i.test(s) && !/\d{2}\/\d{2}\/\d{4}/.test(s)).join(' ');
+    const prev = (linhas[i-1] || '').trim();
+    const ehCabecalho = /\b(unidade|cpf|nome|[óo]bito|datanasc|dataobito|assunto|enviado|prezad|cordial|atenciosa)\b/i.test(prev);
+    const prefixo = (/^[A-Za-zÀ-ú' ]{3,}$/.test(prev) && !/\|/.test(prev) && !/\d/.test(prev) && !ehCabecalho && tokensNome(prev).length >= 1) ? prev : '';
+    esp.push({ unid: m[1], titular: (prefixo + ' ' + sufixo).replace(/\s+/g,' ').trim(), cpf: completaCpf(m[2]) });
+  }
+  return esp;
+}
+function lerLinhaCpf(linhas){
+  const esp = [], vistos = new Set();
+  for(const l of linhas){
+    if(RE_RODAPE.test(l)) continue;
+    const m = l.match(/(\d{3}\.\d{3}\.\d{3}-\d{2})/) || l.match(/\b(\d{11})\b/) || l.match(/\b(\d{10})\b/);
+    if(!m) continue;
+    const cpf = completaCpf(m[1]);
+    let resto = l.replace(m[0], ' ').replace(/\|/g,' ').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();
+    let unid = '';
+    const mu = resto.match(/^([A-Za-z]{0,3}\d{1,5}[A-Za-z]?)\b\s*/);
+    if(mu){ unid = mu[1].trim(); resto = resto.slice(mu[0].length); }
+    const nome = resto.replace(/\s+/g,' ').trim();
+    if(tokensNome(nome).length < 2 || RE_ESPOLIO_LIXO.test(nome)) continue;
+    const chave = soDigitos(cpf) || (normUnid(unid) + '|' + normNome(nome));
+    if(vistos.has(chave)) continue; vistos.add(chave);
+    esp.push({ unid, titular: nome, cpf });
+  }
+  return esp;
+}
+function dedupEspolios(esp){
+  const out = [], vistos = new Set();
+  for(const u of esp){ const chave = soDigitos(u.cpf) || (normUnid(u.unid) + '|' + normNome(u.titular)); if(vistos.has(chave)) continue; vistos.add(chave); out.push(u); }
+  return out;
+}
+function lerEmail(txt){
+  const linhas = txt.split(/\r?\n/).map(l => l.trim());
+  let remetente = '';
+  for(const l of linhas){
+    if(!/^de\b\s*:?/i.test(l)) continue;
+    let corpo = l.replace(/^de\s*:?\s*/i,'').replace(/\|/g,' ').replace(/<[^>]*>/g,' ').replace(/\S+@\S+/g,' ').trim();
+    corpo = corpo.split(/\s+-\s+/)[0].trim();
+    if(tokensNome(corpo).length >= 2){ remetente = corpo.replace(/\s+/g,' '); break; }
+  }
+  let esp = lerTabelaEmail(linhas);
+  if(!esp.length){
+    let cur = null;
+    const flush = () => { if(cur && (cur.unid || cur.cpf || cur.nome)) esp.push({ unid: cur.unid, titular: cur.nome, cpf: cur.cpf }); cur = null; };
+    linhas.forEach(l => {
+      let m = l.match(/^(?:condom[íi]nio|cond[oô]mino|nome|titular|propriet[áa]rio|respons[áa]vel)\s*:?\s*\|?\s*(.+)$/i);
+      if(m){ const nome = m[1].replace(/\|/g,' ').trim(); if(tokensNome(nome).length >= 2){ flush(); cur = {unid:'',cpf:'',nome:nome.replace(/\s+/g,' ')}; } return; }
+      m = l.match(/^unidade\s*:?\s*\|?\s*([A-Za-z0-9\-]+)/i);
+      if(m){ if(!cur) cur = {unid:'',cpf:'',nome:''}; cur.unid = m[1]; return; }
+      m = l.match(/^cpf\s*:?\s*\|?\s*(\d{3}\.?\d{3}\.?\d{3}-?\d{2})/i);
+      if(m){ if(!cur) cur = {unid:'',cpf:'',nome:''}; cur.cpf = completaCpf(m[1]); return; }
+    });
+    flush();
+  }
+  if(!esp.length) esp = lerLinhaCpf(linhas);
+  return { remetente, espolios: dedupEspolios(esp.filter(e => e.titular)) };
+}
+/* texto digitado: um espólio por linha */
+function lerSinalizacao(txt){
+  const novas = [];
+  txt.split(/\r?\n/).forEach(bruta => {
+    const linha = bruta.trim(); if(!linha) return;
+    const cpfM = linha.match(RE_CPF); const cpf = cpfM ? cpfM[0] : '';
+    let resto = cpf ? linha.replace(cpf,' ') : linha;
+    let unid = '';
+    const mBU = resto.match(/^([A-Za-z0-9]{1,6})\s*-\s*([A-Za-z]{0,3}\d{1,5}[A-Za-z]?)(?=[\s\t;|]|$)/);   // "A - 407", "37 - 403"
+    if(mBU && !RE_CPF.test(mBU[0])){ unid = `${mBU[1]} - ${mBU[2]}`; resto = resto.slice(mBU[0].length); }
+    const mU = unid ? null : resto.match(RE_UNIDADE);
+    if(mU){ unid = [mU[1], mU[2]].filter(Boolean).join('-'); resto = resto.replace(mU[0],' '); }
+    let campos = resto.split(/\t|;|\||\s+[-–]\s+/).map(c=>c.trim()).filter(Boolean);
+    let titular = campos.find(c => tokensNome(c).length >= 2 && !RE_NAO_NOME.test(c)) || '';
+    if(!titular && !unid){ const m = resto.match(/^(\w{1,5})\s+(.{4,})$/); if(m && tokensNome(m[2]).length >= 2){ unid = m[1]; titular = m[2].trim(); } }
+    if(!titular) return;
+    if(!unid){ const c0 = campos[0]; if(c0 && c0 !== titular && /^[A-Za-z]?\d{1,5}[A-Za-z]?$/.test(c0)) unid = c0; }
+    novas.push({ unid, titular: titular.replace(/\s+/g,' '), cpf });
+  });
+  return novas;
+}
+
+/* ======================================================================
+   4) Base do Power BI (Excel/CSV do dia ou PDF de um condomínio)
+   ====================================================================== */
+async function planilhaParaMatriz(file){
+  if(typeof XLSX === 'undefined') throw new Error('leitor de Excel não carregou (verifique a conexão)');
+  const wb = XLSX.read(await file.arrayBuffer(), {type:'array'});
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  return XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:''});
+}
+function baseDaPlanilha(rows){
+  if(!rows || !rows.length) return [];
+  let hi = rows.findIndex(r => Array.isArray(r) && r.some(c => /condom/i.test(String(c))) && r.some(c => /resultado/i.test(String(c))));
+  if(hi < 0) hi = 0;
+  const head = (rows[hi]||[]).map(c => String(c||'').toLowerCase());
+  const acha = (re, doFim) => { const idxs = head.map((h,i) => re.test(h) ? i : -1).filter(i => i >= 0); return idxs.length ? (doFim ? idxs[idxs.length-1] : idxs[0]) : -1; };
+  let nomeCol = acha(/condom/); if(nomeCol < 0) nomeCol = 0;
+  let mesesCol = acha(/idade|m[êe]s/);
+  let resCol = acha(/resultado/, true); if(resCol < 0) resCol = (rows[hi]||[]).length - 1;
+  const base = [], vistos = new Set();
+  for(let r = hi+1; r < rows.length; r++){
+    const row = rows[r]; if(!Array.isArray(row)) continue;
+    const nome = String(row[nomeCol] ?? '').trim();
+    if(!nome || /^total/i.test(nome)) continue;
+    let meses = null;
+    if(mesesCol >= 0){ const m = parseInt(String(row[mesesCol]).replace(/\D/g,''),10); if(!isNaN(m)) meses = m; }
+    const n = numBR(row[resCol]); if(n === null) continue;
+    const chave = normCond(nome); if(vistos.has(chave)) continue; vistos.add(chave);
+    base.push({ nome, meses, sinal: n < 0 ? '-' : '+', resultado: Math.abs(n) });
+  }
+  return base;
+}
+function lerBaseBiTexto(txt){
+  const base = [], vistos = new Set();
+  for(const l of txt.split(/\r?\n/).map(l => l.trim()).filter(Boolean)){
+    const vals = l.match(/-?\d{1,3}(?:\.\d{3})*,\d{2}/g) || [];
+    if(vals.length < 4 || !/^[A-Za-zÀ-ú]/.test(l)) continue;
+    const cel = l.split('|').map(c => c.trim()); const nome = cel[0];
+    if(!nome || /^total/i.test(nome)) continue;
+    const intCell = cel.find(c => /^\d{1,3}$/.test(c)); const ultimo = vals[vals.length-1];
+    const chave = normCond(nome); if(vistos.has(chave)) continue; vistos.add(chave);
+    base.push({ nome, meses: intCell ? parseInt(intCell,10) : null, sinal: /^-/.test(ultimo) ? '-' : '+', resultado: Math.abs(numBR(ultimo)) });
+  }
+  return base;
+}
+/* casa o condomínio com uma linha da base (Dice); devolve {item, ambiguo} ou null */
+function casarBaseBi(base, razao){
+  if(!base || !base.length) return null;
+  const alvo = biTok(normCond(razao||'')); if(!alvo.length) return null;
+  let best = null, bs = 0, second = 0;
+  base.forEach(b => {
+    const t = biTok(normCond(b.nome)); if(!t.length) return;
+    const comuns = t.filter(x => alvo.includes(x)).length; if(!comuns) return;
+    const dice = 2*comuns / (t.length + alvo.length);
+    if(dice > bs){ second = bs; bs = dice; best = b; } else if(dice > second){ second = dice; }
+  });
+  if(!best || bs < 0.34) return null;
+  return { item: best, ambiguo: (bs - second) < 0.08, score: bs };
+}
+
+/* ======================================================================
+   5) Planilha "Controle de Verificação de Espólios" (carga inicial)
+   Abas mensais (Jan26…) com: Quant. | Status | Comarca | Condomínio | Vigência | Responsável | Observações
+   ====================================================================== */
+const MES_ABA = {jan:'01',fev:'02',mar:'03',abr:'04',mai:'05',jun:'06',jul:'07',ago:'08',set:'09',out:'10',nov:'11',dez:'12'};
+function mesDaAba(nome, vigencia){
+  let m = String(nome||'').match(/^([a-z]{3})\s*\/?\s*(\d{2,4})$/i);
+  if(m && MES_ABA[m[1].toLowerCase()]){ const a = m[2].length === 2 ? '20' + m[2] : m[2]; return a + '-' + MES_ABA[m[1].toLowerCase()]; }
+  m = String(vigencia||'').match(/(\d{1,2})\/(\d{2,4})/);
+  if(m){ const a = m[2].length === 2 ? '20' + m[2] : m[2]; return a + '-' + m[1].padStart(2,'0'); }
+  return '';
+}
+function unidadesDasObs(obs){
+  const s = String(obs||'').trim();
+  if(!s) return { unidades: [], varias: false, nota: '' };
+  if(/V[ÁA]RIAS/i.test(s)) return { unidades: [], varias: true, nota: s };
+  if(/SEM ESP[ÓO]LIO|DISTRATAD/i.test(s)) return { unidades: [], varias: false, nota: s };
+  const partes = s.split(/\s*[\/;,]\s*/).map(p => p.trim()).filter(Boolean);
+  const unidades = partes.map(p => { const m = p.match(/^(.+?)\s*-\s*([A-Za-z0-9]+)$/); return m ? { bloco: m[1].trim(), unid: m[2].trim(), unidTxt: p } : { bloco:'', unid: p, unidTxt: p }; });
+  return { unidades, varias: false, nota: '' };
+}
+async function lerPlanilhaControle(file){
+  if(typeof XLSX === 'undefined') throw new Error('leitor de Excel não carregou');
+  const wb = XLSX.read(await file.arrayBuffer(), {type:'array'});
+  const saida = [];
+  for(const nomeAba of wb.SheetNames){
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[nomeAba], {header:1, raw:true, defval:''});
+    const hi = rows.findIndex(r => r.some(c => /condom/i.test(String(c))));
+    if(hi < 0) continue;
+    const head = rows[hi].map(c => String(c||'').toLowerCase());
+    const col = re => head.findIndex(h => re.test(h));
+    const cStatus = col(/status/), cComarca = col(/comarca/), cCond = col(/condom/), cVig = col(/vig/), cResp = col(/respons/), cObs = col(/observ/);
+    for(let r = hi+1; r < rows.length; r++){
+      const row = rows[r]; const cond = String(row[cCond] ?? '').trim(); if(!cond) continue;
+      const st = row[cStatus];
+      const temEspolio = st === true || /^(sim|s|x|true|1|verdadeiro)$/i.test(String(st).trim());
+      const vig = String(row[cVig] ?? '').trim();
+      const obs = String(row[cObs] ?? '').trim();
+      const u = unidadesDasObs(obs);
+      saida.push({ mes: mesDaAba(nomeAba, vig), aba: nomeAba, condominio: cond, comarca: String(row[cComarca] ?? '').trim(), vigencia: vig,
+                   responsavel: String(row[cResp] ?? '').trim(), temEspolio, obs, unidades: u.unidades, varias: u.varias });
+    }
+  }
+  return saida;
+}
+
+/* ===== 40-regras.js ===== */
+/* ======================================================================
+   Casamento espólio × devedor e regras da Política de Análise de Espólio
+   ====================================================================== */
+
+/* melhor devedor para um espólio: CPF definitivo; senão nome + unidade (bloco+número forte, só número fraco) */
+function melhorDevedor(u, lista){
+  let melhor = -1, melhorS = 0;
+  const uNorm = normUnid(u.unid), uDig = digitosUnid(u.unid);
+  (lista || []).forEach((b, i) => {
+    let s = scoreNome(u.titular, b.nome);
+    if(uNorm && normUnid(b.unidadeTxt || b.unidade) === uNorm) s += 0.9;
+    else if(uDig && digitosUnid(b.unidade) === uDig) s += 0.55;
+    if(u.cpf && b.cpf && soDigitos(u.cpf) === soDigitos(b.cpf)) s = 9;
+    if(s > melhorS){ melhorS = s; melhor = i; }
+  });
+  if(melhorS < 0.75) return null;
+  return { i: melhor, score: melhorS, modo: melhorS >= 9 ? 'CPF' : melhorS >= 1.6 ? 'nome + unidade' : 'nome' };
+}
+
+/* contagem de taxas de um espólio em um relatório (campo 'vouch' ou 'ant') */
+function contagem(u, campo, dev, relatorioLido){
+  if(u.manual && u.manual[campo] !== null && u.manual[campo] !== undefined) return u.manual[campo];
+  const idx = u.esc ? u.esc[campo] : null;
+  if(idx === null || idx === undefined) return relatorioLido ? 0 : null;
+  const b = dev[campo] && dev[campo][idx];
+  return b ? b.cobrancas.filter(c => c.incluir !== false).length : (relatorioLido ? 0 : null);
+}
+
+const BASE_TIPO = tipo => tipo === 'acompanhamento' ? 'REANÁLISE' : 'PREVENTIVO';
+
+/* ctx: {tipo, semAnt, biPos (true/false/null), vig (meses|null)} ; vouch/ant: contagens (null = sem leitura) */
+function classificar(u, ctx, vouch, ant){
+  const base = BASE_TIPO(ctx.tipo);
+  if(u.situacao === 'encerrada') return { r:'ENCERRADA', regra:'—', motivo: u.encerramento && u.encerramento.motivo ? u.encerramento.motivo : 'Acompanhamento encerrado.' };
+  if(u.override){
+    if(u.override === 'EXCLUIR') return { r:'EXCLUIR', regra:'Manual', motivo:'Excluída manualmente pelo analista.' + (u.motivoAjuste ? ' ' + u.motivoAjuste : '') };
+    return { r:base, regra:'Manual', motivo:'Mantida sob análise manualmente pelo analista.' + (u.motivoAjuste ? ' ' + u.motivoAjuste : '') };
+  }
+  if(ctx.semAnt) ant = 0;
+  if(vouch === null)
+    return { r:base, regra:'5.5', motivo:'Sem leitura do Vouch para este devedor — insumo pendente; registrada para acompanhamento.', pendente:true };
+
+  if(ctx.tipo === 'acompanhamento'){
+    if(vouch >= 3) return { r:'EXCLUIR', regra:'Acompanhamento', motivo:`Reanálise — segue inadimplente no Vouch (${vouch} taxas); removida da garantia.` };
+    return { r:'REANÁLISE', regra:'Acompanhamento', motivo: vouch > 0
+      ? `Reanálise — ${vouch} taxa(s) no Vouch (abaixo de 3); permanece em acompanhamento (revisar em ~3 meses).`
+      : 'Reanálise — sem cobrança no Vouch nesta rodada; permanece em acompanhamento (revisar em ~3 meses).' };
+  }
+
+  if(ant === null)
+    return { r:base, regra:'5.5', motivo:'Sem leitura do relatório anterior — insumo pendente; registrada para acompanhamento.', pendente:true };
+  if(vouch > 0 && ant > 0)
+    return { r:'EXCLUIR', regra:'1', motivo:`${vouch} no Vouch e ${ant} na base anterior.` };
+  if(vouch === 0 && ant >= 3)
+    return { r:base, regra:'2', motivo:`Sem Vouch; recorrência anterior (${ant} competências) — registrada para acompanhamento.` };
+  if(vouch === 0)
+    return { r:base, regra:'3', motivo: ant > 0 ? `Sem Vouch; anterior pontual (${ant}).` : 'Implantação sem inadimplência no Vouch (esperado nesta fase).' };
+  if(ctx.biPos === null)
+    return { r:base, regra:'5.5', motivo:`${vouch} cobrança(s) no Vouch, mas resultado do BI não informado.`, pendente:true };
+  if(ctx.biPos)
+    return vouch >= 3 ? { r:'EXCLUIR', regra:'4', motivo:`${vouch} cobranças no Vouch com BI positivo.` }
+                      : { r:base, regra:'4', motivo:`${vouch} cobrança(s) no Vouch com BI positivo — em acompanhamento.` };
+  if(ctx.vig === null)
+    return { r:base, regra:'5.5', motivo:'Só Vouch com BI negativo, mas vigência não informada.', pendente:true };
+  return (ctx.vig < 6 && vouch < 3)
+    ? { r:base, regra:'5', motivo:`Contrato recente (${ctx.vig} meses) e ${vouch} cobrança(s).` }
+    : { r:'EXCLUIR', regra:'5', motivo:`BI negativo, ${ctx.vig} meses de vigência, ${vouch} cobrança(s).` };
+}
+
+const sufStatus = r => r === 'PREVENTIVO' ? 'PREV' : r === 'EXCLUIR' ? 'EXCLUIR' : r === 'ENCERRADA' ? 'ENC' : 'REAN';
+const classeSelo = r => r === 'EXCLUIR' ? 's-exc' : r === 'PREVENTIVO' ? 's-prev' : r === 'ENCERRADA' ? 's-enc' : 's-rean';
+const classeRes  = r => 'res-' + sufStatus(r);
+const rotuloStatus = r => r === 'EXCLUIR' ? 'Excluir' : r === 'PREVENTIVO' ? 'Sob análise · Preventivo' : r === 'REANÁLISE' ? 'Sob análise · Reanálise' : r === 'ENCERRADA' ? 'Encerrada' : r;
+
+const TEXTO_REGRAS = `
+<p><b>Tipo de análise</b> define o status-base da rodada inteira. Cada unidade fica no status-base <i>ou</i> vai para EXCLUIR quando as regras disparam.</p>
+<p><b>Implantação → base PREVENTIVO.</b> Primeira análise do condomínio; é natural ainda não haver inadimplência no Vouch. Exclusão pelas regras 1 a 5:</p>
+<ol style="padding-left:18px">
+<li><b>Vouch + anterior → EXCLUIR.</b> Cobrança no Vouch <i>e</i> débito na base anterior.</li>
+<li><b>Sem Vouch + anterior recorrente (3+) → PREVENTIVO.</b> Registrada para acompanhamento.</li>
+<li><b>Sem Vouch (sem anterior ou pontual) → PREVENTIVO.</b></li>
+<li><b>Só Vouch + BI positivo.</b> 3 ou mais → EXCLUIR; menos de 3 → PREVENTIVO.</li>
+<li><b>Só Vouch + BI negativo.</b> PREVENTIVO só se vigência &lt; 6 meses <i>e</i> menos de 3 cobranças; caso contrário → EXCLUIR.</li>
+</ol>
+<p><b>Acompanhamento → base REANÁLISE.</b> Reanálise periódica (a cada ~3 meses). Só o Vouch entra: <b>3 ou mais</b> taxas vencidas → EXCLUIR; abaixo de 3 → permanece em REANÁLISE.</p>
+<p><b>Item 5.5</b> — faltando insumo, a unidade fica no status-base e a pendência é registrada, sem inferência. Relatório lido sem casamento = sem cobrança (0).</p>
+<p>Toda linha de taxa conta igual (arrecadação, rateio, parcela de acordo). Marcadores como "Jurídico" ficam só como informação na evidência.</p>
+<p>Saída do acompanhamento: exclusão da garantia ou troca de titularidade concluída. Regra de saída por tempo ou por rodadas zeradas: pendente de definição.</p>`;
+
+/* ===== 50-rodadas.js ===== */
+/* ======================================================================
+   Estado, assinaturas e operações sobre rodadas
+   Rodada: { id, protocolo, tipo, origem, condominio:{nome,cnpj,chave}, dataAnalise, analista, idadeGarantia,
+             bi:{valor,sinal}|null, semAnterior, semBi, nota, status:'rascunho'|'concluida',
+             vouch:{corte, emissao, totalTaxas, totalUnidades, lidas, conferido}|null,
+             unidades:[{id, unid, titular, cpf, obs, override, motivoAjuste, manual:{vouch,ant}, esc:{vouch,ant},
+                        cas:{vouch:{nome,unid,modo}|null, ant:…}, vouch:n|null, ant:n|null, resultado, regra, motivo,
+                        situacao:'ativa'|'excluida'|'encerrada', encerramento:{motivo,data}|null, completar:bool}],
+             anterior: rodadaId|null, proximaReanalise, criadaEm, criadoPor, concluidaEm }
+   Evidências (texto dos PDFs e devedores lidos) ficam em evidencias/{rodadaId}.
+   ====================================================================== */
+const S = {
+  rodadas: [],          // todas as rodadas (snapshot)
+  verificacoes: [],
+  meta: { seq: {} },
+  bi: { base: [], enviadoEm: '', por: '' },
+  pronto: { r:false, v:false, m:false, b:false },
+  aba: 'dash',
+  // editor (nova análise)
+  rodada: null,         // rodada em edição (objeto)
+  dev: { vouch: [], ant: [] },   // devedores lidos (da evidência)
+  textos: { vouch:'', ant:'', email:'' },
+  lote: { selecionados: new Set(), itens: [] }   // itens: {arquivo, leitura, condominio, rodada, dev}
+};
+
+function assinarBase(){
+  const fail = e => { $('#sync').className = 'sync err'; $('#sync').innerHTML = '<i></i>Desconectado'; toast(dbErr(e), 6000); };
+  const pronto = k => { S.pronto[k] = true; if(Object.values(S.pronto).every(Boolean)) renderTudo(); };
+  DB.collection(COLECOES.rodadas).onSnapshot(snap => { S.rodadas = snap.docs.map(d => ({ id: d.id, ...d.data() })); pronto('r'); if(S.pronto.r) renderTudo(); }, fail);
+  DB.collection(COLECOES.verificacoes).onSnapshot(snap => { S.verificacoes = snap.docs.map(d => ({ id: d.id, ...d.data() })); pronto('v'); if(S.pronto.v) renderTudo(); }, fail);
+  DB.doc(COLECOES.meta + '/estado').onSnapshot(snap => { S.meta = snap.exists ? snap.data() : { seq: {} }; pronto('m'); }, fail);
+  DB.doc(COLECOES.bi + '/atual').onSnapshot(snap => { S.bi = snap.exists ? snap.data() : { base: [], enviadoEm:'', por:'' }; pronto('b'); renderBiInfo(); }, fail);
+}
+
+/* ---------- protocolo sequencial AE-AAAA-NNNN ---------- */
+async function proximoProtocolo(ano){
+  ano = ano || hojeISO().slice(0,4);
+  const ref = DB.doc(COLECOES.meta + '/estado');
+  const snap = await ref.get();
+  const meta = snap.exists ? snap.data() : { seq: {} };
+  meta.seq = meta.seq || {};
+  const n = (meta.seq[ano] || 0) + 1;
+  meta.seq[ano] = n;
+  await ref.set(meta);
+  S.meta = meta;
+  return `AE-${ano}-${String(n).padStart(4,'0')}`;
+}
+
+/* ---------- derivadas ---------- */
+const rodadasConcluidas = () => S.rodadas.filter(r => r.status === 'concluida');
+function ultimaRodadaPorCondominio(){
+  const mapa = new Map();
+  rodadasConcluidas().forEach(r => {
+    const k = r.condominio.chave;
+    const atual = mapa.get(k);
+    if(!atual || (r.dataAnalise > atual.dataAnalise) || (r.dataAnalise === atual.dataAnalise && (r.concluidaEm||'') > (atual.concluidaEm||''))) mapa.set(k, r);
+  });
+  return mapa;
+}
+/* fila: um item por condomínio com unidades ativas (não excluídas, não encerradas) na última rodada concluída */
+function fila(){
+  const hoje = hojeISO();
+  const itens = [];
+  ultimaRodadaPorCondominio().forEach(r => {
+    const ativas = (r.unidades || []).filter(u => u.situacao === 'ativa' && u.resultado !== 'EXCLUIR');
+    if(!ativas.length) return;
+    const prazo = r.proximaReanalise || somaDias(r.dataAnalise, PRAZO_REANALISE_DIAS);
+    const emAberto = S.rodadas.find(x => x.status === 'rascunho' && x.condominio.chave === r.condominio.chave);
+    itens.push({ chave: r.condominio.chave, condominio: r.condominio, rodada: r, unidades: ativas, prazo, dias: diasEntre(hoje, prazo), vencida: prazo < hoje, rascunho: emAberto || null, completar: ativas.some(u => u.completar) });
+  });
+  itens.sort((a,b) => a.prazo.localeCompare(b.prazo));
+  return itens;
+}
+function rodadasDoCondominio(chave){ return S.rodadas.filter(r => r.condominio.chave === chave).sort((a,b) => a.dataAnalise.localeCompare(b.dataAnalise)); }
+
+/* ---------- construção de rodada ---------- */
+function novaUnidade(unid, titular, cpf){
+  return { id: uid(), unid: unid || '', titular: titular || '', cpf: cpf || '', obs:'', override:'', motivoAjuste:'',
+           manual:{vouch:null, ant:null}, esc:{vouch:null, ant:null}, cas:{vouch:null, ant:null}, vouch:null, ant:null,
+           resultado:'', regra:'', motivo:'', situacao:'ativa', encerramento:null, completar:false };
+}
+function novaRodada(tipo, cond){
+  return { protocolo: '', tipo: tipo || 'implantacao', origem: 'modulo', condominio: cond || { nome:'', cnpj:'', chave:'' },
+           dataAnalise: hojeISO(), analista:'', idadeGarantia: null, bi: null, semAnterior: false, semBi: false, nota:'',
+           status:'rascunho', vouch: null, unidades: [], anterior: null, proximaReanalise: null, criadaEm: nowISO(), criadoPor: ME.id, criadoPorNome: ME.name, concluidaEm: null };
+}
+function contextoDe(r){
+  const bi = r.semBi || !r.bi || r.bi.valor === null || r.bi.valor === undefined ? null : (r.bi.sinal === '-' ? -Math.abs(r.bi.valor) : Math.abs(r.bi.valor));
+  return { tipo: r.tipo === 'acompanhamento' || r.tipo === 'carga' ? 'acompanhamento' : 'implantacao', semAnt: !!r.semAnterior, biPos: bi === null ? null : bi >= 0, vig: (r.idadeGarantia === null || r.idadeGarantia === undefined || r.idadeGarantia === '') ? null : +r.idadeGarantia };
+}
+/* recasa todas as unidades com os devedores lidos e reclassifica (muta r) */
+function recalcular(r, dev, lidos){
+  const ctx = contextoDe(r);
+  r.unidades.forEach(u => {
+    ['vouch','ant'].forEach(campo => {
+      if(u.esc[campo] === 'manual') return;
+      const m = melhorDevedor(u, dev[campo]);
+      u.esc[campo] = m ? m.i : null;
+      u.cas[campo] = m ? { nome: dev[campo][m.i].nome, unid: dev[campo][m.i].unidadeTxt || dev[campo][m.i].unidade, modo: m.modo, score: m.score } : null;
+    });
+    if(!u.unid || u.unidAuto){
+      const bv = u.esc.vouch !== null && u.esc.vouch !== 'manual' ? dev.vouch[u.esc.vouch] : null;
+      const ba = u.esc.ant !== null && u.esc.ant !== 'manual' ? dev.ant[u.esc.ant] : null;
+      const un = (bv && (bv.unidadeTxt || bv.unidade)) || (ba && (ba.unidadeTxt || ba.unidade)) || '';
+      if(un){ u.unid = un; u.unidAuto = true; }
+    }
+    u.vouch = contagem(u, 'vouch', dev, lidos.vouch);
+    u.ant = ctx.semAnt ? 0 : contagem(u, 'ant', dev, lidos.ant);
+    const c = classificar(u, ctx, u.vouch, u.ant);
+    u.resultado = c.r; u.regra = c.regra; u.motivo = c.motivo; u.pendente = !!c.pendente;
+  });
+}
+function resumoRodada(r){
+  const n = x => r.unidades.filter(u => u.resultado === x).length;
+  return { total: r.unidades.length, excluir: n('EXCLUIR'), prev: n('PREVENTIVO'), rean: n('REANÁLISE'), enc: n('ENCERRADA'), pendentes: r.unidades.filter(u => u.pendente).length };
+}
+function rodadaParaGravar(r){
+  const c = JSON.parse(JSON.stringify(r)); delete c.id; delete c._dev; return c;
+}
+async function salvarRodada(r){
+  if(!CAN_WRITE) throw new Error('Sem permissão de escrita.');
+  const dados = rodadaParaGravar(r);
+  if(r.id){ await DB.doc(COLECOES.rodadas + '/' + r.id).set(dados); }
+  else { const ref = await DB.collection(COLECOES.rodadas).add(dados); r.id = ref.id; }
+  return r.id;
+}
+async function salvarEvidencias(rodadaId, ev){
+  if(!rodadaId) return;
+  await DB.doc(COLECOES.evidencias + '/' + rodadaId).set({ rodadaId, atualizadoEm: nowISO(), ...ev });
+}
+async function carregarEvidencias(rodadaId){
+  const snap = await DB.doc(COLECOES.evidencias + '/' + rodadaId).get();
+  return snap.exists ? snap.data() : null;
+}
+/* conclusão: trava, atribui protocolo, define situação das unidades e prazo */
+async function concluirRodada(r){
+  const pend = r.unidades.filter(u => u.pendente && !u.override);
+  if(pend.length) throw new Error(`${pend.length} pendência(s) (regra 5.5) impedem a conclusão. Resolva o insumo ou faça o ajuste manual com motivo.`);
+  const semMotivo = r.unidades.filter(u => u.override && !String(u.motivoAjuste||'').trim());
+  if(semMotivo.length) throw new Error('Ajuste manual exige motivo (unidade ' + semMotivo.map(u => u.unid || u.titular).join(', ') + ').');
+  if(!r.condominio.nome) throw new Error('Informe o condomínio.');
+  if(!r.unidades.length) throw new Error('Cadastre ao menos um espólio.');
+  if(!r.protocolo) r.protocolo = await proximoProtocolo(r.dataAnalise.slice(0,4));
+  r.unidades.forEach(u => { if(u.resultado === 'EXCLUIR') u.situacao = 'excluida'; else if(u.situacao !== 'encerrada') u.situacao = 'ativa'; });
+  r.status = 'concluida'; r.concluidaEm = nowISO(); r.concluidoPor = ME.id; r.concluidoPorNome = ME.name;
+  r.proximaReanalise = somaDias(r.dataAnalise, PRAZO_REANALISE_DIAS);
+  r.resumo = resumoRodada(r);
+  await salvarRodada(r);
+  registrarHistorico('conclusao', { rodadaId: r.id, protocolo: r.protocolo, condominio: r.condominio.nome, tipo: r.tipo, resumo: r.resumo });
+  return r;
+}
+/* nova rodada de acompanhamento a partir da última concluída do condomínio */
+function rodadaDeAcompanhamento(anterior){
+  const r = novaRodada('acompanhamento', { ...anterior.condominio });
+  r.anterior = anterior.id; r.idadeGarantia = anterior.idadeGarantia; r.analista = anterior.analista || '';
+  r.semAnterior = true; r.semBi = true;
+  r.unidades = (anterior.unidades || []).filter(u => u.situacao === 'ativa' && u.resultado !== 'EXCLUIR').map(u => {
+    const n = novaUnidade(u.unid, u.titular, u.cpf); n.obs = u.obs || ''; n.completar = !!u.completar; n.historicoVouch = (u.historicoVouch || []).concat([{ rodada: anterior.protocolo || anterior.id, data: anterior.dataAnalise, vouch: u.vouch }]); return n; });
+  return r;
+}
+
+/* ---------- identificação do condomínio de um PDF do Vouch (lote) ---------- */
+function identificarCondominio(leitura, candidatos){
+  const cnpj = soDigitos(leitura.cnpj);
+  if(cnpj.length === 14){ const c = candidatos.find(x => soDigitos(x.condominio.cnpj) === cnpj); if(c) return { item: c, modo: 'CNPJ', score: 1 }; }
+  let best = null, bs = 0, second = 0;
+  candidatos.forEach(c => { const d = diceCond(leitura.condominio, c.condominio.nome); if(d > bs){ second = bs; bs = d; best = c; } else if(d > second) second = d; });
+  if(!best || bs < 0.5) return null;
+  return { item: best, modo: 'nome', score: bs, ambiguo: (bs - second) < 0.15 };
+}
+
+/* ---------- carga inicial a partir da planilha de controle ---------- */
+async function importarPlanilhaControle(linhas){
+  const existentesV = new Set(S.verificacoes.map(v => v.mes + '|' + normCond(v.condominio)));
+  const existentesR = new Set(S.rodadas.filter(r => r.origem === 'carga').map(r => r.condominio.chave));
+  let nv = 0, nr = 0, pulados = 0;
+  for(const l of linhas){
+    const kv = l.mes + '|' + normCond(l.condominio);
+    if(!existentesV.has(kv)){
+      await DB.collection(COLECOES.verificacoes).add({ mes: l.mes, condominio: l.condominio, comarca: l.comarca, vigencia: l.vigencia, responsavel: l.responsavel, temEspolio: l.temEspolio, obs: l.obs, origem: 'planilha', criadoEm: nowISO(), criadoPor: ME.id });
+      existentesV.add(kv); nv++;
+    } else pulados++;
+    if(l.temEspolio){
+      const chave = chaveCond(l.condominio, '');
+      if(existentesR.has(chave) || S.rodadas.some(r => r.condominio.chave === chave)) continue;
+      const r = novaRodada('carga', { nome: l.condominio, cnpj: '', chave });
+      r.origem = 'carga'; r.status = 'concluida'; r.protocolo = '';
+      r.dataAnalise = l.mes ? l.mes + '-01' : hojeISO();
+      r.nota = 'Carga inicial da planilha de controle' + (l.obs ? ' · obs.: ' + l.obs : '');
+      r.unidades = l.unidades.length ? l.unidades.map(u => { const n = novaUnidade(u.unidTxt, '', ''); n.resultado = 'PREVENTIVO'; n.regra = 'Carga'; n.motivo = 'Importada da planilha de controle; titular a completar.'; n.completar = true; return n; })
+                                     : [Object.assign(novaUnidade('', '', ''), { resultado:'PREVENTIVO', regra:'Carga', motivo: l.varias ? 'Planilha indica "várias" unidades; completar na primeira reanálise.' : 'Unidades não informadas na planilha; completar na primeira reanálise.', completar: true })];
+      r.concluidaEm = nowISO(); r.proximaReanalise = somaDias(r.dataAnalise, PRAZO_REANALISE_DIAS); r.resumo = resumoRodada(r);
+      await DB.collection(COLECOES.rodadas).add(rodadaParaGravar(r));
+      existentesR.add(chave); nr++;
+    }
+  }
+  registrarHistorico('carga_inicial', { verificacoes: nv, rodadas: nr });
+  return { verificacoes: nv, rodadas: nr, pulados };
+}
+
+/* ===== 60-ui-comum.js ===== */
+/* ======================================================================
+   UI comum: abas, render geral, cartão de unidade, ficha
+   ====================================================================== */
+function mostrarAba(nome){
+  S.aba = nome;
+  $$('.tab').forEach(t => t.classList.toggle('ativa', t.dataset.tab === nome));
+  $$('.painel').forEach(p => p.classList.toggle('ativa', p.id === 'p-' + nome));
+  window.scrollTo({ top: 0 });
+  if(nome === 'lote') renderLote();
+  if(nome === 'hist') renderHistorico();
+  if(nome === 'verif') renderVerificacao();
+  if(nome === 'conf') renderConf();
+}
+$('#tabs').addEventListener('click', e => { const b = e.target.closest('.tab'); if(b) mostrarAba(b.dataset.tab); });
+
+function renderTudo(){
+  renderDashboard();
+  renderNovaLista();
+  renderBadges();
+  renderListaCondominios();
+  if(S.aba === 'lote') renderLote();
+  if(S.aba === 'hist') renderHistorico();
+  if(S.aba === 'verif') renderVerificacao();
+  if(S.aba === 'conf') renderConf();
+}
+function renderBadges(){
+  const f = fila(); const venc = f.filter(i => i.vencida).length;
+  const nf = $('#nFila'); nf.hidden = !f.length; nf.textContent = venc ? `${venc} vencida${venc>1?'s':''}` : `${f.length}`; nf.classList.toggle('alerta', venc > 0);
+  const rasc = S.rodadas.filter(r => r.status === 'rascunho').length;
+  const nn = $('#nNova'); nn.hidden = !rasc; nn.textContent = `${rasc} rascunho${rasc>1?'s':''}`;
+}
+function renderListaCondominios(){
+  const nomes = new Set();
+  S.rodadas.forEach(r => nomes.add(r.condominio.nome));
+  S.verificacoes.forEach(v => nomes.add(v.condominio));
+  (S.bi.base || []).forEach(b => nomes.add(b.nome));
+  $('#listaCondominios').innerHTML = [...nomes].filter(Boolean).sort().map(n => `<option value="${esc(n)}">`).join('');
+}
+
+/* ---------- cartão de unidade (usado em Nova análise e no lote) ---------- */
+function opcoesDevedor(lista, idx){
+  return ['<option value="">— não encontrado —</option>'].concat((lista||[]).map((x,i) =>
+    `<option value="${i}" ${i===idx?'selected':''}>${esc((x.unidadeTxt||x.unidade ? (x.unidadeTxt||x.unidade)+' · ' : '') + x.nome)} (${x.cobrancas.filter(c=>c.incluir!==false).length})</option>`)).join('');
+}
+function cardUnidade(u, r, dev, rid, opts){
+  opts = opts || {};
+  const c = { r: u.resultado, regra: u.regra, motivo: u.motivo };
+  const travada = r.status === 'concluida';
+  const cas = campo => { const k = u.cas[campo]; if(u.esc[campo] === 'manual') return '<span class="casamento">contagem manual</span>'; if(!k) return `<span class="casamento nao">não localizado</span>`; return `<span class="casamento ${k.modo==='nome'?'fraco':''}">↔ ${esc(k.nome)}${k.unid?' ('+esc(k.unid)+')':''} · ${esc(k.modo)}</span>`; };
+  const destaque = opts.destaque ? ' destaque' : '';
+  const anterior = opts.anterior;   // resultado na rodada anterior (lote)
+  const mudou = anterior && anterior !== u.resultado;
+  const provas = campo => {
+    const b = (u.esc[campo] !== null && u.esc[campo] !== 'manual') ? (dev[campo]||[])[u.esc[campo]] : null;
+    if(!b || !b.cobrancas.length) return '';
+    return `<label style="margin-top:10px">Evidências · ${campo==='vouch'?'Vouch':'Administradora anterior'} · ${esc(b.nome)} (${b.cobrancas.filter(x=>x.incluir!==false).length} de ${b.cobrancas.length})</label>
+      <div class="prova">${b.cobrancas.map((p,i) => `<div><input type="checkbox" data-prova="${campo}" data-idx="${i}" ${p.incluir!==false?'checked':''} ${travada?'disabled':''}><span>${esc(p.comp||'')} · ${esc(p.referencia||'')}${p.marcadores&&p.marcadores.length?' · '+esc(p.marcadores.join(', ')):''}${p.valor!=null?' · '+fmtBRL(p.valor):''} <span style="color:var(--faint)">${esc((p.texto||'').slice(0,90))}</span></span></div>`).join('')}</div>`;
+  };
+  const semAnt = r.semAnterior || r.tipo === 'acompanhamento' || r.tipo === 'carga';
+  return `<details class="unid${destaque}" data-rid="${rid}" data-uid="${u.id}" ${opts.aberto?'open':''}>
+    <summary>
+      <div class="num">${esc(u.unid || '—')}</div>
+      <div class="quem"><b>${esc(u.titular || '(titular a completar)')}</b><span>${esc(u.cpf || 'sem CPF')}${u.completar?' · <b style="color:#b57a12">completar</b>':''}</span>
+        <div class="taxas"><span>Vouch <b>${u.vouch===null||u.vouch===undefined?'—':u.vouch}</b></span>${semAnt?'':`<span>Anterior <b>${u.ant===null||u.ant===undefined?'—':u.ant}</b></span>`}${anterior?`<span>antes: <b>${esc(rotuloStatus(anterior))}</b></span>`:''}</div></div>
+      <div class="res"><span class="selo ${classeSelo(c.r)}">${esc(rotuloStatus(c.r))}</span>${mudou?' <span class="selo s-rean">mudou</span>':''}${u.pendente?' <span class="selo s-rean">pendência 5.5</span>':''}<div class="motivo">Regra ${esc(c.regra)} · ${esc(c.motivo)}</div></div>
+    </summary>
+    <div class="det">
+      <div class="grade">
+        <div><label>Unidade</label><input type="text" data-campo="unid" value="${esc(u.unid)}" ${travada?'disabled':''}></div>
+        <div><label>Titular</label><input type="text" data-campo="titular" value="${esc(u.titular)}" ${travada?'disabled':''}></div>
+        <div><label>CPF</label><input type="text" data-campo="cpf" value="${esc(u.cpf)}" ${travada?'disabled':''}></div>
+        <div><label>Observação para a ficha</label><input type="text" data-campo="obs" value="${esc(u.obs)}" placeholder="titular divergente, inventário..." ${travada?'disabled':''}></div>
+      </div>
+      <div class="grade">
+        <div><label>Casamento no Vouch</label><select data-esc="vouch" ${travada?'disabled':''}>${opcoesDevedor(dev.vouch, u.esc.vouch)}</select><div style="margin-top:4px">${cas('vouch')}</div>
+          <label style="margin-top:8px">Taxas no Vouch (manual)</label><input type="number" min="0" data-manual="vouch" value="${u.manual.vouch??''}" placeholder="automático" ${travada?'disabled':''}></div>
+        ${semAnt ? '' : `<div><label>Casamento na anterior</label><select data-esc="ant" ${travada?'disabled':''}>${opcoesDevedor(dev.ant, u.esc.ant)}</select><div style="margin-top:4px">${cas('ant')}</div>
+          <label style="margin-top:8px">Taxas anteriores (manual)</label><input type="number" min="0" data-manual="ant" value="${u.manual.ant??''}" placeholder="automático" ${travada?'disabled':''}></div>`}
+        <div><label>Ajuste do analista</label><select data-campo="override" ${travada?'disabled':''}><option value="">Automático</option><option value="__base__" ${u.override && u.override!=='EXCLUIR'?'selected':''}>Sob análise</option><option value="EXCLUIR" ${u.override==='EXCLUIR'?'selected':''}>Excluir</option></select>
+          <label style="margin-top:8px">Motivo do ajuste ${u.override?'<span style="color:var(--red)">(obrigatório)</span>':''}</label><input type="text" data-campo="motivoAjuste" value="${esc(u.motivoAjuste||'')}" placeholder="ex.: alvará judicial apresentado" ${travada?'disabled':''}></div>
+      </div>
+      ${provas('vouch')}${semAnt?'':provas('ant')}
+      ${travada ? '' : `<div class="acoes" style="margin-top:12px">
+        ${u.situacao==='encerrada' ? `<span class="selo s-enc">encerrada: ${esc(u.encerramento?u.encerramento.motivo:'')}</span><button class="btn sec mini" data-acao="reabrir">Reabrir</button>`
+          : `<button class="btn sec mini" data-acao="encerrar">Encerrar acompanhamento (troca de titularidade)</button>`}
+        <button class="btn perigo mini" data-acao="remover">Remover unidade</button></div>`}
+    </div>
+  </details>`;
+}
+
+/* localiza a rodada de um cartão pelo rid: 'nova' = editor; 'lote:i' = item do lote */
+function rodadaPorRid(rid){
+  if(rid === 'nova') return { r: S.rodada, dev: S.dev, lidos: { vouch: !!S.textos.vouch.trim(), ant: !!S.textos.ant.trim() }, apos: () => renderEditorUnidades(true) };
+  const m = rid.match(/^lote:(\d+)$/);
+  if(m){ const it = S.lote.itens[+m[1]]; return { r: it.rodada, dev: it.dev, lidos: { vouch: true, ant: false }, apos: () => renderLoteRevisao() }; }
+  return null;
+}
+async function eventoCartao(e, tipo){
+  const card = e.target.closest('details.unid[data-rid]'); if(!card) return;
+  const ctx = rodadaPorRid(card.dataset.rid); if(!ctx || !ctx.r) return;
+  const u = ctx.r.unidades.find(x => x.id === card.dataset.uid); if(!u) return;
+  const t = e.target;
+  let recalc = false;
+  if(tipo === 'input' && t.dataset.campo){
+    u[t.dataset.campo] = t.value;
+    if(t.dataset.campo === 'unid') u.unidAuto = false;
+    if(['unid','titular','cpf'].includes(t.dataset.campo)) recalc = true; else { const c = classificar(u, contextoDe(ctx.r), u.vouch, u.ant); u.resultado = c.r; u.regra = c.regra; u.motivo = c.motivo; }
+    if(u.titular && u.completar) u.completar = false;
+    agendarSalvar(card.dataset.rid); if(tipo === 'input' && ['obs','motivoAjuste','titular','cpf','unid'].includes(t.dataset.campo)){ atualizarResumoSemRender(card.dataset.rid); return; }
+  }
+  if(tipo === 'input' && t.dataset.manual){ const v = t.value; u.manual[t.dataset.manual] = v === '' ? null : Math.max(0, parseInt(v,10)||0); recalc = true; }
+  if(tipo === 'change' && t.dataset.esc){ const v = t.value; u.esc[t.dataset.esc] = v === '' ? null : +v; u.manual[t.dataset.esc] = null; recalc = true; }
+  if(tipo === 'change' && t.dataset.campo === 'override'){ u.override = t.value; recalc = true; }
+  if(tipo === 'change' && t.dataset.prova){ const b = ctx.dev[t.dataset.prova][u.esc[t.dataset.prova]]; if(b){ b.cobrancas[+t.dataset.idx].incluir = t.checked; u.manual[t.dataset.prova] = null; recalc = true; } }
+  if(tipo === 'click' && t.dataset.acao){
+    if(t.dataset.acao === 'remover'){ if(!(await confirmar('Remover esta unidade da rodada?'))) return; ctx.r.unidades = ctx.r.unidades.filter(x => x.id !== u.id); recalc = true; }
+    if(t.dataset.acao === 'encerrar'){ const motivo = window.prompt('Motivo do encerramento (ex.: troca de titularidade concluída em dd/mm/aaaa):', 'Troca de titularidade concluída'); if(motivo === null) return; u.situacao = 'encerrada'; u.encerramento = { motivo, data: hojeISO(), por: ME.name }; recalc = true; }
+    if(t.dataset.acao === 'reabrir'){ u.situacao = 'ativa'; u.encerramento = null; recalc = true; }
+  }
+  if(recalc){ recalcular(ctx.r, ctx.dev, ctx.lidos); ctx.apos(); agendarSalvar(card.dataset.rid); }
+}
+document.addEventListener('input', e => eventoCartao(e, 'input'));
+document.addEventListener('change', e => eventoCartao(e, 'change'));
+document.addEventListener('click', e => { if(e.target.dataset && e.target.dataset.acao) eventoCartao(e, 'click'); });
+
+/* ---------- ficha ---------- */
+function fichaHTML(r){
+  const res = r.unidades || [];
+  const grupo = x => res.filter(u => u.resultado === x);
+  const nomes = a => a.length ? a.map(u => `${u.unid||'s/ unid.'} — ${u.titular||'(a completar)'}`).join('; ') : '—';
+  const obs = res.filter(u => (u.obs||'').trim()).map(u => `${u.unid||u.titular}: ${u.obs.trim()}`).join('; ');
+  const bi = r.semBi || !r.bi || r.bi.valor === null || r.bi.valor === undefined ? null : (r.bi.sinal === '-' ? -Math.abs(r.bi.valor) : Math.abs(r.bi.valor));
+  const vig = (r.idadeGarantia === null || r.idadeGarantia === undefined || r.idadeGarantia === '') ? null : +r.idadeGarantia;
+  const inicioTxt = vig !== null ? `${vig} ${vig===1?'mês':'meses'}` : '—';
+  const nE = grupo('EXCLUIR').length, nR = grupo('REANÁLISE').length, nP = grupo('PREVENTIVO').length, nEnc = grupo('ENCERRADA').length;
+  const tipoSob = r.tipo === 'acompanhamento' ? 'reanálise' : 'preventivo';
+  const classif = res.length ? [nE?`Excluir da garantia (${nE})`:null, (nR+nP)?`Sob análise · ${tipoSob} (${nR+nP})`:null, nEnc?`Encerradas (${nEnc})`:null].filter(Boolean).join('  ·  ') : '—';
+  const sit = n => n === null || n === undefined ? 'Não informado' : (n > 0 ? `Inadimplente (${n} taxa${n>1?'s':''})` : 'Sem cobrança');
+  const tipoTxt = r.tipo === 'acompanhamento' ? 'Acompanhamento (reanálise)' : r.tipo === 'carga' ? 'Carga inicial' : 'Implantação (1ª análise)';
+  const semAnt = r.semAnterior || r.tipo === 'acompanhamento';
+  const logo = $('.brand img') ? $('.brand img').getAttribute('src') : '';
+  return `
+  ${logo ? `<img src="${logo}" class="f-logo" alt="MyBlue">` : ''}
+  <div class="f-titulo">Análise de Espólio</div>
+  <div class="f-sub">Protocolo ${esc(r.protocolo || 'rascunho')} • ${fmtData(r.dataAnalise)} • Cobrança / Coordenação${r.vouch && r.vouch.corte ? ' • Vouch consolidado até ' + esc(r.vouch.corte) : ''}</div>
+  <div class="f-secao">Condomínio analisado</div>
+  <table class="f-id">
+    <tr><th>Razão social</th><td>${esc(r.condominio.nome||'—')}</td><th>CNPJ</th><td>${esc(r.condominio.cnpj||'—')}</td></tr>
+    <tr><th>Tipo de análise</th><td>${tipoTxt}</td><th>Analista</th><td>${esc(r.analista||'—')}</td></tr>
+    <tr><th>Idade da garantia</th><td>${inicioTxt}</td><th>Data da análise</th><td>${fmtData(r.dataAnalise)}</td></tr>
+  </table>
+  <div class="f-destaques">
+    <div class="f-classif"><small>Classificação sugerida</small><div>${esc(classif)}</div></div>
+    <div class="f-resumo"><div><small>Idade da garantia</small><strong>${inicioTxt}</strong></div><div><small>Resultado do BI</small><strong>${bi === null ? 'não informado' : fmtBRL(bi)}</strong></div>${r.proximaReanalise?`<div><small>Próxima reanálise</small><strong>${fmtData(r.proximaReanalise)}</strong></div>`:''}</div>
+  </div>
+  ${r.nota ? `<div class="f-nota">${esc(r.nota)}</div>` : ''}
+  <div class="f-secao">Unidades sinalizadas × relatórios de inadimplência</div>
+  <table class="f-tab"><thead><tr><th style="width:8%">UNID.</th><th style="width:26%">TITULAR</th><th style="width:14%">CPF</th>${semAnt?'':'<th style="width:18%">INADIMPLÊNCIA ANTERIOR</th>'}<th style="width:16%">VOUCH</th><th style="width:18%">RESULTADO</th></tr></thead><tbody>${
+    res.length ? res.map(u => `<tr><td><b>${esc(u.unid||'—')}</b></td><td>${esc(u.titular||'(a completar)')}</td><td>${esc(u.cpf||'—')}</td>${semAnt?'':`<td>${sit(r.semAnterior?0:u.ant)}</td>`}<td>${sit(u.vouch)}</td>
+      <td class="res ${classeRes(u.resultado)}">${esc(rotuloStatus(u.resultado))}<small>Regra ${esc(u.regra)}</small></td></tr>`).join('')
+    : `<tr><td colspan="6" style="text-align:center;color:#6b7f88">Sem unidades sinalizadas.</td></tr>`}
+  </tbody></table>
+  <div class="f-legenda">
+    <span><i style="background:#199CB1"></i> Sob análise · Preventivo (implantação)</span>
+    <span><i style="background:#F2A93B"></i> Sob análise · Reanálise (acompanhamento)</span>
+    <span><i style="background:#C0392B"></i> Excluir da garantia</span>
+  </div>
+  <div class="f-rodape-tab">Inadimplência anterior = débito antes da garantia MyBlue. Vouch = sistema interno MyBlue. • Regras 1 a 5 da Política de Análise de Espólio, aplicadas na ordem.</div>
+  <div class="f-caixas">
+    <div class="f-caixa cx-EXCLUIR"><h4>Sugestão: excluir da garantia</h4><p>${esc(nomes(grupo('EXCLUIR')))}</p></div>
+    <div class="f-caixa cx-REAN"><h4>Sob análise · Reanálise</h4><p>${esc(nomes(grupo('REANÁLISE')))}</p></div>
+    <div class="f-caixa cx-PREV"><h4>Sob análise · Preventivo</h4><p>${esc(nomes(grupo('PREVENTIVO')))}</p></div>
+    <div class="f-caixa"><h4>Observações</h4><p>${esc(obs||'—')}</p></div>
+  </div>
+  <div class="f-rodape"><span>MyBlue Condomínio Garantido | contato@myblue.com.br | www.myblue.com.br | (85) 4042.9277</span><span>${esc(r.protocolo||'rascunho')} · gerada em ${fmtData(hojeISO())}</span></div>`;
+}
+const nomeFicha = r => nomeArquivoSeguro(`${r.protocolo || 'RASCUNHO'} - ${r.condominio.nome || 'condominio'}`) + '.pdf';
+
+async function baixarFichaPDF(r){
+  if(typeof html2pdf === 'undefined'){ imprimirFicha(r); return; }
+  // A4 paisagem com margem de 6 mm: 285 × 198 mm ≈ 1077 × 748 px a 96 dpi
+  const LARG = 1070, ALT_MAX = 740;
+  const wrap = document.createElement('div'); wrap.style.cssText = `width:${LARG}px;background:#fff;overflow:hidden;margin:0`;
+  const el = document.createElement('div'); el.className = 'ficha pdf'; el.style.cssText = `width:${LARG}px;border:0;border-radius:0;transform-origin:top left`;
+  el.innerHTML = fichaHTML(r); wrap.appendChild(el); document.body.appendChild(wrap);
+  try{
+    await new Promise(res => setTimeout(res, 50));
+    const h = el.offsetHeight;
+    if(h > ALT_MAX){ const k = ALT_MAX / h; el.style.width = (LARG / k) + 'px'; el.style.transform = `scale(${k})`; }
+    wrap.style.height = Math.min(h, ALT_MAX) + 'px';
+    await html2pdf().set({ margin: 6, filename: nomeFicha(r), image: { type:'jpeg', quality: 0.95 }, html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0 }, jsPDF: { unit:'mm', format:'a4', orientation:'landscape' }, pagebreak: { mode: ['css'] } }).from(wrap).save();
+    registrarHistorico('ficha', { rodadaId: r.id, protocolo: r.protocolo, condominio: r.condominio.nome, arquivo: nomeFicha(r) });
+  } finally { wrap.remove(); }
+}
+function imprimirFicha(r){
+  const area = $('#areaImpressao'); area.innerHTML = `<div class="ficha">${fichaHTML(r)}</div>`; area.hidden = false;
+  window.print();
+  setTimeout(() => { area.hidden = true; area.innerHTML = ''; }, 500);
+}
+function csvAcompanhamento(rodadas, nome){
+  const cab = ['Condominio','CNPJ','Protocolo','Tipo de analise','Unidade','Titular','CPF','Data da analise','Status','Regra','Motivo','Taxas Vouch','Taxas anterior','Proxima reanalise'];
+  const corpo = [];
+  rodadas.forEach(r => (r.unidades||[]).forEach(u => corpo.push([r.condominio.nome, r.condominio.cnpj, r.protocolo, r.tipo, u.unid, u.titular, u.cpf, fmtData(r.dataAnalise), rotuloStatus(u.resultado), u.regra, u.motivo, u.vouch ?? '', u.ant ?? '', fmtData(r.proximaReanalise)])));
+  const csv = [cab, ...corpo].map(l => l.map(v => `"${String(v??'').replace(/"/g,'""')}"`).join(';')).join('\r\n');
+  baixarArquivo(nome, '﻿' + csv, 'text/csv;charset=utf-8');
+}
+
+/* ---------- salvamento com atraso (rascunhos) ---------- */
+const salvarTimers = {};
+function agendarSalvar(rid){
+  clearTimeout(salvarTimers[rid]);
+  salvarTimers[rid] = setTimeout(async () => {
+    const ctx = rodadaPorRid(rid); if(!ctx || !ctx.r || ctx.r.status === 'concluida') return;
+    if(rid === 'nova' && !ctx.r.condominio.nome && !ctx.r.unidades.length) return;
+    try{ await salvarRodada(ctx.r); if(rid === 'nova') await salvarEvidencias(ctx.r.id, { textos: S.textos, dev: S.dev }); }
+    catch(e){ toast(dbErr(e), 5000); }
+  }, 1500);
+}
+function atualizarResumoSemRender(rid){ if(rid === 'nova'){ renderEditorResumo(); renderFichaPreview(); } }
+
+/* ===== 61-ui-nova.js ===== */
+/* ======================================================================
+   Nova análise (editor de rodada: implantação ou acompanhamento de um condomínio)
+   ====================================================================== */
+function renderNovaLista(){
+  const lista = $('#novaLista'), editor = $('#novaEditor');
+  if(S.rodada){ lista.hidden = true; editor.hidden = false; return; }
+  lista.hidden = false; editor.hidden = true;
+  const rasc = S.rodadas.filter(r => r.status === 'rascunho').sort((a,b) => (b.criadaEm||'').localeCompare(a.criadaEm||''));
+  lista.innerHTML = `
+    <div class="card"><header><h2>Iniciar</h2><span class="dica">implantação é a 1ª análise de um condomínio; reanálise de vários condomínios fica na aba “Reanálise do dia”</span></header>
+      <div class="corpo acoes">
+        <button class="btn" id="btnNovaImplantacao">Nova análise de implantação</button>
+        <button class="btn sec" id="btnNovaAcomp">Reanálise de um condomínio</button>
+      </div></div>
+    <div class="card"><header><h2>Rascunhos</h2><span class="dica">${rasc.length} em andamento</span></header>
+      ${rasc.length ? `<div class="tabela-wrap"><table><thead><tr><th>Condomínio</th><th>Tipo</th><th>Criado em</th><th>Unidades</th><th></th></tr></thead><tbody>${
+        rasc.map(r => `<tr><td><b>${esc(r.condominio.nome||'(sem condomínio)')}</b></td><td>${r.tipo==='acompanhamento'?'Acompanhamento':'Implantação'}</td><td>${fmtData((r.criadaEm||'').slice(0,10))}</td><td>${(r.unidades||[]).length}</td>
+          <td class="acoes"><button class="btn sec mini" data-continuar="${r.id}">Continuar</button><button class="btn perigo mini" data-excluir-rasc="${r.id}">Excluir</button></td></tr>`).join('')}</tbody></table></div>`
+      : '<div class="corpo"><div class="vazio">Nenhum rascunho. Comece uma nova análise.</div></div>'}
+    </div>`;
+  $('#btnNovaImplantacao').onclick = () => abrirEditor(novaRodada('implantacao'));
+  $('#btnNovaAcomp').onclick = escolherCondominioParaReanalise;
+  lista.querySelectorAll('[data-continuar]').forEach(b => b.onclick = () => { const r = S.rodadas.find(x => x.id === b.dataset.continuar); if(r) abrirEditor(JSON.parse(JSON.stringify(r))); });
+  lista.querySelectorAll('[data-excluir-rasc]').forEach(b => b.onclick = async () => { if(!(await confirmar('Excluir este rascunho? Isso não pode ser desfeito.'))) return; await DB.doc(COLECOES.rodadas + '/' + b.dataset.excluirRasc).delete(); try{ await DB.doc(COLECOES.evidencias + '/' + b.dataset.excluirRasc).delete(); }catch(_){} toast('Rascunho excluído.'); });
+}
+function escolherCondominioParaReanalise(){
+  const f = fila();
+  if(!f.length){ toast('Não há condomínios em acompanhamento na fila.'); return; }
+  abrirModal('Reanálise de um condomínio', `<p class="ajuda" style="margin:0 0 10px">Escolha o condomínio. As unidades da última rodada já vêm carregadas.</p>
+    <select id="selReanalise" class="campo">${f.map((i,n) => `<option value="${n}">${esc(i.condominio.nome)} · ${i.unidades.length} unid. · prazo ${fmtData(i.prazo)}${i.vencida?' (vencida)':''}</option>`).join('')}</select>
+    <div class="acoes" style="margin-top:12px"><button class="btn" id="btnConfReanalise">Abrir rodada</button></div>`);
+  $('#btnConfReanalise').onclick = () => { const it = f[+$('#selReanalise').value]; fecharModal(); abrirEditor(rodadaDeAcompanhamento(it.rodada)); };
+}
+
+async function abrirEditor(r){
+  S.rodada = r; S.dev = { vouch: [], ant: [] }; S.textos = { vouch:'', ant:'', email:'' };
+  if(r.id){ try{ const ev = await carregarEvidencias(r.id); if(ev){ S.textos = { vouch:'', ant:'', email:'', ...(ev.textos||{}) }; S.dev = { vouch: [], ant: [], ...(ev.dev||{}) }; } }catch(_){} }
+  $$('#docsGrade input[type=file]').forEach(i => i.value = '');
+  ['docVouch','docAnt','docEmail'].forEach(id => { const d = $('#'+id); d.classList.remove('ok','erro'); });
+  mostrarAba('nova'); renderNovaLista(); renderEditor();
+}
+function fecharEditor(){ S.rodada = null; renderNovaLista(); renderBadges(); }
+
+function renderEditor(){
+  const r = S.rodada; if(!r) return;
+  const set = (id, v, auto) => { const el = $(id); el.value = v ?? ''; if(auto) el.dataset.auto = auto; else delete el.dataset.auto; };
+  set('#razao', r.condominio.nome, r.condominio.auto); set('#cnpj', r.condominio.cnpj, r.condominio.auto);
+  set('#inicio', r.idadeGarantia, r.idadeAuto); set('#analista', r.analista, r.analistaAuto);
+  set('#bi', r.bi ? r.bi.valor : '', r.biAuto); set('#dataAnalise', r.dataAnalise); set('#nota', r.nota);
+  $$('#sinalBi button').forEach(b => b.classList.toggle('ativo', b.dataset.sinal === ((r.bi && r.bi.sinal) || '-')));
+  $$('#tipoAnalise button').forEach(b => b.classList.toggle('ativo', b.dataset.tipo === r.tipo));
+  $('#tipoAjuda').textContent = r.tipo === 'acompanhamento' ? 'Acompanhamento: reanálise, base Reanálise, só o Vouch entra (3+ taxas exclui).' : 'Implantação: 1ª análise, base Preventivo, regras 1 a 5.';
+  $('#semAnterior').checked = !!r.semAnterior; $('#semBi').checked = !!r.semBi;
+  $('#relVouch').value = S.textos.vouch; $('#relAdmin').value = S.textos.ant; $('#relEmail').value = S.textos.email;
+  $('#sinal').value = '';
+  $('#textoRegras').innerHTML = TEXTO_REGRAS;
+  const acomp = r.tipo === 'acompanhamento';
+  $('#docAnt').style.display = acomp ? 'none' : ''; $('#docEmail').style.display = acomp ? 'none' : ''; $('#docBi').style.display = acomp ? 'none' : '';
+  $('#dicaDocs').textContent = acomp ? 'Anexe só o PDF do Vouch — as unidades vêm da rodada anterior' : 'Anexe os PDFs — os campos preenchem sozinhos';
+  ['docVouch','docAnt','docEmail'].forEach((id, i) => { const t = [S.textos.vouch, S.textos.ant, S.textos.email][i]; $('#'+id).classList.toggle('ok', !!t.trim()); });
+  renderDocBi();
+  recalcular(r, S.dev, { vouch: !!S.textos.vouch.trim(), ant: !!S.textos.ant.trim() });
+  renderDiagnostico(); renderEditorUnidades(); renderEditorResumo(); renderFichaPreview(); renderSteps();
+}
+function renderSteps(){
+  const r = S.rodada; if(!r) return;
+  const feitos = [!!(S.textos.vouch.trim() || S.textos.ant.trim() || S.textos.email.trim()), !!r.condominio.nome, r.unidades.length > 0, false];
+  const atual = feitos.findIndex(f => !f);
+  [1,2,3,4].forEach(n => { const s = $('#step'+n); s.classList.toggle('feito', feitos[n-1]); s.classList.toggle('atual', n-1 === (atual < 0 ? 3 : atual)); s.querySelector('.bola').textContent = feitos[n-1] ? '✓' : n; });
+}
+function renderEditorResumo(){
+  const r = S.rodada; if(!r) return;
+  const s = resumoRodada(r);
+  const travada = r.status === 'concluida';
+  $('#novaResumo').innerHTML = `<span class="pill">${esc(r.protocolo || 'sem protocolo')}</span><span class="pill">${r.tipo==='acompanhamento'?'Acompanhamento':'Implantação'}</span>
+    <span class="pill">Sinalizados <b>${s.total}</b></span><span class="pill">Sob análise <b>${s.prev + s.rean}</b></span><span class="pill">Excluir <b>${s.excluir}</b></span>${s.pendentes?`<span class="pill" style="color:#b57a12">Pendências <b>${s.pendentes}</b></span>`:''}
+    <span style="flex:1"></span>
+    <button class="btn sec mini" id="btnFecharEditor">${travada?'Fechar':'Salvar e fechar'}</button>
+    ${travada ? '' : `<button class="btn sec mini" id="btnSalvarRasc">Salvar rascunho</button><button class="btn mini" id="btnConcluir" ${!CAN_WRITE?'disabled':''}>Concluir análise</button>`}`;
+  $('#btnFecharEditor').onclick = async () => { if(!travada){ try{ if(r.condominio.nome || r.unidades.length){ await salvarRodada(r); await salvarEvidencias(r.id, { textos: S.textos, dev: S.dev }); } }catch(e){ toast(dbErr(e), 5000); return; } } fecharEditor(); };
+  if(!travada){
+    $('#btnSalvarRasc').onclick = async () => { try{ await salvarRodada(r); await salvarEvidencias(r.id, { textos: S.textos, dev: S.dev }); toast('Rascunho salvo.'); }catch(e){ toast(dbErr(e), 5000); } };
+    $('#btnConcluir').onclick = async () => {
+      try{
+        const s2 = resumoRodada(r);
+        if(!(await confirmar(`Concluir a análise de ${r.condominio.nome}?\n${s2.excluir} a excluir · ${s2.prev + s2.rean} sob análise.\nDepois de concluída, a rodada não pode ser editada.`))) return;
+        await concluirRodada(r); await salvarEvidencias(r.id, { textos: S.textos, dev: S.dev });
+        toast('Rodada ' + r.protocolo + ' concluída.');
+        renderEditor();
+        if(await confirmar('Baixar a ficha em PDF agora?')) await baixarFichaPDF(r);
+      }catch(e){ toast(e.message || dbErr(e), 6000); }
+    };
+  }
+}
+function renderEditorUnidades(preservarAberto){
+  const r = S.rodada; if(!r) return;
+  const abertos = preservarAberto ? new Set($$('#unidadesWrap details[open]').map(d => d.dataset.uid)) : new Set();
+  const wrap = $('#unidadesWrap');
+  if(!r.unidades.length){ wrap.innerHTML = '<div class="vazio">Cadastre os espólios sinalizados no bloco 3.</div>'; renderSteps(); return; }
+  wrap.innerHTML = r.unidades.map(u => cardUnidade(u, r, S.dev, 'nova', { aberto: abertos.has(u.id), destaque: u.pendente || u.completar || (u.cas.vouch && u.cas.vouch.modo === 'nome') })).join('');
+  const pend = r.unidades.filter(u => u.pendente && !u.override).length;
+  if(pend && r.status !== 'concluida') wrap.insertAdjacentHTML('beforeend', `<div class="aviso">${pend} pendência(s) da regra 5.5 impedem a conclusão. Anexe o insumo que falta ou faça o ajuste manual com motivo.</div>`);
+  renderSteps(); renderEditorResumo();
+}
+function renderFichaPreview(){ if(S.rodada) $('#fichaPreview').innerHTML = fichaHTML(S.rodada); }
+function renderDiagnostico(){
+  const r = S.rodada; if(!r) return;
+  const item = (titulo, campo) => {
+    const txt = campo === 'vouch' ? S.textos.vouch : S.textos.ant;
+    if(!txt.trim()) return `<p class="ajuda"><b>${titulo}:</b> nenhum relatório carregado.</p>`;
+    const lista = S.dev[campo] || [];
+    if(!lista.length) return `<div class="aviso"><b>${titulo}:</b> nenhum devedor reconhecido. Ou o PDF é escaneado (sem texto), ou o layout é diferente do previsto. Revise o texto extraído.</div>`;
+    const casados = r.unidades.filter(u => u.esc[campo] !== null && u.esc[campo] !== undefined).length;
+    const conf = campo === 'vouch' && r.vouch ? (r.vouch.conferido ? ` · conferido com o total do relatório (${r.vouch.totalTaxas} taxas em ${r.vouch.totalUnidades} unidades)` : ` · <b style="color:var(--red)">leitura divergente do total impresso (${r.vouch.lidas} lidas de ${r.vouch.totalTaxas})</b>`) : '';
+    return `<div class="${campo==='vouch' && r.vouch && !r.vouch.conferido ? 'aviso' : 'ok'}"><b>${titulo}:</b> ${lista.length} devedor(es) com cobrança em aberto · ${casados} de ${r.unidades.length} espólios casados${conf}${r.vouch && r.vouch.corte && campo==='vouch' ? ' · consolidado até ' + esc(r.vouch.corte) : ''}
+      <details style="margin-top:6px"><summary style="cursor:pointer;font-size:12.5px">Ver devedores encontrados</summary><ul style="margin:6px 0 0;padding-left:18px;font-size:12.5px">${lista.map(b => `<li>${esc(b.nome)}${b.unidadeTxt||b.unidade?' — '+esc(b.unidadeTxt||b.unidade):''}${b.cpf?' — '+esc(b.cpf):''} — <b>${b.cobrancas.filter(c=>c.incluir!==false).length}</b> taxa(s)</li>`).join('')}</ul></details></div>`;
+  };
+  $('#diagnostico').innerHTML = item('Vouch','vouch') + (r.tipo === 'acompanhamento' ? '' : item('Administradora anterior','ant'));
+}
+function renderDocBi(){
+  const st = $('#docBiStatus'); const r = S.rodada;
+  if(!S.bi.base || !S.bi.base.length){ st.textContent = 'Nenhuma base carregada — suba o Excel do dia'; return; }
+  const m = r && r.condominio.nome ? casarBaseBi(S.bi.base, r.condominio.nome) : null;
+  st.textContent = `Base de ${fmtData((S.bi.enviadoEm||'').slice(0,10))} · ${S.bi.base.length} condomínios` + (m ? ` · casado: ${m.item.nome}${m.ambiguo?' (conferir)':''}` : (r && r.condominio.nome ? ' · condomínio não encontrado' : ''));
+  $('#docBi').classList.toggle('ok', !!m);
+}
+
+/* preenche um campo da rodada só se ainda estiver vazio ou marcado como automático */
+function autoPreencher(campoEl, chave, valor, marca, alvo, chaveAuto){
+  if(!valor && valor !== 0) return;
+  const el = $(campoEl);
+  if(el.value.trim() && !el.dataset.auto) return;
+  el.value = valor; el.dataset.auto = marca;
+  if(alvo) alvo[chave] = valor; if(alvo && chaveAuto) alvo[chaveAuto] = marca;
+}
+function aplicarBaseBi(){
+  const r = S.rodada; if(!r || !S.bi.base.length || !r.condominio.nome) return;
+  const m = casarBaseBi(S.bi.base, r.condominio.nome);
+  renderDocBi();
+  if(!m){ $('#statusBiVal').textContent = 'Condomínio não encontrado na base do BI — confira a razão social ou preencha à mão.'; return; }
+  if(m.item.meses !== null) autoPreencher('#inicio', 'idadeGarantia', m.item.meses, 'bi', r, 'idadeAuto');
+  const bi = $('#bi');
+  if(!bi.value.trim() || bi.dataset.auto){ bi.value = m.item.resultado; bi.dataset.auto = 'bi'; r.bi = { valor: m.item.resultado, sinal: m.item.sinal }; r.biAuto = 'bi'; $$('#sinalBi button').forEach(x => x.classList.toggle('ativo', x.dataset.sinal === m.item.sinal)); }
+  $('#statusBiVal').textContent = `Base do BI: ${m.item.nome} → ${m.item.meses!==null?m.item.meses+' meses':'idade n/d'}, ${m.item.sinal}${fmtBRL(m.item.resultado)}.${m.ambiguo?' ⚠ há condomínios de nome parecido — confira.':''}`;
+}
+
+/* aplica a extração conforme a origem do documento */
+function processarTexto(origem, txt, nomeArquivo){
+  const r = S.rodada; if(!r) return;
+  const st = { vouch: $('#docVouch'), ant: $('#docAnt'), email: $('#docEmail') }[origem];
+  const span = st.querySelector('span');
+  if(origem === 'vouch'){
+    S.textos.vouch = txt;
+    if(ehRelatorioVouch(txt)){
+      const v = lerVouch(txt);
+      S.dev.vouch = v.devedores;
+      r.vouch = { corte: v.corte, emissao: v.emissao, totalTaxas: v.totalTaxas, totalUnidades: v.totalUnidades, lidas: v.lidas, conferido: v.conferido, arquivo: nomeArquivo || '' };
+      if(v.condominio){ autoPreencher('#razao', 'nome', v.condominio, 'vouch', r.condominio, 'auto'); autoPreencher('#cnpj', 'cnpj', v.cnpj, 'vouch', r.condominio, 'auto'); r.condominio.chave = chaveCond(r.condominio.nome, r.condominio.cnpj); }
+      span.textContent = `${v.devedores.length} devedor(es) · ${v.lidas} taxas` + (v.conferido ? ' · conferido' : v.totalTaxas !== null ? ` · divergente do total (${v.totalTaxas})` : '') + (v.corte ? ' · até ' + v.corte : '');
+      st.classList.toggle('erro', !v.conferido);
+    } else {
+      S.dev.vouch = extrairDevedores(txt, $('#soValor').checked);
+      const cab = lerCabecalhoGenerico(txt);
+      if(cab.condominio){ autoPreencher('#razao', 'nome', cab.condominio, 'vouch', r.condominio, 'auto'); autoPreencher('#cnpj', 'cnpj', cab.cnpj, 'vouch', r.condominio, 'auto'); r.condominio.chave = chaveCond(r.condominio.nome, r.condominio.cnpj); }
+      r.vouch = { conferido: null, lidas: S.dev.vouch.reduce((s,d)=>s+d.cobrancas.length,0), totalTaxas: null, arquivo: nomeArquivo || '' };
+      span.textContent = `${S.dev.vouch.length} devedor(es) (leitura genérica — não é o relatório consolidado do Vouch)`;
+    }
+    aplicarBaseBi();
+  } else if(origem === 'ant'){
+    S.textos.ant = txt; S.dev.ant = extrairDevedores(txt, $('#soValor').checked);
+    span.textContent = `${S.dev.ant.length} devedor(es) reconhecido(s)`;
+  } else if(origem === 'email'){
+    S.textos.email = txt;
+    const e = lerEmail(txt);
+    if(e.remetente) autoPreencher('#analista', 'analista', e.remetente, 'email', r, 'analistaAuto');
+    if(e.espolios.length){
+      const vistos = new Set(r.unidades.map(u => soDigitos(u.cpf) || normUnid(u.unid)+'|'+normNome(u.titular)));
+      e.espolios.forEach(x => { const k = soDigitos(x.cpf) || normUnid(x.unid)+'|'+normNome(x.titular); if(!vistos.has(k)){ r.unidades.push(novaUnidade(x.unid, x.titular, x.cpf)); vistos.add(k); } });
+    }
+    span.textContent = `${e.espolios.length} espólio(s)${e.remetente ? ' · analista: ' + e.remetente : ''}`;
+  }
+  st.classList.add('ok');
+  $('#relVouch').value = S.textos.vouch; $('#relAdmin').value = S.textos.ant; $('#relEmail').value = S.textos.email;
+  recalcular(r, S.dev, { vouch: !!S.textos.vouch.trim(), ant: !!S.textos.ant.trim() });
+  renderDiagnostico(); renderEditorUnidades(true); renderFichaPreview(); renderSteps(); agendarSalvar('nova');
+}
+
+$('#docsGrade').addEventListener('change', async e => {
+  const inp = e.target; if(!inp.dataset.doc) return;
+  const f = inp.files[0]; if(!f) return;
+  const origem = inp.dataset.doc;
+  if(origem === 'bi'){ await subirBaseBi(f); aplicarBaseBi(); renderFichaPreview(); return; }
+  const span = inp.parentElement.querySelector('span'); span.textContent = 'Lendo ' + f.name + '…';
+  try{ const txt = await pdfParaTexto(f); processarTexto(origem, txt, f.name); }
+  catch(err){ span.textContent = 'Não deu para ler o PDF: ' + err.message; inp.parentElement.classList.add('erro'); }
+});
+async function subirBaseBi(f){
+  const ehPlanilha = /\.(xlsx|xls|csv)$/i.test(f.name);
+  try{
+    let base;
+    if(ehPlanilha) base = baseDaPlanilha(await planilhaParaMatriz(f));
+    else base = lerBaseBiTexto(await pdfParaTexto(f));
+    if(!base.length){ toast('Não encontrei condomínios no arquivo. Confira se há colunas Condomínio, Idade (meses) e Resultado.', 6000); return; }
+    await DB.doc(COLECOES.bi + '/atual').set({ base, enviadoEm: nowISO(), por: ME.name, arquivo: f.name });
+    S.bi = { base, enviadoEm: nowISO(), por: ME.name, arquivo: f.name };
+    registrarHistorico('bi_base', { condominios: base.length, arquivo: f.name });
+    toast(`Base do BI carregada: ${base.length} condomínios.`);
+    renderBiInfo(); renderDocBi(); renderListaCondominios();
+  }catch(err){ toast('Não deu para ler o arquivo: ' + err.message, 6000); }
+}
+
+/* campos do bloco 2 */
+function ligarCampo(id, fn){ $(id).addEventListener('input', e => { if(!S.rodada) return; delete e.target.dataset.auto; fn(e.target.value, S.rodada); recalcular(S.rodada, S.dev, { vouch: !!S.textos.vouch.trim(), ant: !!S.textos.ant.trim() }); renderEditorUnidades(true); renderFichaPreview(); renderSteps(); agendarSalvar('nova'); }); }
+ligarCampo('#razao', (v, r) => { r.condominio.nome = v; delete r.condominio.auto; r.condominio.chave = chaveCond(v, r.condominio.cnpj); renderDocBi(); });
+$('#razao').addEventListener('change', () => { if(S.rodada && S.bi.base.length) aplicarBaseBi(); });
+ligarCampo('#cnpj', (v, r) => { r.condominio.cnpj = v; r.condominio.chave = chaveCond(r.condominio.nome, v); });
+ligarCampo('#inicio', (v, r) => { r.idadeGarantia = v === '' ? null : +v; delete r.idadeAuto; $('#vigenciaInfo').textContent = v === '' ? '' : `Vigência: ${v} meses${+v < 6 ? ' — contrato recente (regra 5).' : '.'}`; });
+ligarCampo('#analista', (v, r) => { r.analista = v; delete r.analistaAuto; });
+ligarCampo('#bi', (v, r) => { r.bi = v === '' ? null : { valor: +String(v).replace(',','.'), sinal: ($('#sinalBi .ativo')||{}).dataset ? $('#sinalBi .ativo').dataset.sinal : '-' }; delete r.biAuto; });
+ligarCampo('#dataAnalise', (v, r) => { r.dataAnalise = v || hojeISO(); });
+ligarCampo('#nota', (v, r) => { r.nota = v; });
+$('#sinalBi').addEventListener('click', e => { const b = e.target.closest('button[data-sinal]'); if(!b || !S.rodada) return; $$('#sinalBi button').forEach(x => x.classList.toggle('ativo', x === b)); const r = S.rodada; if(r.bi) r.bi.sinal = b.dataset.sinal; delete r.biAuto; delete $('#bi').dataset.auto; recalcular(r, S.dev, { vouch: !!S.textos.vouch.trim(), ant: !!S.textos.ant.trim() }); renderEditorUnidades(true); renderFichaPreview(); agendarSalvar('nova'); });
+$('#tipoAnalise').addEventListener('click', e => { const b = e.target.closest('button[data-tipo]'); if(!b || !S.rodada) return; S.rodada.tipo = b.dataset.tipo; renderEditor(); agendarSalvar('nova'); });
+['#semAnterior','#semBi'].forEach(id => $(id).addEventListener('change', e => { if(!S.rodada) return; S.rodada[id === '#semAnterior' ? 'semAnterior' : 'semBi'] = e.target.checked; recalcular(S.rodada, S.dev, { vouch: !!S.textos.vouch.trim(), ant: !!S.textos.ant.trim() }); renderEditorUnidades(true); renderFichaPreview(); agendarSalvar('nova'); }));
+
+/* bloco 3 */
+$('#btnSinal').onclick = () => {
+  const r = S.rodada; if(!r) return;
+  const novas = lerSinalizacao($('#sinal').value);
+  if(!novas.length){ toast('Nenhum devedor reconhecido. Cada linha precisa ter ao menos nome e sobrenome.'); return; }
+  novas.forEach(x => r.unidades.push(novaUnidade(x.unid, x.titular, x.cpf)));
+  $('#sinal').value = '';
+  recalcular(r, S.dev, { vouch: !!S.textos.vouch.trim(), ant: !!S.textos.ant.trim() }); renderEditorUnidades(true); renderFichaPreview(); agendarSalvar('nova');
+};
+$('#btnAddUnid').onclick = () => { const r = S.rodada; if(!r) return; r.unidades.push(novaUnidade()); renderEditorUnidades(true); renderFichaPreview(); };
+$('#btnRecontar').onclick = () => { const r = S.rodada; if(!r) return; recalcular(r, S.dev, { vouch: !!S.textos.vouch.trim(), ant: !!S.textos.ant.trim() }); renderEditorUnidades(true); renderFichaPreview(); toast('Taxas recontadas.'); };
+$('#btnReprocessar').onclick = () => {
+  const r = S.rodada; if(!r) return;
+  if($('#relVouch').value.trim()) processarTexto('vouch', $('#relVouch').value, r.vouch && r.vouch.arquivo);
+  if($('#relAdmin').value.trim()) processarTexto('ant', $('#relAdmin').value);
+  if($('#relEmail').value.trim()) processarTexto('email', $('#relEmail').value);
+  toast('Textos reprocessados.');
+};
+$('#soValor').addEventListener('change', () => { if(S.rodada && S.textos.ant.trim()) processarTexto('ant', S.textos.ant); });
+$('#btnImprimir').onclick = () => { if(S.rodada) imprimirFicha(S.rodada); };
+$('#btnBaixarFicha').onclick = () => { if(S.rodada) baixarFichaPDF(S.rodada); };
+
+/* ===== 62-ui-lote.js ===== */
+/* ======================================================================
+   Reanálise do dia — vários condomínios em lote (só o Vouch entra)
+   ====================================================================== */
+function renderLote(){ renderLoteFila(); renderLoteRevisao(); }
+function renderLoteFila(){
+  const f = fila();
+  const venc = f.filter(i => i.vencida).length;
+  $('#loteContagem').innerHTML = `${f.length} condomínio(s) na fila · <b>${venc}</b> vencido(s) · <b>${S.lote.selecionados.size}</b> selecionado(s)`;
+  const wrap = $('#loteFila');
+  if(!f.length){ wrap.innerHTML = '<div class="corpo"><div class="vazio">A fila está vazia. Conclua análises de implantação ou importe a planilha de controle em Configurações.</div></div>'; return; }
+  wrap.innerHTML = `<table><thead><tr><th></th><th>Condomínio</th><th>Unidades</th><th>Última rodada</th><th>Prazo</th><th>Situação</th></tr></thead><tbody>${
+    f.map(i => `<tr class="clic" data-chave="${esc(i.chave)}"><td><input type="checkbox" data-sel="${esc(i.chave)}" ${S.lote.selecionados.has(i.chave)?'checked':''}></td>
+      <td><b>${esc(i.condominio.nome)}</b>${i.condominio.cnpj?`<div class="ajuda" style="margin:0">${esc(i.condominio.cnpj)}</div>`:''}</td>
+      <td>${i.unidades.length}${i.completar?' <span class="selo s-rean">completar</span>':''}</td>
+      <td>${esc(i.rodada.protocolo || 'carga inicial')} · ${fmtData(i.rodada.dataAnalise)}</td>
+      <td class="${i.vencida?'venc':''}">${i.vencida ? `vencida há ${-i.dias} dia(s)` : `em ${i.dias} dia(s)`}</td>
+      <td>${i.rascunho ? '<span class="selo s-rasc">rascunho em aberto</span>' : S.lote.itens.some(x => x.fila && x.fila.chave === i.chave) ? '<span class="selo s-prev">no lote</span>' : ''}</td></tr>`).join('')}</tbody></table>`;
+  wrap.querySelectorAll('[data-sel]').forEach(cb => cb.onchange = () => { if(cb.checked) S.lote.selecionados.add(cb.dataset.sel); else S.lote.selecionados.delete(cb.dataset.sel); renderLoteFila(); });
+}
+$('#btnSelVencidos').onclick = () => { fila().filter(i => i.vencida).forEach(i => S.lote.selecionados.add(i.chave)); renderLoteFila(); };
+$('#btnSelNenhum').onclick = () => { S.lote.selecionados.clear(); renderLoteFila(); };
+
+const drop = $('#loteDrop');
+['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('sobre'); }));
+['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('sobre'); }));
+drop.addEventListener('drop', e => { const fs = [...e.dataTransfer.files].filter(f => /\.pdf$/i.test(f.name)); if(fs.length) processarLoteArquivos(fs); });
+$('#loteArquivos').addEventListener('change', e => { const fs = [...e.target.files]; e.target.value = ''; if(fs.length) processarLoteArquivos(fs); });
+
+async function processarLoteArquivos(arquivos){
+  const f = fila();
+  const candidatos = S.lote.selecionados.size ? f.filter(i => S.lote.selecionados.has(i.chave)) : f;
+  const log = $('#loteLeitura'); log.innerHTML = '';
+  for(const arq of arquivos){
+    const linha = document.createElement('p'); linha.className = 'ajuda'; linha.textContent = 'Lendo ' + arq.name + '…'; log.appendChild(linha);
+    try{
+      const txt = await pdfParaTexto(arq);
+      if(!ehRelatorioVouch(txt)){ linha.innerHTML = `<b>${esc(arq.name)}</b>: não parece o relatório consolidado do Vouch — ignorado.`; continue; }
+      const leitura = lerVouch(txt);
+      const ident = identificarCondominio(leitura, candidatos) || (candidatos !== f ? identificarCondominio(leitura, f) : null);
+      const item = { arquivo: arq.name, leitura, textos: { vouch: txt }, ident, fila: ident ? ident.item : null, rodada: null, dev: { vouch: leitura.devedores, ant: [] } };
+      if(ident){
+        if(S.lote.itens.some(x => x.fila && x.fila.chave === ident.item.chave)){ linha.innerHTML = `<b>${esc(arq.name)}</b>: ${esc(ident.item.condominio.nome)} já está no lote — ignorado.`; continue; }
+        montarRodadaDoItem(item, ident.item);
+        linha.innerHTML = `<b>${esc(arq.name)}</b>: ${esc(leitura.condominio)} → <b>${esc(ident.item.condominio.nome)}</b> (${ident.modo}${ident.ambiguo?', conferir':''}) · ${leitura.lidas} taxas${leitura.conferido?' · conferido':' · <span style="color:var(--red)">leitura divergente</span>'}`;
+      } else {
+        linha.innerHTML = `<b>${esc(arq.name)}</b>: ${esc(leitura.condominio || 'condomínio não identificado')} · <span style="color:var(--red)">não está na fila</span> — escolha o condomínio abaixo ou faça a implantação na aba Nova análise.`;
+      }
+      S.lote.itens.push(item);
+    }catch(err){ linha.innerHTML = `<b>${esc(arq.name)}</b>: não deu para ler (${esc(err.message)}).`; }
+  }
+  renderLote();
+}
+function montarRodadaDoItem(item, filaItem){
+  const r = rodadaDeAcompanhamento(filaItem.rodada);
+  r.condominio = { ...filaItem.condominio };
+  if(!r.condominio.cnpj && item.leitura.cnpj){ r.condominio.cnpj = item.leitura.cnpj; r.condominio.chave = filaItem.chave; }
+  r.vouch = { corte: item.leitura.corte, emissao: item.leitura.emissao, totalTaxas: item.leitura.totalTaxas, totalUnidades: item.leitura.totalUnidades, lidas: item.leitura.lidas, conferido: item.leitura.conferido, arquivo: item.arquivo };
+  item.fila = filaItem; item.rodada = r;
+  recalcular(r, item.dev, { vouch: true, ant: false });
+}
+function renderLoteRevisao(){
+  const wrap = $('#loteRevisao');
+  if(!S.lote.itens.length){ wrap.innerHTML = ''; return; }
+  const f = fila();
+  wrap.innerHTML = S.lote.itens.map((it, i) => {
+    if(!it.rodada){
+      return `<div class="lote-cond"><header><h3>${esc(it.leitura.condominio || it.arquivo)}</h3><span class="selo s-exc">não identificado</span></header>
+        <div class="corpo"><div class="acoes"><select class="campo" data-escolher="${i}" style="width:auto;min-width:260px"><option value="">Escolha o condomínio da fila…</option>${f.map((x,n) => `<option value="${n}">${esc(x.condominio.nome)}</option>`).join('')}</select><button class="btn perigo mini" data-descartar="${i}">Descartar</button></div></div></div>`;
+    }
+    const r = it.rodada, s = resumoRodada(r);
+    const anteriorPor = new Map((it.fila.rodada.unidades||[]).map(u => [u.id, u]));
+    const anteriorDe = u => { const prev = (it.fila.rodada.unidades||[]).find(p => (p.cpf && u.cpf && soDigitos(p.cpf) === soDigitos(u.cpf)) || (normUnid(p.unid) === normUnid(u.unid) && normNome(p.titular) === normNome(u.titular))); return prev ? prev.resultado : null; };
+    const cards = r.unidades.map(u => { const ant = anteriorDe(u); const fraco = u.cas.vouch && u.cas.vouch.modo === 'nome'; const exc = (ant && ant !== u.resultado) || fraco || u.pendente || u.completar || !u.cas.vouch && u.vouch === 0 && false; return cardUnidade(u, r, it.dev, 'lote:' + i, { destaque: exc, aberto: exc, anterior: ant }); }).join('');
+    const nDest = r.unidades.filter(u => { const ant = anteriorDe(u); return (ant && ant !== u.resultado) || (u.cas.vouch && u.cas.vouch.modo === 'nome') || u.pendente || u.completar; }).length;
+    const concluida = r.status === 'concluida';
+    return `<div class="lote-cond" id="lote-${i}"><header>
+        <div><h3>${esc(r.condominio.nome)}</h3><div class="ajuda" style="margin:2px 0 0">${esc(it.arquivo)} · ${it.ident.modo === 'CNPJ' ? 'identificado pelo CNPJ' : 'identificado pelo nome' + (it.ident.ambiguo ? ' — <b style="color:var(--red)">confira, há nome parecido</b>' : '')} · Vouch até ${esc(it.leitura.corte||'?')} · ${it.leitura.conferido ? 'leitura conferida' : '<b style="color:var(--red)">leitura divergente do total impresso</b>'}</div></div>
+        <div class="acoes"><span class="pill">Unidades <b>${s.total}</b></span><span class="pill">Excluir <b>${s.excluir}</b></span><span class="pill">Permanecem <b>${s.rean + s.prev}</b></span>${nDest?`<span class="pill" style="color:#b57a12">Revisar <b>${nDest}</b></span>`:''}
+          ${concluida ? `<span class="selo s-ok">concluída · ${esc(r.protocolo)}</span><button class="btn mini" data-ficha="${i}">Baixar ficha</button><button class="btn sec mini" data-descartar="${i}">Fechar</button>`
+                      : `<button class="btn sec mini" data-rascunho="${i}">Salvar rascunho</button><button class="btn mini" data-concluir="${i}" ${!CAN_WRITE?'disabled':''}>Concluir e baixar ficha</button><button class="btn perigo mini" data-descartar="${i}">Descartar</button>`}</div>
+      </header><div class="corpo">${nDest ? `<p class="ajuda" style="margin:0 0 10px">Em destaque: unidades que mudaram de status, casamento só por nome, pendências ou cadastro a completar. As demais só precisam de confirmação.</p>` : '<p class="ajuda" style="margin:0 0 10px">Nenhuma exceção: nenhuma unidade mudou de status.</p>'}${cards}</div></div>`;
+  }).join('');
+  wrap.querySelectorAll('[data-escolher]').forEach(sel => sel.onchange = () => { const it = S.lote.itens[+sel.dataset.escolher]; const x = f[+sel.value]; if(!x) return; it.ident = { modo: 'manual', score: 1 }; montarRodadaDoItem(it, x); renderLote(); });
+  wrap.querySelectorAll('[data-descartar]').forEach(b => b.onclick = () => { S.lote.itens.splice(+b.dataset.descartar, 1); renderLote(); });
+  wrap.querySelectorAll('[data-ficha]').forEach(b => b.onclick = () => baixarFichaPDF(S.lote.itens[+b.dataset.ficha].rodada));
+  wrap.querySelectorAll('[data-rascunho]').forEach(b => b.onclick = async () => { const it = S.lote.itens[+b.dataset.rascunho]; try{ await salvarRodada(it.rodada); await salvarEvidencias(it.rodada.id, { textos: it.textos, dev: it.dev }); toast('Rascunho salvo. Continue pela aba Nova análise.'); }catch(e){ toast(dbErr(e), 5000); } });
+  wrap.querySelectorAll('[data-concluir]').forEach(b => b.onclick = async () => {
+    const it = S.lote.itens[+b.dataset.concluir]; const r = it.rodada; const s = resumoRodada(r);
+    if(!(await confirmar(`Concluir a reanálise de ${r.condominio.nome}?\n${s.excluir} a excluir · ${s.rean + s.prev} permanecem.\nDepois de concluída, a rodada não pode ser editada.`))) return;
+    try{ await concluirRodada(r); await salvarEvidencias(r.id, { textos: it.textos, dev: it.dev }); toast('Rodada ' + r.protocolo + ' concluída.'); renderLote(); await baixarFichaPDF(r); }
+    catch(e){ toast(e.message || dbErr(e), 6000); }
+  });
+}
+
+/* ===== 63-ui-hist.js ===== */
+/* ======================================================================
+   Histórico e evolução
+   ====================================================================== */
+function renderHistorico(){
+  const busca = normCond($('#histBusca').value), tipo = $('#histTipo').value, status = $('#histStatus').value, per = $('#histPeriodo').value;
+  const limite = per ? somaDias(hojeISO(), -(+per)) : null;
+  let lista = S.rodadas.slice().sort((a,b) => (b.dataAnalise + (b.concluidaEm||'')).localeCompare(a.dataAnalise + (a.concluidaEm||'')));
+  lista = lista.filter(r => (!busca || normCond(r.condominio.nome).includes(busca) || (r.protocolo||'').toUpperCase().includes(busca))
+    && (!tipo || (tipo === 'carga' ? r.origem === 'carga' : r.tipo === tipo && r.origem !== 'carga')) && (!status || r.status === status) && (!limite || r.dataAnalise >= limite));
+  $('#histContagem').textContent = `${lista.length} de ${S.rodadas.length} rodadas`;
+  const wrap = $('#histTabela');
+  if(!lista.length){ wrap.innerHTML = '<div class="vazio">Nenhuma rodada com esses filtros.</div>'; return; }
+  const tipoTxt = r => r.origem === 'carga' ? 'Carga inicial' : r.tipo === 'acompanhamento' ? 'Acompanhamento' : 'Implantação';
+  wrap.innerHTML = `<table><thead><tr><th>Protocolo</th><th>Condomínio</th><th>Tipo</th><th>Data</th><th>Sinalizados</th><th>Excluídos</th><th>Status</th><th>Próxima reanálise</th></tr></thead><tbody>${
+    lista.map(r => { const s = r.resumo || resumoRodada(r); const venc = r.proximaReanalise && r.proximaReanalise < hojeISO() && r.status === 'concluida';
+      return `<tr class="clic" data-abrir="${r.id}"><td>${esc(r.protocolo || '—')}</td><td><b>${esc(r.condominio.nome)}</b></td><td>${tipoTxt(r)}</td><td>${fmtData(r.dataAnalise)}</td><td>${s.total}</td><td>${s.excluir}</td>
+        <td><span class="selo ${r.status==='concluida'?'s-ok':'s-rasc'}">${r.status==='concluida'?'Concluída':'Rascunho'}</span></td><td class="${venc?'venc':''}">${r.status==='concluida' ? fmtData(r.proximaReanalise) + (venc ? ' · vencida' : '') : '—'}</td></tr>`; }).join('')}</tbody></table>`;
+  wrap.querySelectorAll('[data-abrir]').forEach(tr => tr.onclick = () => abrirRodadaModal(S.rodadas.find(r => r.id === tr.dataset.abrir)));
+  renderEvolucaoSelect();
+}
+['#histBusca','#histTipo','#histStatus','#histPeriodo'].forEach(id => $(id).addEventListener('input', renderHistorico));
+
+function abrirRodadaModal(r){
+  if(!r) return;
+  const ultima = ultimaRodadaPorCondominio().get(r.condominio.chave);
+  const ehUltima = ultima && ultima.id === r.id;
+  const acoes = `<button class="btn sec mini" id="mCsv">CSV</button><button class="btn sec mini" id="mImprimir">Imprimir</button><button class="btn mini" id="mFicha">Baixar ficha</button>` +
+    (r.status === 'rascunho' ? `<button class="btn sec mini" id="mContinuar">Continuar</button>` : ehUltima && fila().some(i => i.chave === r.condominio.chave) ? `<button class="btn sec mini" id="mReanalisar">Nova reanálise</button>` : '');
+  abrirModal(`${r.protocolo || 'Rascunho'} · ${r.condominio.nome}`, `<div class="ficha" style="padding:18px 22px">${fichaHTML(r)}</div>
+    <p class="ajuda">Criada em ${fmtData((r.criadaEm||'').slice(0,10))} por ${esc(r.criadoPorNome||'—')}${r.concluidaEm ? ` · concluída em ${fmtData(r.concluidaEm.slice(0,10))} por ${esc(r.concluidoPorNome||'—')}` : ''}${r.vouch && r.vouch.arquivo ? ` · Vouch: ${esc(r.vouch.arquivo)}` : ''}</p>
+    ${r.unidades.some(u => u.override || u.encerramento) ? `<div class="card" style="margin-top:10px"><header><h2>Ajustes e encerramentos</h2></header><div class="tabela-wrap"><table><thead><tr><th>Unidade</th><th>Titular</th><th>Ajuste</th><th>Motivo</th></tr></thead><tbody>${r.unidades.filter(u => u.override || u.encerramento).map(u => `<tr><td>${esc(u.unid)}</td><td>${esc(u.titular)}</td><td>${u.override ? (u.override==='EXCLUIR'?'Excluir':'Sob análise') : 'Encerrada'}</td><td>${esc(u.motivoAjuste || (u.encerramento && u.encerramento.motivo) || '')}</td></tr>`).join('')}</tbody></table></div></div>` : ''}`, acoes);
+  $('#mFicha').onclick = () => baixarFichaPDF(r);
+  $('#mImprimir').onclick = () => imprimirFicha(r);
+  $('#mCsv').onclick = () => csvAcompanhamento([r], nomeArquivoSeguro(`Acompanhamento Espolio - ${r.condominio.nome}`) + '.csv');
+  if($('#mContinuar')) $('#mContinuar').onclick = () => { fecharModal(); abrirEditor(JSON.parse(JSON.stringify(r))); };
+  if($('#mReanalisar')) $('#mReanalisar').onclick = () => { fecharModal(); abrirEditor(rodadaDeAcompanhamento(r)); };
+}
+
+function renderEvolucaoSelect(){
+  const sel = $('#evoCond'); const atual = sel.value;
+  const conds = new Map(); S.rodadas.forEach(r => conds.set(r.condominio.chave, r.condominio.nome));
+  sel.innerHTML = '<option value="">Escolha o condomínio</option>' + [...conds.entries()].sort((a,b) => a[1].localeCompare(b[1])).map(([k,n]) => `<option value="${esc(k)}" ${k===atual?'selected':''}>${esc(n)}</option>`).join('');
+}
+$('#evoCond').addEventListener('change', renderEvolucao);
+function renderEvolucao(){
+  const chave = $('#evoCond').value; const wrap = $('#evoTabela');
+  if(!chave){ wrap.innerHTML = ''; return; }
+  const rods = rodadasDoCondominio(chave).filter(r => r.status === 'concluida');
+  if(!rods.length){ wrap.innerHTML = '<div class="vazio">Sem rodadas concluídas para este condomínio.</div>'; return; }
+  const chaveU = u => soDigitos(u.cpf) || (normUnid(u.unid) + '|' + normNome(u.titular));
+  const unidades = new Map();
+  rods.forEach(r => (r.unidades||[]).forEach(u => { const k = chaveU(u); if(!unidades.has(k)) unidades.set(k, { unid: u.unid, titular: u.titular, por: {} }); unidades.get(k).por[r.id] = u; if(u.titular) unidades.get(k).titular = u.titular; if(u.unid) unidades.get(k).unid = u.unid; }));
+  wrap.innerHTML = `<table><thead><tr><th>Unidade</th><th>Titular</th>${rods.map(r => `<th>${esc(r.protocolo || 'carga')}<br><span style="font-weight:600;text-transform:none">${fmtData(r.dataAnalise)}</span></th>`).join('')}</tr></thead><tbody>${
+    [...unidades.values()].map(x => `<tr><td><b>${esc(x.unid||'—')}</b></td><td>${esc(x.titular||'(a completar)')}</td>${rods.map(r => { const u = x.por[r.id]; return `<td>${u ? `<span class="selo ${classeSelo(u.resultado)}">${esc(rotuloStatus(u.resultado))}</span><div class="ajuda" style="margin:2px 0 0">Vouch ${u.vouch ?? '—'}${r.tipo!=='acompanhamento' && r.origem!=='carga' ? ' · ant. ' + (u.ant ?? '—') : ''}</div>` : '<span style="color:var(--faint)">—</span>'}</td>`; }).join('')}</tr>`).join('')}</tbody></table>`;
+}
+
+/* ===== 64-ui-dash-verif-conf.js ===== */
+/* ======================================================================
+   Dashboard, verificação mensal, configurações
+   ====================================================================== */
+function renderDashboard(){
+  const hoje = hojeISO(), mes = mesDe(hoje);
+  const conc = rodadasConcluidas().filter(r => r.origem !== 'carga');
+  const doMes = conc.filter(r => mesDe(r.dataAnalise) === mes);
+  const unidadesMes = doMes.flatMap(r => r.unidades || []);
+  const f = fila(); const venc = f.filter(i => i.vencida);
+  const verifMes = S.verificacoes.filter(v => v.mes === mes);
+  const n = (arr, x) => arr.filter(u => u.resultado === x).length;
+  $('#dashTiles').innerHTML = `
+    <div class="tile"><small>Análises em ${MESES_FULL[+mes.slice(5)-1].toLowerCase()}</small><strong>${doMes.length}</strong><em>${doMes.filter(r=>r.tipo!=='acompanhamento').length} implantação · ${doMes.filter(r=>r.tipo==='acompanhamento').length} acompanhamento</em></div>
+    <div class="tile"><small>Espólios no mês</small><strong>${unidadesMes.length}</strong><em>nas ${doMes.length} rodadas do mês</em></div>
+    <div class="tile"><small>Excluídos no mês</small><strong>${n(unidadesMes,'EXCLUIR')}</strong><em>${unidadesMes.length ? Math.round(100*n(unidadesMes,'EXCLUIR')/unidadesMes.length) + '% dos sinalizados' : '—'}</em></div>
+    <div class="tile"><small>Na fila</small><strong>${f.reduce((s,i)=>s+i.unidades.length,0)}</strong><em>${f.length} condomínio(s) em acompanhamento</em></div>
+    <div class="tile ${venc.length?'alerta':''}"><small>Reanálises vencidas</small><strong>${venc.length}</strong><em>mais de ${PRAZO_REANALISE_DIAS} dias sem nova rodada</em></div>
+    <div class="tile"><small>Verificados no mês</small><strong>${verifMes.length}</strong><em>${verifMes.filter(v=>v.temEspolio).length} com espólio</em></div>`;
+  renderGraficoMensal(conc);
+  const top = f.slice(0, 8);
+  $('#dashFila').innerHTML = top.length ? `<table><thead><tr><th>Condomínio</th><th>Unid.</th><th>Última rodada</th><th>Prazo</th></tr></thead><tbody>${top.map(i => `<tr class="clic" data-lote="${esc(i.chave)}"><td>${esc(i.condominio.nome)}</td><td>${i.unidades.length}</td><td>${fmtData(i.rodada.dataAnalise)}</td><td class="${i.vencida?'venc':''}">${i.vencida ? `vencida há ${-i.dias} dia(s)` : `em ${i.dias} dia(s)`}</td></tr>`).join('')}</tbody></table>` : '<div class="corpo"><div class="vazio">Fila vazia.</div></div>';
+  $('#dashFila').querySelectorAll('[data-lote]').forEach(tr => tr.onclick = () => { S.lote.selecionados.add(tr.dataset.lote); mostrarAba('lote'); });
+  const ano = hoje.slice(0,4);
+  const porCond = new Map();
+  conc.filter(r => r.dataAnalise.startsWith(ano)).forEach(r => { const k = r.condominio.chave; const e = porCond.get(k) || { nome: r.condominio.nome, sin: 0, exc: 0, rod: 0 }; e.rod++; e.sin += (r.unidades||[]).length; e.exc += n(r.unidades||[], 'EXCLUIR'); porCond.set(k, e); });
+  const topExc = [...porCond.values()].sort((a,b) => b.exc - a.exc || b.sin - a.sin).slice(0, 8);
+  $('#dashExclusoes').innerHTML = topExc.length ? `<table><thead><tr><th>Condomínio</th><th>Sinalizados</th><th>Excluídos</th><th>Rodadas</th></tr></thead><tbody>${topExc.map(e => `<tr><td>${esc(e.nome)}</td><td>${e.sin}</td><td><b>${e.exc}</b></td><td>${e.rod}</td></tr>`).join('')}</tbody></table>` : '<div class="corpo"><div class="vazio">Sem rodadas concluídas em ' + ano + '.</div></div>';
+  if(!$('#resumoMes').value) $('#resumoMes').value = mes;
+}
+function renderGraficoMensal(conc){
+  const meses = []; const d = new Date(); d.setDate(1);
+  for(let i = 5; i >= 0; i--){ const x = new Date(d.getFullYear(), d.getMonth() - i, 1); meses.push(x.getFullYear() + '-' + String(x.getMonth()+1).padStart(2,'0')); }
+  const dados = meses.map(m => { const us = conc.filter(r => mesDe(r.dataAnalise) === m).flatMap(r => r.unidades || []); return { m, exc: us.filter(u=>u.resultado==='EXCLUIR').length, rean: us.filter(u=>u.resultado==='REANÁLISE').length, prev: us.filter(u=>u.resultado==='PREVENTIVO').length }; });
+  const max = Math.max(5, ...dados.map(x => x.exc + x.rean + x.prev));
+  const W = 900, H = 230, top = 20, base = 200, lw = 40;
+  const y = v => base - (v / max) * (base - top);
+  const passo = Math.max(1, Math.ceil(max / 4));
+  const grade = []; for(let v = 0; v <= max; v += passo) grade.push(v);
+  const bw = 70, gap = (W - lw - 20 - 6*bw) / 6;
+  const barras = dados.map((x, i) => {
+    const x0 = lw + 10 + i * (bw + gap) + gap/2; const tot = x.exc + x.rean + x.prev;
+    const seg = (v, y0, cor, rx) => v ? `<rect x="${x0}" y="${y(y0+v)}" width="${bw}" height="${Math.max(0, y(y0) - y(y0+v) - 2)}" fill="${cor}" ${rx?'rx="4"':''}><title>${MESES[+x.m.slice(5)-1]}/${x.m.slice(0,4)}: ${v}</title></rect>` : '';
+    return `<g>${seg(x.prev, 0, '#199cb1')}${seg(x.rean, x.prev, '#d98a1b')}${seg(x.exc, x.prev + x.rean, '#d8463b', true)}<text x="${x0+bw/2}" y="${base+18}" text-anchor="middle">${MESES[+x.m.slice(5)-1]}</text>${tot?`<text x="${x0+bw/2}" y="${y(tot)-6}" text-anchor="middle" fill="#3c5660" font-weight="700">${tot}</text>`:''}</g>`;
+  }).join('');
+  $('#dashGrafico').innerHTML = `<div class="legenda"><span><i style="background:#d8463b"></i>Excluir</span><span><i style="background:#d98a1b"></i>Sob análise · Reanálise</span><span><i style="background:#199cb1"></i>Sob análise · Preventivo</span></div>
+    <svg class="graf" viewBox="0 0 ${W} ${H}" width="100%" aria-label="Unidades classificadas por mês"><g stroke="#e4ecef">${grade.map(v => `<line x1="${lw}" x2="${W-10}" y1="${y(v)}" y2="${y(v)}"/>`).join('')}</g>${grade.map(v => `<text x="${lw-6}" y="${y(v)+4}" text-anchor="end">${v}</text>`).join('')}${barras}</svg>`;
+}
+$('#btnResumo').onclick = () => {
+  const mes = $('#resumoMes').value; if(!mes) return;
+  const conc = rodadasConcluidas().filter(r => r.origem !== 'carga' && mesDe(r.dataAnalise) === mes);
+  const us = conc.flatMap(r => r.unidades || []);
+  const verif = S.verificacoes.filter(v => v.mes === mes);
+  const f = fila(); const venc = f.filter(i => i.vencida);
+  const n = x => us.filter(u => u.resultado === x).length;
+  const html = `<div class="ficha" id="resumoFicha" style="padding:20px 24px"><div class="f-titulo" style="font-size:20px">Resumo mensal · Análise de Espólio · ${MESES_FULL[+mes.slice(5)-1]}/${mes.slice(0,4)}</div><div class="f-sub">Cobrança / Coordenação · gerado em ${fmtData(hojeISO())}</div>
+    <div class="f-secao">Verificação mensal</div><p>${verif.length} condomínio(s) verificado(s) · ${verif.filter(v=>v.temEspolio).length} com espólio · ${verif.filter(v=>!v.temEspolio).length} sem espólio.</p>
+    <div class="f-secao">Rodadas concluídas no mês</div>
+    <table class="f-tab"><thead><tr><th>Protocolo</th><th>Condomínio</th><th>Tipo</th><th>Data</th><th>Sinalizados</th><th>Excluídos</th><th>Sob análise</th></tr></thead><tbody>${conc.length ? conc.map(r => { const s = r.resumo || resumoRodada(r); return `<tr><td>${esc(r.protocolo)}</td><td>${esc(r.condominio.nome)}</td><td>${r.tipo==='acompanhamento'?'Acompanhamento':'Implantação'}</td><td>${fmtData(r.dataAnalise)}</td><td>${s.total}</td><td>${s.excluir}</td><td>${s.prev+s.rean}</td></tr>`; }).join('') : '<tr><td colspan="7" style="text-align:center">Nenhuma rodada concluída no mês.</td></tr>'}</tbody></table>
+    <div class="f-caixas" style="grid-template-columns:repeat(4,1fr)"><div class="f-caixa"><h4>Rodadas</h4><p>${conc.length}</p></div><div class="f-caixa cx-EXCLUIR"><h4>Excluídos</h4><p>${n('EXCLUIR')}</p></div><div class="f-caixa"><h4>Sob análise</h4><p>${n('PREVENTIVO')+n('REANÁLISE')}</p></div><div class="f-caixa cx-REAN"><h4>Fila vencida hoje</h4><p>${venc.length} condomínio(s)</p></div></div>
+    ${venc.length ? `<div class="f-secao">Reanálises vencidas</div><p>${venc.map(i => `${esc(i.condominio.nome)} (desde ${fmtData(i.prazo)})`).join('; ')}</p>` : ''}</div>
+    <div class="acoes" style="margin-top:10px"><button class="btn sec mini" id="btnResumoPdf">Baixar resumo em PDF</button></div>`;
+  $('#resumoMensal').innerHTML = html;
+  $('#btnResumoPdf').onclick = async () => { const el = $('#resumoFicha'); if(typeof html2pdf === 'undefined'){ window.print(); return; } await html2pdf().set({ margin: 8, filename: `Resumo Espolio ${mes}.pdf`, html2canvas: { scale: 2, backgroundColor:'#fff' }, jsPDF: { unit:'mm', format:'a4', orientation:'landscape' } }).from(el).save(); };
+};
+
+/* ---------- verificação mensal ---------- */
+function renderVerificacao(){
+  if(!$('#verifMes').value) $('#verifMes').value = mesDe(hojeISO());
+  const mes = $('#verifMes').value;
+  const lista = S.verificacoes.filter(v => v.mes === mes).sort((a,b) => (a.ordem||0) - (b.ordem||0) || a.condominio.localeCompare(b.condominio));
+  const com = lista.filter(v => v.temEspolio).length;
+  $('#verifResumo').innerHTML = `<span class="pill">Verificados <b>${lista.length}</b></span><span class="pill">Com espólio <b>${com}</b></span><span class="pill">Sem espólio <b>${lista.length - com}</b></span>`;
+  const wrap = $('#verifTabela');
+  if(!lista.length){ wrap.innerHTML = `<div class="vazio">Nenhum condomínio verificado em ${fmtMesAno(mes)}. Adicione ou importe a planilha de controle em Configurações.</div>`; return; }
+  const temRodada = v => S.rodadas.some(r => r.condominio.chave === chaveCond(v.condominio, '') || normCond(r.condominio.nome) === normCond(v.condominio));
+  wrap.innerHTML = `<table><thead><tr><th>Condomínio</th><th>Comarca</th><th>Vigência</th><th>Espólio?</th><th>Unidades / observações</th><th></th></tr></thead><tbody>${
+    lista.map(v => `<tr><td><b>${esc(v.condominio)}</b></td><td>${esc(v.comarca||'')}</td><td>${esc(v.vigencia||'')}</td>
+      <td><input type="checkbox" data-verif-esp="${v.id}" ${v.temEspolio?'checked':''} ${!CAN_WRITE?'disabled':''}></td>
+      <td><input type="text" data-verif-obs="${v.id}" value="${esc(v.obs||'')}" placeholder="unidades, ex.: A - 101 / B - 204" ${!CAN_WRITE?'disabled':''}></td>
+      <td class="acoes">${v.temEspolio ? (temRodada(v) ? '<span class="selo s-ok">em análise</span>' : `<button class="btn mini" data-verif-analisar="${v.id}">Iniciar análise</button>`) : ''}<button class="btn perigo mini" data-verif-rm="${v.id}" title="Remover">×</button></td></tr>`).join('')}</tbody></table>`;
+  wrap.querySelectorAll('[data-verif-esp]').forEach(cb => cb.onchange = () => gravarDoc(COLECOES.verificacoes + '/' + cb.dataset.verifEsp, { temEspolio: cb.checked, atualizadoEm: nowISO() }));
+  wrap.querySelectorAll('[data-verif-obs]').forEach(inp => inp.onchange = () => gravarDoc(COLECOES.verificacoes + '/' + inp.dataset.verifObs, { obs: inp.value, atualizadoEm: nowISO() }));
+  wrap.querySelectorAll('[data-verif-rm]').forEach(b => b.onclick = async () => { if(await confirmar('Remover este condomínio da verificação do mês?')) await DB.doc(COLECOES.verificacoes + '/' + b.dataset.verifRm).delete(); });
+  wrap.querySelectorAll('[data-verif-analisar]').forEach(b => b.onclick = () => { const v = S.verificacoes.find(x => x.id === b.dataset.verifAnalisar); const r = novaRodada('implantacao', { nome: v.condominio, cnpj: '', chave: chaveCond(v.condominio, '') }); const u = unidadesDasObs(v.obs); u.unidades.forEach(x => r.unidades.push(novaUnidade(x.unidTxt, '', ''))); abrirEditor(r); });
+}
+$('#verifMes').addEventListener('change', renderVerificacao);
+$('#btnVerifAdd').onclick = () => {
+  const mes = $('#verifMes').value || mesDe(hojeISO());
+  abrirModal('Adicionar condomínio verificado', `<div class="grade"><div><label>Condomínio</label><input type="text" id="vaCond" list="listaCondominios"></div><div><label>Comarca (UF)</label><input type="text" id="vaComarca" placeholder="CE"></div><div><label>Vigência</label><input type="text" id="vaVig" value="${esc(mes.slice(5)+'/'+mes.slice(0,4))}"></div><div><label>Tem espólio?</label><select id="vaEsp"><option value="0">Não</option><option value="1">Sim</option></select></div><div><label>Unidades / observações</label><input type="text" id="vaObs" placeholder="A - 101 / B - 204"></div></div><div class="acoes" style="margin-top:12px"><button class="btn" id="vaOk">Adicionar</button></div>`);
+  $('#vaOk').onclick = async () => { const cond = $('#vaCond').value.trim(); if(!cond){ toast('Informe o condomínio.'); return; }
+    await DB.collection(COLECOES.verificacoes).add({ mes, condominio: cond, comarca: $('#vaComarca').value.trim().toUpperCase(), vigencia: $('#vaVig').value.trim(), responsavel: ME.name, temEspolio: $('#vaEsp').value === '1', obs: $('#vaObs').value.trim(), origem: 'manual', criadoEm: nowISO(), criadoPor: ME.id });
+    fecharModal(); toast('Condomínio adicionado.'); };
+};
+
+/* ---------- configurações ---------- */
+function renderConf(){
+  $('#confAcesso').innerHTML = `<div class="doc"><div class="ico">${esc((ME.name||'?').split(' ').map(p=>p[0]).join('').slice(0,2).toUpperCase())}</div><div><b>${esc(ME.name||'Usuário')}</b><span>${CAN_WRITE ? 'pode criar e concluir análises' : 'somente leitura'}</span></div></div>
+    <p class="ajuda">Somente a coordenação de Cobrança cria e conclui análises. Quem mais tiver o módulo liberado no portal só consulta.</p>`;
+  $('#confRegras').innerHTML = TEXTO_REGRAS;
+  renderBiInfo();
+}
+function renderBiInfo(){
+  const el = $('#confBiInfo'); if(!el) return;
+  el.innerHTML = S.bi.base && S.bi.base.length ? `Base atual: <b>${S.bi.base.length} condomínios</b> · enviada em ${fmtData((S.bi.enviadoEm||'').slice(0,10))} por ${esc(S.bi.por||'—')}${S.bi.arquivo?' · '+esc(S.bi.arquivo):''}. Vale para toda a equipe.` : 'Nenhuma base do BI carregada.';
+  if(S.rodada) renderDocBi();
+}
+$('#confBiArquivo').addEventListener('change', async e => { const f = e.target.files[0]; e.target.value = ''; if(f) await subirBaseBi(f); });
+$('#confCargaArquivo').addEventListener('change', async e => {
+  const f = e.target.files[0]; e.target.value = ''; if(!f) return;
+  const st = $('#confCargaStatus'); st.innerHTML = '<p class="ajuda">Lendo a planilha…</p>';
+  try{
+    const linhas = await lerPlanilhaControle(f);
+    if(!linhas.length){ st.innerHTML = '<div class="aviso">Não encontrei abas com a coluna "Condomínio".</div>'; return; }
+    const com = linhas.filter(l => l.temEspolio).length;
+    if(!(await confirmar(`Importar ${linhas.length} condomínios verificados (${com} com espólio) de ${new Set(linhas.map(l=>l.aba)).size} abas?\nLinhas já importadas não duplicam.`))) { st.innerHTML = ''; return; }
+    const r = await importarPlanilhaControle(linhas);
+    st.innerHTML = `<div class="ok">Importado: ${r.verificacoes} verificações novas, ${r.rodadas} condomínios com espólio entraram na fila (${r.pulados} linhas já existiam).</div>`;
+  }catch(err){ st.innerHTML = `<div class="erro">Não deu para importar: ${esc(err.message)}</div>`; }
+});
+$('#btnBackup').onclick = () => baixarArquivo(`backup-analise-espolio-${hojeISO()}.json`, JSON.stringify({ geradoEm: nowISO(), rodadas: S.rodadas, verificacoes: S.verificacoes, meta: S.meta, bi: S.bi }, null, 1), 'application/json');
+$('#btnPlanilhaAcomp').onclick = () => { const rods = fila().map(i => ({ ...i.rodada, unidades: i.unidades })); if(!rods.length){ toast('Fila vazia.'); return; } csvAcompanhamento(rods, `Acompanhamento Espolio - fila ${hojeISO()}.csv`); };
+
+/* ===== 90-init.js ===== */
+/* ======================================================================
+   Inicialização
+   ====================================================================== */
+(async function init(){
+  $('#dataAnalise').value = hojeISO();
+  $('#textoRegras').innerHTML = TEXTO_REGRAS;
+  try{ await conectarBase(); }
+  catch(e){ document.querySelector('main').insertAdjacentHTML('afterbegin', `<div class="erro">${esc(e.message)}</div>`); return; }
+  assinarBase();
+  renderNovaLista();
+})();
+
+</script>
+</body>
+</html>

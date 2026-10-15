@@ -1,0 +1,239 @@
+<body>
+
+<header class="topo"><div class="topo-in">
+  <div class="linha1">
+    <div class="brand"><img src="{{LOGO}}" alt="MyBlue Condomínio Garantido"><div><b>Análise de Espólio</b><span>Cobrança · Coordenação · MyBlue</span></div></div>
+    <div class="acesso">
+      <span class="sync" id="sync"><i></i>Conectando…</span>
+      <span class="chip" id="chipUsuario" hidden></span>
+    </div>
+  </div>
+  <nav class="tabs" id="tabs">
+    <button class="tab ativa" data-tab="dash">Dashboard</button>
+    <button class="tab" data-tab="verif">Verificação mensal</button>
+    <button class="tab" data-tab="nova">Nova análise <span class="n" id="nNova" hidden></span></button>
+    <button class="tab" data-tab="lote">Reanálise do dia <span class="n" id="nFila" hidden></span></button>
+    <button class="tab" data-tab="hist">Histórico</button>
+    <button class="tab" data-tab="conf">Configurações</button>
+  </nav>
+</div></header>
+
+<main>
+
+<!-- ================= DASHBOARD ================= -->
+<section class="painel ativa" id="p-dash">
+  <div class="tiles" id="dashTiles"></div>
+  <div class="card">
+    <header><h2>Resultado por mês</h2><span class="dica">unidades classificadas nas rodadas concluídas · últimos 6 meses</span></header>
+    <div class="corpo chart" id="dashGrafico"></div>
+  </div>
+  <div class="dois">
+    <div class="card">
+      <header><h2>Próximas reanálises</h2><span class="dica">prazo de 90 dias por condomínio</span></header>
+      <div class="tabela-wrap" id="dashFila"></div>
+    </div>
+    <div class="card">
+      <header><h2>Condomínios com mais exclusões</h2><span class="dica">acumulado do ano</span></header>
+      <div class="tabela-wrap" id="dashExclusoes"></div>
+    </div>
+  </div>
+  <div class="card">
+    <header><h2>Resumo mensal</h2><div class="acoes"><input type="month" id="resumoMes" class="campo" style="width:auto"><button class="btn sec mini" id="btnResumo">Gerar resumo</button></div></header>
+    <div class="corpo" id="resumoMensal"><div class="vazio">Escolha o mês e clique em “Gerar resumo”.</div></div>
+  </div>
+</section>
+
+<!-- ================= VERIFICAÇÃO MENSAL ================= -->
+<section class="painel" id="p-verif">
+  <div class="nota"><b>Verificação mensal:</b> cada condomínio com vigência iniciada no mês é verificado e marcado como com ou sem espólio. Os que têm espólio seguem para a análise de implantação. Substitui a planilha “Controle de Verificação de Espólios”.</div>
+  <div class="card">
+    <header><h2>Condomínios verificados</h2>
+      <div class="acoes"><input type="month" id="verifMes" class="campo" style="width:auto"><button class="btn sec mini" id="btnVerifAdd">Adicionar condomínio</button></div></header>
+    <div class="corpo">
+      <div class="resumo" id="verifResumo"></div>
+      <div class="tabela-wrap" id="verifTabela"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= NOVA ANÁLISE (IMPLANTAÇÃO) ================= -->
+<section class="painel" id="p-nova">
+  <div id="novaLista"></div>
+  <div id="novaEditor" hidden>
+    <div class="resumo" id="novaResumo"></div>
+    <div class="stepper">
+      <div class="step atual" id="step1"><div class="bola">1</div>
+        <div class="card"><header><h2>1 · Documentos</h2><span class="dica" id="dicaDocs">Anexe os PDFs — os campos preenchem sozinhos</span></header>
+          <div class="corpo">
+            <div class="grade" id="docsGrade">
+              <div class="doc" id="docVouch"><div class="ico">PDF</div><div><b>Inadimplência MyBlue (Vouch)</b><span>Relatório consolidado do Vouch</span></div><input type="file" accept="application/pdf" data-doc="vouch"></div>
+              <div class="doc" id="docAnt"><div class="ico">PDF</div><div><b>Inadimplência anterior</b><span>Relatório da administradora anterior</span></div><input type="file" accept="application/pdf" data-doc="ant"></div>
+              <div class="doc" id="docEmail"><div class="ico">PDF</div><div><b>E-mail de sinalização</b><span>Espólios sinalizados pela Cobrança</span></div><input type="file" accept="application/pdf" data-doc="email"></div>
+              <div class="doc" id="docBi"><div class="ico">BI</div><div><b>Power BI · base do dia</b><span id="docBiStatus">Nenhuma base carregada</span></div><input type="file" accept=".xlsx,.xls,.csv,application/pdf" data-doc="bi"></div>
+            </div>
+            <details style="margin-top:12px">
+              <summary style="cursor:pointer;font-size:13px;color:var(--petrol);font-weight:700">Texto extraído dos documentos (revisar ou colar manualmente)</summary>
+              <div class="grade" style="margin-top:10px">
+                <div><label>Vouch</label><textarea id="relVouch" placeholder="Texto extraído do PDF — editável"></textarea></div>
+                <div><label>Anterior</label><textarea id="relAdmin" placeholder="Texto extraído do PDF — editável"></textarea></div>
+                <div><label>E-mail</label><textarea id="relEmail" placeholder="Texto extraído do PDF do e-mail — editável"></textarea></div>
+              </div>
+              <div class="acoes" style="margin-top:10px">
+                <button class="btn sec mini" id="btnReprocessar">Reprocessar textos</button>
+                <span class="check"><input type="checkbox" id="soValor" checked><span>Anterior: contar só linhas com valor em R$</span></span>
+              </div>
+            </details>
+            <div id="diagnostico"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step" id="step2"><div class="bola">2</div>
+        <div class="card"><header><h2>2 · Condomínio e contrato</h2><span class="dica">Campos azulados vieram dos documentos — edite se precisar</span></header>
+          <div class="corpo">
+            <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:14px">
+              <span style="font-weight:700;color:var(--petrol);font-size:13px">Tipo de análise</span>
+              <div class="seg" id="tipoAnalise"><button type="button" data-tipo="implantacao" class="ativo">Implantação</button><button type="button" data-tipo="acompanhamento">Acompanhamento</button></div>
+              <span class="ajuda" style="margin:0" id="tipoAjuda">Implantação: 1ª análise, base Preventivo, regras 1 a 5.</span>
+            </div>
+            <div class="grade">
+              <div><label for="razao">Condomínio (razão social)</label><input type="text" id="razao" list="listaCondominios" placeholder="Condomínio ..."><datalist id="listaCondominios"></datalist></div>
+              <div><label for="cnpj">CNPJ</label><input type="text" id="cnpj" placeholder="00.000.000/0001-00"></div>
+              <div><label for="inicio">Idade da garantia (meses)</label><input type="number" id="inicio" min="0" step="1" placeholder="18"></div>
+              <div><label for="analista">Analista (remetente do e-mail)</label><input type="text" id="analista"></div>
+              <div><label for="bi">Resultado do BI (R$)</label>
+                <div style="display:flex;gap:6px;align-items:center">
+                  <div class="seg sinal" id="sinalBi"><button type="button" data-sinal="-" class="ativo">−</button><button type="button" data-sinal="+">+</button></div>
+                  <input type="number" id="bi" step="0.01" min="0" placeholder="1234,56" style="flex:1">
+                </div>
+                <p class="ajuda" id="statusBiVal">Vem da base do BI. Confira o sinal.</p>
+              </div>
+              <div><label for="dataAnalise">Data da análise</label><input type="date" id="dataAnalise"></div>
+            </div>
+            <div class="acoes" style="margin-top:12px">
+              <span class="check"><input type="checkbox" id="semAnterior"><span>Não há relatório de inadimplência anterior</span></span>
+              <span class="check"><input type="checkbox" id="semBi"><span>Resultado do BI não informado</span></span>
+            </div>
+            <p class="ajuda" id="vigenciaInfo"></p>
+            <div style="margin-top:12px"><label for="nota">Nota de contexto da ficha</label><input type="text" id="nota" placeholder="Ex.: resultado negativo esperado no 1º mês de garantia."></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step" id="step3"><div class="bola">3</div>
+        <div class="card"><header><h2>3 · Espólios sinalizados</h2><span class="dica">Vêm do e-mail — o nome é a chave da busca</span></header>
+          <div class="corpo">
+            <label for="sinal">Espólios (do e-mail) — ou digite: um por linha</label>
+            <textarea id="sinal" placeholder="MARIA DE SOUZA&#10;101&#9;JOÃO PEREIRA&#9;123.456.789-00&#10;Apto 204 - ANA LIMA" style="min-height:80px"></textarea>
+            <p class="ajuda">Unidade e CPF são opcionais e ajudam a confirmar o casamento com os relatórios.</p>
+            <div class="acoes" style="margin-top:10px">
+              <button class="btn sec mini" id="btnSinal">Cadastrar espólios</button>
+              <button class="btn sec mini" id="btnAddUnid">Adicionar linha em branco</button>
+              <button class="btn sec mini" id="btnRecontar">Recontar taxas</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step" id="step4"><div class="bola">4</div>
+        <div class="card"><header><h2>4 · Classificação</h2><span class="dica">Regras aplicadas na ordem da política · clique na unidade para ver evidências e ajustar</span></header>
+          <details class="regras" style="border-bottom:1px solid var(--linha);background:var(--surface-2)">
+            <summary style="cursor:pointer;padding:11px 18px;font-size:13px;color:var(--teal-d);font-weight:700">Ver as regras (Política de Análise de Espólio)</summary>
+            <div style="padding:0 18px 12px;font-size:12.5px;color:var(--ink-2)" id="textoRegras"></div>
+          </details>
+          <div class="corpo" id="unidadesWrap"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <header><h2>Ficha</h2><div class="acoes"><button class="btn sec mini" id="btnImprimir">Imprimir</button><button class="btn mini" id="btnBaixarFicha">Baixar ficha PDF</button></div></header>
+      <div class="corpo"><div class="ficha" id="fichaPreview"></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= REANÁLISE DO DIA ================= -->
+<section class="painel" id="p-lote">
+  <div class="nota"><b>Reanálise em lote:</b> selecione os condomínios da fila, arraste os PDFs do Vouch de uma vez e o sistema identifica cada condomínio pelo cabeçalho. Só o Vouch entra; as unidades vêm da rodada anterior. Conclusão e ficha são por condomínio.</div>
+  <div class="card">
+    <header><h2>Fila de acompanhamento</h2><div class="acoes"><span class="pill" id="loteContagem"></span><button class="btn sec mini" id="btnSelVencidos">Selecionar vencidos</button><button class="btn sec mini" id="btnSelNenhum">Limpar seleção</button></div></header>
+    <div class="tabela-wrap" id="loteFila"></div>
+  </div>
+  <div class="card">
+    <header><h2>PDFs do Vouch</h2><span class="dica">um relatório por condomínio · pode arrastar vários</span></header>
+    <div class="corpo">
+      <div class="dropzone" id="loteDrop">Arraste aqui os PDFs do Vouch dos condomínios selecionados, ou clique para escolher<input type="file" accept="application/pdf" multiple id="loteArquivos"></div>
+      <div id="loteLeitura"></div>
+    </div>
+  </div>
+  <div id="loteRevisao"></div>
+</section>
+
+<!-- ================= HISTÓRICO ================= -->
+<section class="painel" id="p-hist">
+  <div class="card">
+    <header><h2>Rodadas de análise</h2><span class="dica" id="histContagem"></span></header>
+    <div class="corpo">
+      <div class="filtros">
+        <input type="text" id="histBusca" class="campo" placeholder="Buscar condomínio ou protocolo">
+        <select id="histTipo"><option value="">Todos os tipos</option><option value="implantacao">Implantação</option><option value="acompanhamento">Acompanhamento</option><option value="carga">Carga inicial</option></select>
+        <select id="histStatus"><option value="">Todos os status</option><option value="rascunho">Rascunho</option><option value="concluida">Concluída</option></select>
+        <select id="histPeriodo"><option value="90">Últimos 90 dias</option><option value="365">Últimos 12 meses</option><option value="">Tudo</option></select>
+      </div>
+      <div class="tabela-wrap" id="histTabela"></div>
+    </div>
+  </div>
+  <div class="card">
+    <header><h2>Evolução por condomínio</h2><span class="dica">escolha um condomínio para ver as unidades rodada a rodada</span></header>
+    <div class="corpo">
+      <div class="filtros"><select id="evoCond"><option value="">Escolha o condomínio</option></select></div>
+      <div class="tabela-wrap" id="evoTabela"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CONFIGURAÇÕES ================= -->
+<section class="painel" id="p-conf">
+  <div class="dois">
+    <div class="card">
+      <header><h2>Acesso</h2><span class="dica">definido no portal</span></header>
+      <div class="corpo" id="confAcesso"></div>
+    </div>
+    <div class="card">
+      <header><h2>Base do Power BI</h2><span class="dica">compartilhada pela equipe</span></header>
+      <div class="corpo">
+        <div id="confBiInfo" class="ajuda" style="margin:0 0 10px"></div>
+        <div class="doc"><div class="ico">XLS</div><div><b>Subir nova base do dia</b><span>Excel ou CSV com Condomínio, Idade (meses) e Resultado</span></div><input type="file" accept=".xlsx,.xls,.csv" id="confBiArquivo"></div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <header><h2>Carga inicial · planilha de controle</h2><span class="dica">importa a verificação mensal e cria a fila a partir dos condomínios com espólio</span></header>
+    <div class="corpo">
+      <p class="ajuda" style="margin:0 0 10px">Aceita a planilha “Controle de Verificação de Espólios” (uma aba por mês: Quant., Status, Comarca, Condomínio, Vigência, Responsável, Observações). Condomínios com espólio viram rodadas de carga inicial com as unidades das observações; “VÁRIAS” fica marcado para completar na primeira reanálise.</p>
+      <div class="doc"><div class="ico">XLS</div><div><b>Importar planilha de controle</b><span>Pode repetir: linhas já importadas não duplicam</span></div><input type="file" accept=".xlsx,.xls" id="confCargaArquivo"></div>
+      <div id="confCargaStatus"></div>
+    </div>
+  </div>
+  <div class="dois">
+    <div class="card">
+      <header><h2>Regras da política</h2><span class="dica">texto exibido na etapa de classificação</span></header>
+      <div class="corpo" id="confRegras"></div>
+    </div>
+    <div class="card">
+      <header><h2>Dados</h2><span class="dica">cópia de segurança</span></header>
+      <div class="corpo">
+        <div class="acoes"><button class="btn sec mini" id="btnBackup">Exportar tudo (JSON)</button><button class="btn sec mini" id="btnPlanilhaAcomp">Planilha de acompanhamento (CSV)</button></div>
+        <p class="ajuda">O backup contém rodadas, verificações, base do BI e protocolo. Guarde fora do portal.</p>
+        <div id="confLocalAviso"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div id="areaImpressao" hidden></div>
+</main>
+
+<div id="modal" hidden></div>
+<div class="toast" id="toast"></div>
