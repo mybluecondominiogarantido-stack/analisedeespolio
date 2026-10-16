@@ -2234,8 +2234,8 @@ function htmlFormSolicitacao(pre){
   return `<div class="card" id="cardNovaSol"><header><h2>Nova solicitação de análise</h2><span class="dica">preencha as unidades com titular falecido · substitui o e-mail de sinalização</span></header>
     <div class="corpo">
       <div class="grade">
-        <div><label>Condomínio</label><input type="text" id="solCond" class="campo" list="listaCarteira" value="${esc(pre.nome||'')}" placeholder="Comece a digitar"><datalist id="listaCarteira">${(S.carteira.itens||[]).map(c => `<option value="${esc(c.nome)}">`).join('')}</datalist></div>
-        <div><label>CNPJ</label><input type="text" id="solCnpj" class="campo" value="${esc(pre.cnpj||'')}" placeholder="preenchido pela carteira"></div>
+        <div><label>Condomínio</label><input type="text" id="solCond" class="campo" list="listaCarteira" value="${esc(pre.nome||'')}" placeholder="Comece a digitar"><datalist id="listaCarteira">${(S.carteira.itens||[]).filter(c => c.situacao !== 'DISTRATADO').map(c => `<option value="${esc(c.nome)}">${esc([c.cnpj, c.comarca].filter(Boolean).join(' · '))}</option>`).join('')}</datalist>${(S.carteira.itens||[]).length ? '' : '<p class="ajuda" style="color:var(--red)">Carteira de condomínios não carregada. Recarregue o módulo; se persistir, avise a gestão.</p>'}</div>
+        <div><label>CNPJ</label><input type="text" id="solCnpj" class="campo" value="${esc(pre.cnpj||'')}" placeholder="preenchido pela carteira, ou digite para buscar"></div>
       </div>
       <p class="ajuda" id="solTipoInfo">${pre.nome ? esc(tipoPelaCarteira(pre.nome).texto) : 'O tipo da análise (implantação ou avulso) vem da data de início do contrato na carteira.'}</p>
       <label style="margin-top:12px">Unidades sinalizadas</label>
@@ -2295,7 +2295,11 @@ function ligarFormSolicitacao(){
   const tb = card.querySelector('#solUnidades tbody'); if(!tb.children.length) tb.innerHTML = linhaUnidadeSol();
   $('#solAddUnid').onclick = () => tb.insertAdjacentHTML('beforeend', linhaUnidadeSol());
   tb.addEventListener('click', e => { if(e.target.closest('[data-su-rm]')){ const tr = e.target.closest('tr'); if(tb.children.length > 1) tr.remove(); else tr.querySelectorAll('input').forEach(i => i.value = ''); } });
-  $('#solCond').addEventListener('change', () => { const c = (S.carteira.itens||[]).find(x => normCond(x.nome) === normCond($('#solCond').value)); if(c && !$('#solCnpj').value.trim()) $('#solCnpj').value = c.cnpj || ''; $('#solTipoInfo').textContent = tipoPelaCarteira($('#solCond').value).texto; });
+  const acharPorNome = v => (S.carteira.itens||[]).find(x => normCond(x.nome) === normCond(v) || normCond(x.razao) === normCond(v));
+  const acharPorCnpj = v => { const d = soDigitos(v); return d.length === 14 ? (S.carteira.itens||[]).find(x => soDigitos(x.cnpj) === d) : null; };
+  const aplicarCond = c => { $('#solCond').value = c.nome; $('#solCnpj').value = c.cnpj || ''; $('#solCnpj').dataset.auto = '1'; $('#solTipoInfo').textContent = tipoPelaCarteira(c.nome).texto; };
+  ['input','change'].forEach(ev => $('#solCond').addEventListener(ev, () => { const c = acharPorNome($('#solCond').value); if(c && (!$('#solCnpj').value.trim() || $('#solCnpj').dataset.auto)) aplicarCond(c); else if(!c){ if($('#solCnpj').dataset.auto){ $('#solCnpj').value = ''; delete $('#solCnpj').dataset.auto; } $('#solTipoInfo').textContent = tipoPelaCarteira($('#solCond').value).texto; } }));
+  ['input','change'].forEach(ev => $('#solCnpj').addEventListener(ev, () => { delete $('#solCnpj').dataset.auto; const c = acharPorCnpj($('#solCnpj').value); if(c) aplicarCond(c); }));
   $('#solLimpar').onclick = () => { card.outerHTML = htmlFormSolicitacao(); ligarFormSolicitacao(); };
   $('#solEnviar').onclick = async () => {
     const nome = $('#solCond').value.trim(); const cnpj = $('#solCnpj').value.trim();

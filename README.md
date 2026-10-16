@@ -22,7 +22,7 @@ Módulo do portal MyBlue para a Coordenação de Cobrança: solicitações de an
 ## Como publicar no portal
 
 1. `node build.js` gera `analise-espolio.html`.
-2. O módulo `analise-espolio` já está cadastrado no portal (setor Cobrança, adaptador `claude-db`). Suba `analise-espolio.html` como nova versão.
+2. O módulo `analise-de-espolio` já está cadastrado no portal (setor Cobrança, adaptador `claude-db`). Suba `analise-espolio.html` como nova versão.
 3. Libere o acesso para a gestão e para os solicitantes. Passo a passo completo em `docs/guia-implantacao-portal.md`.
 3. O módulo usa `window.claude.use('db')` e `use('user')`, como o módulo de Síndicos. Fora do portal ele abre em **modo local** (localStorage) com aviso, útil para testes.
 

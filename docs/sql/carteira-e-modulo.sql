@@ -1,4 +1,7 @@
 -- APLICADO em 16/10/2026 no projeto myblue-portal (com aval da coordenação).
+-- ATENÇÃO: o módulo em uso foi criado pelo portal com o slug 'analise-de-espolio'; o cadastro 'analise-espolio'
+-- abaixo foi removido pela gestão. A função espolio_atualizar_carteira foi refeita (ver fim do arquivo) para gravar
+-- em 'analise-de-espolio' e para nunca bloquear a edição de condomínios.
 -- 1) registra o módulo; 2) espelha public.condominios em documentos (analise-espolio / carteira / atual);
 -- 3) gatilho por comando em condominios refaz a cópia a cada inclusão, alteração ou exclusão.
 -- Não altera dados existentes. Para desfazer, ver o bloco REVERTER no fim.
@@ -39,10 +42,24 @@ create trigger espolio_carteira after insert or update or delete on public.condo
 
 select public.espolio_atualizar_carteira();
 
+-- CORREÇÃO (16/10/2026): grava no módulo ativo e é tolerante a falhas
+create or replace function public.espolio_atualizar_carteira() returns void language plpgsql as $$
+declare
+  alvo text := 'analise-de-espolio';
+  novo_seq bigint;
+begin
+  if not exists (select 1 from public.modulos where slug = alvo) then return; end if;
+  select coalesce(max(seq), 0) + 1 into novo_seq from public.documentos where modulo_slug = alvo;
+  insert into public.documentos (modulo_slug, colecao, doc_id, dados, seq, atualizado_em)
+  values (alvo, 'carteira', 'atual', public.espolio_carteira_json(), novo_seq, now())
+  on conflict (modulo_slug, colecao, doc_id) do update set dados = excluded.dados, seq = excluded.seq, atualizado_em = now();
+exception when others then
+  raise warning 'espolio_atualizar_carteira: %', sqlerrm;
+end $$;
+
 -- REVERTER
 -- drop trigger if exists espolio_carteira on public.condominios;
 -- drop function if exists public.espolio_carteira_trigger();
 -- drop function if exists public.espolio_atualizar_carteira();
 -- drop function if exists public.espolio_carteira_json();
--- delete from public.documentos where modulo_slug = 'analise-espolio' and colecao = 'carteira';
--- delete from public.modulos where slug = 'analise-espolio';  -- só se o módulo ainda não tiver dados
+-- delete from public.documentos where modulo_slug = 'analise-de-espolio' and colecao = 'carteira';

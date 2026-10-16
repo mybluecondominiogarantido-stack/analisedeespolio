@@ -45,7 +45,7 @@ Registro do que foi decidido com a Coordenação de Cobrança (out/2026) para a 
 - Regra de saída por tempo ou por rodadas zeradas: **pendente de definição da política**.
 
 ## Banco do portal (16/10/2026)
-- Módulo `analise-espolio` cadastrado e **carteira espelhada** de `public.condominios` no documento `carteira/atual`, com gatilho que refaz a cópia a cada alteração do cadastro (`docs/sql/carteira-e-modulo.sql`, aplicado com aval).
+- Módulo `analise-de-espolio` cadastrado e **carteira espelhada** de `public.condominios` no documento `carteira/atual`, com gatilho que refaz a cópia a cada alteração do cadastro (`docs/sql/carteira-e-modulo.sql`, aplicado com aval).
 - Sem cartão de exportação de dados: tudo fica na base do portal.
 - Guia de implantação: `docs/guia-implantacao-portal.md`.
 

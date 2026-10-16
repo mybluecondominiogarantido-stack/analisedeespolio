@@ -8,7 +8,7 @@ Feito em 16/10/2026, com aval da coordenação de Cobrança. O SQL está em `doc
 
 | Item | Situação |
 |---|---|
-| Módulo cadastrado | `analise-espolio`, setor Cobrança, adaptador `claude-db`, armazenamento compartilhado, ainda **sem versão** e **sem ninguém liberado** |
+| Módulo cadastrado | `analise-de-espolio`, criado pela gestão no portal: setor Cobrança, adaptador `claude-db`, armazenamento compartilhado |
 | Carteira de condomínios | Espelhada do cadastro do portal: 335 condomínios, 332 com assistente de crédito |
 | Atualização da carteira | Automática: um gatilho no cadastro de condomínios refaz a cópia a cada inclusão, alteração ou exclusão |
 
