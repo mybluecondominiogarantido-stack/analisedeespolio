@@ -54,7 +54,7 @@ function dbErr(e){
 let DB = null, NS_USER = null, ME = { id:null, name:'' }, CAN_WRITE = true;
 /* perfil: 'gestao' (coordenação de Cobrança) ou 'solicitante' (implantação e analistas de Cobrança) */
 let PERFIL = 'gestao';
-const GESTAO_PADRAO = ['BEATRIZ TEIXEIRA'];
+const GESTAO_PADRAO = ['BEATRIZ TEIXEIRA', 'MARIANA NASCIMENTO'];
 function calcularPerfil(acesso){
   const lista = (acesso && acesso.gestao && acesso.gestao.length) ? acesso.gestao : GESTAO_PADRAO.map(n => ({ nome: n }));
   const euId = ME.id === null || ME.id === undefined ? '' : String(ME.id);

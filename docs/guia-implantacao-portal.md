@@ -32,7 +32,7 @@ O módulo decide sozinho o que cada pessoa vê. Basta liberar quem deve entrar.
 
 | Perfil | Quem | O que vê |
 |---|---|---|
-| Gestão | Beatriz Teixeira | Dashboard, Solicitações, Fila de acompanhamento, Configurações |
+| Gestão (coordenação) | Beatriz Teixeira e Mariana Nascimento | Dashboard, Solicitações, Fila de acompanhamento, Configurações |
 | Solicitante | Assistentes de implantação e analistas de Cobrança | Solicitar análise e Minhas solicitações |
 
 **Atenção, logins que faltam.** Hoje só existem no portal, dos possíveis solicitantes, a Camila Alencar (Cobrança) e a Chayanne Freitas (Crédito). O setor Implantação não tem ninguém cadastrado. Pelo cadastro de condomínios, os nomes que precisam de login são:
@@ -43,13 +43,13 @@ O módulo decide sozinho o que cada pessoa vê. Basta liberar quem deve entrar.
 
 O nome do login deve ser igual ao do cadastro de condomínios, sem o ramal. É assim que o módulo encontra a responsável de cada condomínio.
 
-**Como conferir:** a Beatriz entra e vê quatro abas. Uma analista entra e vê só "Solicitar análise" e "Minhas solicitações".
+**Como conferir:** a Beatriz e a Mariana entram e veem quatro abas. Uma analista entra e vê só "Solicitar análise" e "Minhas solicitações".
 
 ## 4. Configurar o módulo
 
 **Quem faz:** Beatriz, na aba Configurações.
 
-1. **Gestão e perfis.** A lista já começa com Beatriz Teixeira. Clique em "Adicionar a mim" para fixar o login dela, e inclua outra pessoa só se ela também for conduzir análises.
+1. **Gestão e perfis.** A lista já começa com Beatriz Teixeira e Mariana Nascimento. Cada uma pode clicar em "Adicionar a mim" para fixar o próprio login. Inclua outra pessoa só se ela também for conduzir análises.
 2. **Verificar implantações a partir de.** Escolha **agosto de 2026**. A planilha de controle já cobre janeiro a julho, e sem esse corte esses meses voltariam como pendentes.
 3. **Carga inicial.** Em "Carga inicial · planilha de controle", envie `Controle_de_Verificacao_de_Espolios.xlsx` uma única vez. Os 35 condomínios com espólio entram na Fila de acompanhamento. Repetir a importação não duplica nada.
 4. **Base do Power BI.** Envie o Excel do dia. Ela vale para toda a equipe até a próxima troca.

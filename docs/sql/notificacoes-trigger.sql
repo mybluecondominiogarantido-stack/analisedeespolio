@@ -13,7 +13,7 @@ declare
   gid       int;
 begin
   if new.modulo_slug <> 'analise-espolio' or new.colecao <> 'solicitacoes' then return new; end if;
-  -- nova solicitação → gestão (lista em documentos meta/acesso; sem lista, Beatriz Teixeira)
+  -- nova solicitação → gestão (lista em documentos meta/acesso; sem lista, Beatriz Teixeira e Mariana Nascimento)
   if tg_op = 'INSERT' or (st_antigo <> 'nova' and st_novo = 'nova') then
     for g in select jsonb_array_elements(coalesce((select dados->'gestao' from public.documentos where modulo_slug='analise-espolio' and colecao='meta' and doc_id='acesso'), '[]'::jsonb)) loop
       gid := nullif(g->>'id','')::int;
@@ -24,7 +24,7 @@ begin
     end loop;
     if not exists (select 1 from public.documentos where modulo_slug='analise-espolio' and colecao='meta' and doc_id='acesso' and jsonb_array_length(coalesce(dados->'gestao','[]'::jsonb)) > 0) then
       insert into public.notificacoes (usuario_id, tipo, titulo, texto, link)
-      select id, 'espolio', solic || ' solicitou análise de espólio · ' || cond, 'Abra a aba Solicitações do módulo Análise de Espólio.', '#/m/analise-espolio' from public.usuarios where upper(nome) = 'BEATRIZ TEIXEIRA' and ativo;
+      select id, 'espolio', solic || ' solicitou análise de espólio · ' || cond, 'Abra a aba Solicitações do módulo Análise de Espólio.', '#/m/analise-espolio' from public.usuarios where upper(nome) in ('BEATRIZ TEIXEIRA', 'MARIANA NASCIMENTO') and ativo;
     end if;
   end if;
   -- concluída / devolvida → solicitante

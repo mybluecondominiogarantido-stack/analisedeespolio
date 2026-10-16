@@ -72,7 +72,7 @@ function renderConfGestao(){
   const atual = () => (S.acesso.gestao && S.acesso.gestao.length ? S.acesso.gestao : GESTAO_PADRAO.map(n => ({ nome: n }))).map(g => ({ nome: g.nome, id: g.id || null }));
   $('#confGestaoAdd').onclick = () => { const n = $('#confGestaoNome').value.trim(); if(!n) return; salvar({ gestao: atual().concat([{ nome: n, id: null }]) }); };
   $('#confGestaoEu').onclick = () => salvar({ gestao: atual().concat([{ nome: ME.name, id: ME.id }]) });
-  $('#confGestao').querySelectorAll('[data-gestao-rm]').forEach(b => b.onclick = async () => { const l = atual(); l.splice(+b.dataset.gestaoRm, 1); if(!l.length && !(await confirmar('Sem ninguém na gestão, volta ao padrão (Beatriz Teixeira). Continuar?'))) return; salvar({ gestao: l }); });
+  $('#confGestao').querySelectorAll('[data-gestao-rm]').forEach(b => b.onclick = async () => { const l = atual(); l.splice(+b.dataset.gestaoRm, 1); if(!l.length && !(await confirmar('Sem ninguém na gestão, volta ao padrão (Beatriz Teixeira e Mariana Nascimento). Continuar?'))) return; salvar({ gestao: l }); });
   $('#confVerifDesde').onchange = e => salvar({ verificacaoDesde: e.target.value });
 }
 function renderConfCarteira(){

@@ -594,7 +594,7 @@ function dbErr(e){
 let DB = null, NS_USER = null, ME = { id:null, name:'' }, CAN_WRITE = true;
 /* perfil: 'gestao' (coordenação de Cobrança) ou 'solicitante' (implantação e analistas de Cobrança) */
 let PERFIL = 'gestao';
-const GESTAO_PADRAO = ['BEATRIZ TEIXEIRA'];
+const GESTAO_PADRAO = ['BEATRIZ TEIXEIRA', 'MARIANA NASCIMENTO'];
 function calcularPerfil(acesso){
   const lista = (acesso && acesso.gestao && acesso.gestao.length) ? acesso.gestao : GESTAO_PADRAO.map(n => ({ nome: n }));
   const euId = ME.id === null || ME.id === undefined ? '' : String(ME.id);
@@ -2160,7 +2160,7 @@ function renderConfGestao(){
   const atual = () => (S.acesso.gestao && S.acesso.gestao.length ? S.acesso.gestao : GESTAO_PADRAO.map(n => ({ nome: n }))).map(g => ({ nome: g.nome, id: g.id || null }));
   $('#confGestaoAdd').onclick = () => { const n = $('#confGestaoNome').value.trim(); if(!n) return; salvar({ gestao: atual().concat([{ nome: n, id: null }]) }); };
   $('#confGestaoEu').onclick = () => salvar({ gestao: atual().concat([{ nome: ME.name, id: ME.id }]) });
-  $('#confGestao').querySelectorAll('[data-gestao-rm]').forEach(b => b.onclick = async () => { const l = atual(); l.splice(+b.dataset.gestaoRm, 1); if(!l.length && !(await confirmar('Sem ninguém na gestão, volta ao padrão (Beatriz Teixeira). Continuar?'))) return; salvar({ gestao: l }); });
+  $('#confGestao').querySelectorAll('[data-gestao-rm]').forEach(b => b.onclick = async () => { const l = atual(); l.splice(+b.dataset.gestaoRm, 1); if(!l.length && !(await confirmar('Sem ninguém na gestão, volta ao padrão (Beatriz Teixeira e Mariana Nascimento). Continuar?'))) return; salvar({ gestao: l }); });
   $('#confVerifDesde').onchange = e => salvar({ verificacaoDesde: e.target.value });
 }
 function renderConfCarteira(){
