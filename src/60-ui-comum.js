@@ -7,15 +7,16 @@ function mostrarAba(nome){
   $$('.painel').forEach(p => p.classList.toggle('ativa', p.id === 'p-' + nome));
   window.scrollTo({ top: 0 });
   if(nome === 'lote') renderLote();
-  if(nome === 'sol') renderSolicitacoes();
+  if(nome === 'sol' || nome === 'minhas') renderSolicitacoes();
   if(nome === 'conf') renderConf();
 }
 $('#tabs').addEventListener('click', e => { const b = e.target.closest('.tab'); if(b) mostrarAba(b.dataset.tab); });
 
 function aplicarPerfil(){
   const gestao = ehGestao();
-  $$('.tab').forEach(t => { t.hidden = !gestao && t.dataset.tab !== 'sol'; });
-  if(!gestao && S.aba !== 'sol') mostrarAba('sol');
+  $$('.tab').forEach(t => { t.hidden = gestao ? t.dataset.tab === 'minhas' : !['sol','minhas'].includes(t.dataset.tab); });
+  $('#tabSolRotulo').textContent = gestao ? 'Solicitações' : 'Solicitar análise';
+  if(!gestao && !['sol','minhas'].includes(S.aba)) mostrarAba('sol');
 }
 function renderTudo(){
   aplicarPerfil();

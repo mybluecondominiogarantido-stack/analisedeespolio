@@ -10,6 +10,7 @@ const diasDesde = iso => iso ? diasEntre(String(iso).slice(0,10), hojeISO()) : 0
 function renderSolicitacoes(){
   const el = $('#p-sol'); if(!el) return;
   el.innerHTML = ehGestao() ? htmlSolGestao() : htmlSolSolicitante();
+  $('#p-minhas').innerHTML = ehGestao() ? '' : htmlListaSolicitacoes(minhasSolicitacoes(), 'Minhas solicitações', 'clique para ver o andamento e, quando concluída, a ficha', 'solicitante');
   ligarSolicitacoes();
 }
 
@@ -62,8 +63,8 @@ function htmlListaSolicitacoes(lista, titulo, dica, modo){
 
 /* ---------- visão do solicitante ---------- */
 function htmlSolSolicitante(){
-  return `<div class="nota"><b>Solicitações de análise de espólio.</b> Verifique os condomínios implantados, envie a solicitação com as unidades de titular falecido e acompanhe o resultado aqui. Quando a análise for concluída, a ficha fica disponível para ciência.</div>
-    ${htmlPendentesVerificacao('solicitante')}${htmlFormSolicitacao()}${htmlListaSolicitacoes(minhasSolicitacoes(), 'Minhas solicitações', 'clique para ver o andamento e a ficha', 'solicitante')}`;
+  return `<div class="nota"><b>Solicitação de análise de espólio.</b> Envie a solicitação com as unidades de titular falecido. Abaixo, os condomínios implantados que ainda precisam ser verificados. O andamento fica em “Minhas solicitações”.</div>
+    ${htmlFormSolicitacao()}${htmlPendentesVerificacao('solicitante')}`;
 }
 /* ---------- visão da gestão ---------- */
 function htmlSolGestao(){
@@ -80,7 +81,7 @@ function htmlSolGestao(){
 /* ---------- eventos ---------- */
 function ligarSolicitacoes(){
   const el = $('#p-sol');
-  el.querySelectorAll('[data-sol]').forEach(tr => tr.onclick = () => abrirSolicitacaoModal(S.solicitacoes.find(x => x.id === tr.dataset.sol)));
+  $$('#p-sol [data-sol], #p-minhas [data-sol]').forEach(tr => tr.onclick = () => abrirSolicitacaoModal(S.solicitacoes.find(x => x.id === tr.dataset.sol)));
   const sf = $('#solFiltro'); if(sf) sf.onchange = () => { S.solFiltro = sf.value; renderSolicitacoes(); };
   el.querySelectorAll('[data-assumir]').forEach(b => b.onclick = async () => { const c = S.carteira.itens.find(x => x.chave === b.dataset.assumir); await DB.collection(COLECOES.verificacoes).add({ chave: c.chave, condominio: c.nome, cnpj: c.cnpj, mes: mesDe(c.inicio), resultado: 'assumido', por: ME.name, porId: ME.id, quando: nowISO() }); toast('Você assumiu ' + c.nome + '.'); });
   el.querySelectorAll('[data-semespolio]').forEach(b => b.onclick = async () => { const c = S.carteira.itens.find(x => x.chave === b.dataset.semespolio); if(!(await confirmar(`Registrar ${c.nome} como verificado, sem espólio?`))) return; await DB.collection(COLECOES.verificacoes).add({ chave: c.chave, condominio: c.nome, cnpj: c.cnpj, mes: mesDe(c.inicio), resultado: 'sem_espolio', por: ME.name, porId: ME.id, quando: nowISO() }); registrarHistorico('verificacao', { condominio: c.nome, resultado: 'sem_espolio' }); toast(c.nome + ' registrado sem espólio.'); });

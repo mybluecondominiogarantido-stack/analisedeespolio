@@ -10,7 +10,8 @@
   </div>
   <nav class="tabs" id="tabs">
     <button class="tab ativa" data-tab="dash">Dashboard</button>
-    <button class="tab" data-tab="sol">Solicitações <span class="n" id="nSol" hidden></span></button>
+    <button class="tab" data-tab="sol"><span id="tabSolRotulo">Solicitações</span> <span class="n" id="nSol" hidden></span></button>
+    <button class="tab" data-tab="minhas" hidden>Minhas solicitações</button>
     <button class="tab" data-tab="nova">Nova análise <span class="n" id="nNova" hidden></span></button>
     <button class="tab" data-tab="lote">Fila de acompanhamento <span class="n" id="nFila" hidden></span></button>
     <button class="tab" data-tab="conf">Configurações</button>
@@ -44,6 +45,7 @@
 
 <!-- ================= SOLICITAÇÕES ================= -->
 <section class="painel" id="p-sol"></section>
+<section class="painel" id="p-minhas"></section>
 
 <!-- ================= NOVA ANÁLISE (IMPLANTAÇÃO) ================= -->
 <section class="painel" id="p-nova">

@@ -115,7 +115,7 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   await p.click('#modal [data-ver]'); await p.waitForTimeout(300);
   ok(/AE-2026-0002/.test(await p.$eval('#modal h2', e => e.textContent)), 'clique na rodada abre a ficha');
   await p.click('#mVoltar'); await p.waitForTimeout(200); await p.click('#modal [data-fechar]');
-  ok((await p.$$eval('.tab', t => t.length)) === 5, 'cinco abas: dashboard, solicitações, nova análise, fila, configurações');
+  ok((await p.$$eval('.tab', t => t.filter(x => !x.hidden).length)) === 5, 'gestão vê cinco abas: dashboard, solicitações, nova análise, fila, configurações');
   await p.click('[data-tab="dash"]'); await p.click('#btnResumo'); await p.waitForTimeout(300);
   ok(/AE-2026-0001/.test(await p.$eval('#resumoMensal', e => e.textContent)), 'resumo mensal lista a rodada do mês');
   const tiles = await p.$eval('#dashTiles', e => e.textContent);
@@ -129,7 +129,7 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   const pend = await p.evaluate(() => pendentesVerificacao().map(c => c.nome));
   ok(pend.length === 2 && pend.includes('CONDOMINIO JARDIM DE NAZARE') && !pend.includes('CONDOMINIO ESMERALDA IV'), `pendentes de verificação excluem quem já tem rodada e os distratados (${pend.join(', ')})`);
   await p.click('#confPerfilToggle'); await p.waitForTimeout(300);
-  ok((await p.$$eval('.tab', t => t.filter(x => !x.hidden).length)) === 1, 'solicitante vê só a aba Solicitações');
+  ok((await p.$$eval('.tab', t => t.filter(x => !x.hidden).length)) === 2, 'solicitante vê só as abas Solicitar análise e Minhas solicitações');
   const chaveNaz = await p.evaluate(() => S.carteira.itens.find(c => c.nome === 'CONDOMINIO JARDIM DE NAZARE').chave);
   await p.click(`[data-assumir="${chaveNaz}"]`); await p.waitForTimeout(400);
   ok(/Coordenação de Cobrança/.test(await p.$eval('#p-sol', e => e.textContent)), 'Assumir registra quem assumiu');
@@ -137,7 +137,9 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   ok((await p.inputValue('#solCond')) === 'CONDOMINIO JARDIM DE NAZARE' && (await p.inputValue('#solCnpj')) === '00.116.267/0001-49', 'formulário vem preenchido com condomínio e CNPJ');
   await p.fill('#solUnidades [data-su="unid"]', 'A - 101'); await p.fill('#solUnidades [data-su="titular"]', 'TITULAR DE TESTE'); await p.fill('#solObs', 'teste automatizado');
   await p.click('#solEnviar'); await p.waitForFunction(() => S.solicitacoes.length === 1, { timeout: 10000 }); await p.waitForTimeout(300);
-  ok((await p.$$eval('#p-sol [data-sol]', t => t.length)) === 1, 'Minhas solicitações lista a solicitação enviada');
+  await p.click('[data-tab="minhas"]'); await p.waitForTimeout(200);
+  ok((await p.$$eval('#p-minhas [data-sol]', t => t.length)) === 1, 'Minhas solicitações lista a solicitação enviada');
+  await p.click('[data-tab="sol"]'); await p.waitForTimeout(200);
   ok((await p.evaluate(() => pendentesVerificacao().length)) === 1, 'condomínio solicitado sai dos pendentes de verificação');
   await shot('solicitante');
   // gestão
@@ -165,7 +167,8 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   // solicitante vê o resultado e baixa a ficha
   await p.evaluate(() => { localStorage.setItem('myblue_espolio_perfil', 'solicitante'); }); await p.reload();
   await p.waitForFunction(() => S.pronto.s && S.solicitacoes.length === 1, { timeout: 20000 }); await p.waitForTimeout(400);
-  await p.click('#p-sol [data-sol]'); await p.waitForTimeout(300);
+  await p.click('[data-tab="minhas"]'); await p.waitForTimeout(200);
+  await p.click('#p-minhas [data-sol]'); await p.waitForTimeout(300);
   const [dl3] = await Promise.all([p.waitForEvent('download', { timeout: 60000 }), p.click('#mSolFicha')]);
   ok(/CONDOMINIO JARDIM DE NAZARE\.pdf$/.test(dl3.suggestedFilename()), `solicitante baixa a ficha da análise concluída (${dl3.suggestedFilename()})`);
   await shot('solicitacao-concluida');
