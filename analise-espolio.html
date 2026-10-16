@@ -641,7 +641,7 @@ async function conectarBase(){
   if(cl && cl.use){
     try{ [DB, NS_USER] = await Promise.all([cl.use('db'), cl.use('user')]); }catch(e){ DB = null; }
     if(!DB){ sync.className = 'sync err'; sync.innerHTML = '<i></i>Sem acesso à base'; throw new Error('Não foi possível conectar à base compartilhada. Confirme seu acesso no portal e recarregue a página.'); }
-    if(NS_USER){ try{ ME = await NS_USER.me() || ME; CAN_WRITE = await NS_USER.can('data.write'); }catch(_){} }
+    if(NS_USER){ try{ const eu = await NS_USER.me(); if(eu) ME = { ...eu, id: eu.id, name: eu.name }; /* cópia própria: o objeto do portal pode ser somente leitura */ CAN_WRITE = await NS_USER.can('data.write'); }catch(_){} }
     sync.className = 'sync on'; sync.innerHTML = '<i></i>Base compartilhada · ao vivo';
   } else {
     DB = LocalDB();
@@ -1310,7 +1310,8 @@ const minhasSolicitacoes = () => S.solicitacoes.filter(x => String(x.solicitante
 /* o protocolo nasce na solicitação e acompanha a análise até a ficha (excluídas e devolvidas deixam o número sem uso) */
 async function criarSolicitacao(dados){
   const protocolo = await proximoProtocolo();
-  const doc = { ...dados, solicitanteId: ME.id, solicitanteNome: ME.name, criadaEm: nowISO(), status: 'nova', vistaEm: null, rodadaId: null, protocolo, resultado: [], motivoDevolucao: '' };
+  // solicitante: quem está logado, ou quem pediu, quando a gestão registra em nome de outra pessoa (dados.solicitanteNome/Id)
+  const doc = { solicitanteId: ME.id, solicitanteNome: ME.name, ...dados, criadaEm: nowISO(), status: 'nova', vistaEm: null, rodadaId: null, protocolo, resultado: [], motivoDevolucao: '' };
   const ref = await DB.collection(COLECOES.solicitacoes).add(doc);
   registrarHistorico('solicitacao', { solicitacaoId: ref.id, protocolo, condominio: dados.condominio.nome, unidades: dados.unidades.length });
   return { id: ref.id, protocolo };
@@ -2544,10 +2545,10 @@ function abrirRegistrarSolicitacao(pre){
   btn.onclick = async () => {
     const quem = $('#rsNome').value.trim(); if(!quem){ avisoForm(st, 'Informe quem pediu.', $('#rsNome')); return; }
     const tipo = $('#rsTipo').value; if(!tipo){ avisoForm(st, 'Escolha o tipo: implantação ou avulso.', $('#rsTipo')); return; }
-    const meuNome = ME.name, meuId = ME.id;
-    ME.name = quem; ME.id = 'registrada:' + normNome(quem);
     let ok = false; btn.disabled = true; btn.textContent = 'Registrando…';
-    try{ ok = await enviar({ tipo, dados: { registradaPor: meuNome, canal: $('#rsCanal').value } }); } finally { ME.name = meuNome; ME.id = meuId; if(btn.isConnected){ btn.disabled = false; btn.textContent = 'Registrar'; } }
+    try{ ok = await enviar({ tipo, dados: { solicitanteNome: quem, solicitanteId: 'registrada:' + normNome(quem), registradaPor: ME.name, registradaPorId: ME.id, canal: $('#rsCanal').value } }); }
+    catch(e){ avisoForm(st, 'Não foi possível registrar: ' + (e && e.message || e)); }
+    finally { if(btn.isConnected){ btn.disabled = false; btn.textContent = 'Registrar'; } }
     if(ok) fecharModal();
   };
 }
@@ -2768,6 +2769,9 @@ function renderAcessos(){
 /* ======================================================================
    Inicialização
    ====================================================================== */
+/* erro inesperado nunca passa em silêncio: aparece na faixa de mensagem */
+window.addEventListener('error', e => { try{ toast('Erro inesperado: ' + (e.message || e.error || 'desconhecido') + '. Recarregue a página; se repetir, avise.', 8000); }catch(_){} });
+window.addEventListener('unhandledrejection', e => { try{ const r = e.reason; toast('Erro inesperado: ' + ((r && r.message) || r || 'desconhecido') + '. Recarregue a página; se repetir, avise.', 8000); }catch(_){} });
 (async function init(){
   $('#dataAnalise').value = hojeISO();
   $('#textoRegras').innerHTML = TEXTO_REGRAS;

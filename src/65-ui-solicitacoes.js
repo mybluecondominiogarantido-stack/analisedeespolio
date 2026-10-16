@@ -148,10 +148,10 @@ function abrirRegistrarSolicitacao(pre){
   btn.onclick = async () => {
     const quem = $('#rsNome').value.trim(); if(!quem){ avisoForm(st, 'Informe quem pediu.', $('#rsNome')); return; }
     const tipo = $('#rsTipo').value; if(!tipo){ avisoForm(st, 'Escolha o tipo: implantação ou avulso.', $('#rsTipo')); return; }
-    const meuNome = ME.name, meuId = ME.id;
-    ME.name = quem; ME.id = 'registrada:' + normNome(quem);
     let ok = false; btn.disabled = true; btn.textContent = 'Registrando…';
-    try{ ok = await enviar({ tipo, dados: { registradaPor: meuNome, canal: $('#rsCanal').value } }); } finally { ME.name = meuNome; ME.id = meuId; if(btn.isConnected){ btn.disabled = false; btn.textContent = 'Registrar'; } }
+    try{ ok = await enviar({ tipo, dados: { solicitanteNome: quem, solicitanteId: 'registrada:' + normNome(quem), registradaPor: ME.name, registradaPorId: ME.id, canal: $('#rsCanal').value } }); }
+    catch(e){ avisoForm(st, 'Não foi possível registrar: ' + (e && e.message || e)); }
+    finally { if(btn.isConnected){ btn.disabled = false; btn.textContent = 'Registrar'; } }
     if(ok) fecharModal();
   };
 }

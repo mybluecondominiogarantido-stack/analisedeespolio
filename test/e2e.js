@@ -49,6 +49,7 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
 
   /* 2 · implantação a partir de uma solicitação registrada pela gestão (Esmeralda IV) */
   await p.click('[data-tab="sol"]'); await p.waitForTimeout(300);
+  await p.evaluate(() => { 'use strict'; ME = Object.freeze({ ...ME }); });   // no portal o usuário pode vir somente leitura
   await p.click('#btnRegistrarSol'); await p.waitForTimeout(300);
   await p.fill('#rsNome', 'Assistente de Implantação Teste');
   await p.fill('#modal #solCond', 'CONDOMINIO ESMERALDA IV'); await p.fill('#modal #solCnpj', '54.641.400/0001-05');

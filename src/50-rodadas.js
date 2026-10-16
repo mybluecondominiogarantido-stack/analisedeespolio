@@ -50,7 +50,8 @@ const minhasSolicitacoes = () => S.solicitacoes.filter(x => String(x.solicitante
 /* o protocolo nasce na solicitação e acompanha a análise até a ficha (excluídas e devolvidas deixam o número sem uso) */
 async function criarSolicitacao(dados){
   const protocolo = await proximoProtocolo();
-  const doc = { ...dados, solicitanteId: ME.id, solicitanteNome: ME.name, criadaEm: nowISO(), status: 'nova', vistaEm: null, rodadaId: null, protocolo, resultado: [], motivoDevolucao: '' };
+  // solicitante: quem está logado, ou quem pediu, quando a gestão registra em nome de outra pessoa (dados.solicitanteNome/Id)
+  const doc = { solicitanteId: ME.id, solicitanteNome: ME.name, ...dados, criadaEm: nowISO(), status: 'nova', vistaEm: null, rodadaId: null, protocolo, resultado: [], motivoDevolucao: '' };
   const ref = await DB.collection(COLECOES.solicitacoes).add(doc);
   registrarHistorico('solicitacao', { solicitacaoId: ref.id, protocolo, condominio: dados.condominio.nome, unidades: dados.unidades.length });
   return { id: ref.id, protocolo };

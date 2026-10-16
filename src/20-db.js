@@ -92,7 +92,7 @@ async function conectarBase(){
   if(cl && cl.use){
     try{ [DB, NS_USER] = await Promise.all([cl.use('db'), cl.use('user')]); }catch(e){ DB = null; }
     if(!DB){ sync.className = 'sync err'; sync.innerHTML = '<i></i>Sem acesso à base'; throw new Error('Não foi possível conectar à base compartilhada. Confirme seu acesso no portal e recarregue a página.'); }
-    if(NS_USER){ try{ ME = await NS_USER.me() || ME; CAN_WRITE = await NS_USER.can('data.write'); }catch(_){} }
+    if(NS_USER){ try{ const eu = await NS_USER.me(); if(eu) ME = { ...eu, id: eu.id, name: eu.name }; /* cópia própria: o objeto do portal pode ser somente leitura */ CAN_WRITE = await NS_USER.can('data.write'); }catch(_){} }
     sync.className = 'sync on'; sync.innerHTML = '<i></i>Base compartilhada · ao vivo';
   } else {
     DB = LocalDB();
