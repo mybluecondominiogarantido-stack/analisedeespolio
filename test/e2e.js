@@ -125,6 +125,7 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   await p.click('#mLoteConcluir'); await p.waitForTimeout(4000); p.off('download', ouvir);
   ok(!baixouSozinho && /sem exclusão/.test(await p.$eval('#toast', e => e.textContent)), 'concluir sem exclusão não baixa a ficha');
   const [dl2] = await Promise.all([p.waitForEvent('download', { timeout: 60000 }), p.click('#loteAndamento [data-ficha]')]);
+  if(shots) await dl2.saveAs(path.join(shots, dl2.suggestedFilename()));
   ok(/^AE-2026-0002 - /.test(dl2.suggestedFilename()), `ficha continua disponível em "Baixar ficha" (${dl2.suggestedFilename()})`);
   await p.waitForTimeout(600);
   ok(/AE-2026-0002/.test(await p.$eval('#loteAndamento', e => e.textContent)), 'linha do condomínio mostra o protocolo concluído');
@@ -213,6 +214,7 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   ok(solFinal.status === 'concluida' && /^AE-2026-000\d$/.test(solFinal.protocolo) && solFinal.resultado[0].resultado === 'EXCLUIR', `conclusão atualiza a solicitação (${solFinal.status}, ${solFinal.protocolo})`);
   ok(!!(await p.$('#btnTicketEditor')), 'botão Abrir ticket aparece na rodada concluída');
   await p.click('#btnTicketEditor'); await p.waitForTimeout(300);
+  if(shots){ fs.writeFileSync(path.join(shots, 'ticket-exemplo.txt'), 'Título: ' + await p.inputValue('#tkTitulo') + '\nPara: ' + await p.inputValue('#tkResp') + '\n\n' + await p.inputValue('#tkTexto')); await shot('ticket-modal'); }
   ok(/Coordenação de Cobrança/.test(await p.inputValue('#tkResp')) && /A - 101/.test(await p.inputValue('#tkTexto')), 'ticket vai para a assistente de implantação que solicitou quando a carteira não tem assistente de crédito');
   await p.click('#modal [data-fechar]'); await p.click('#btnFecharEditor'); await p.waitForTimeout(300);
   // solicitante vê o resultado e baixa a ficha
@@ -220,6 +222,7 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   await p.click('[data-tab="minhas"]'); await p.waitForTimeout(200);
   await p.click('#p-minhas [data-sol]'); await p.waitForTimeout(300);
   const [dl3] = await Promise.all([p.waitForEvent('download', { timeout: 60000 }), p.click('#mSolFicha')]);
+  if(shots) await dl3.saveAs(path.join(shots, dl3.suggestedFilename()));
   ok(/CONDOMINIO JARDIM DE NAZARE\.pdf$/.test(dl3.suggestedFilename()), `solicitante baixa a ficha da análise concluída (${dl3.suggestedFilename()})`);
   await shot('solicitacao-concluida');
   await p.click('#modal [data-fechar]');
