@@ -32,7 +32,7 @@ O módulo decide sozinho o que cada pessoa vê. Basta liberar quem deve entrar.
 
 | Perfil | Quem | O que vê |
 |---|---|---|
-| Gestão (coordenação) | Beatriz Teixeira e Mariana Nascimento | Dashboard, Solicitações, Fila de acompanhamento, Configurações |
+| Gestão | Beatriz Teixeira (coordenação de Cobrança) e Mariana Nascimento (coordenação de Crédito) | Dashboard, Solicitações, Fila de acompanhamento, Configurações |
 | Solicitante | Assistentes de implantação e analistas de Cobrança | Solicitar análise e Minhas solicitações |
 
 **Atenção, logins que faltam.** Hoje só existem no portal, dos possíveis solicitantes, a Camila Alencar (Cobrança) e a Chayanne Freitas (Crédito). O setor Implantação não tem ninguém cadastrado. Pelo cadastro de condomínios, os nomes que precisam de login são:
