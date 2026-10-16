@@ -61,9 +61,10 @@ Registro do que foi decidido com a Coordenação de Cobrança (out/2026) para a 
 ## Alinhamento com a Política de Análise de Espólio v1.1 (16/10/2026)
 - **Manter descontinuado** (decisão da coordenação): toda unidade não excluída fica sob análise. A Política v1.1 ainda prevê Manter; precisa ser revisada.
 - **Reanálise mantida**, com regra própria: só o Vouch entra; **3 taxas acumuladas** (em aberto) excluem. A Política v1.1 diz que a reanálise foi descontinuada; precisa ser revisada.
-- **Sem relatório anterior** segue o item 5.5: não se infere débito anterior. Como o Manter não existe, o resultado é o mesmo; a justificativa registra a falta do relatório e a ficha mostra "Sem relatório anterior". Não trava a conclusão.
+- **Sem relatório anterior**: continua como antes (a análise considera sem débito anterior); na ficha, a coluna mostra "Sem relatório anterior".
 - **Justificativa na ficha** (item 8): uma linha curta embaixo do resultado (ex.: "3 no Vouch · BI negativo · 4 meses"), sem número de regra.
 - **Decisão sobre exclusão**: coordenação (a Política fala em supervisor de cobrança).
 - **Nome do arquivo**: "AE-AAAA-NNNN - Condomínio.pdf" (a Política fala em "Análise de Espólios - [condomínio]").
 - **Saída da fila**: em espera.
-- **Contagem de taxas**: em discussão (coluna "Antecipado" do Vouch × parcelas de acordo).
+- **3 taxas acumuladas** = 3 taxas em aberto no Vouch na data da reanálise (como já funciona).
+- **Parcelas de acordo e coluna "Antecipado" do Vouch**: decisão adiada; segue contando toda linha de taxa.

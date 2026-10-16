@@ -32,20 +32,7 @@ function contagem(u, campo, dev, relatorioLido){
 const BASE_TIPO = tipo => tipo === 'acompanhamento' ? 'REANÁLISE' : 'PREVENTIVO';
 
 /* ctx: {tipo, semAnt, biPos (true/false/null), vig (meses|null)} ; vouch/ant: contagens (null = sem leitura) */
-/* Política 5.5: sem o relatório anterior não se infere débito anterior. Como o Manter foi descontinuado, o resultado
-   é o mesmo de supor "sem débito" (sem Vouch = sob análise; regra 4/5 que exclui excluiria também pela regra 1);
-   muda só a justificativa, que registra a falta do relatório. Não trava a conclusão. */
 function classificar(u, ctx, vouch, ant){
-  const c = classificarRegras(u, ctx, vouch, ant);
-  if(ctx.semAnt && ctx.tipo !== 'acompanhamento' && !u.override && u.situacao !== 'encerrada' && ['3','4','5'].includes(c.regra)){
-    c.semAnterior = true;
-    if(c.regra === '3') c.motivo = 'Sem cobrança no Vouch; relatório anterior não disponível (não inferido).';
-    else if(c.r === 'EXCLUIR') c.motivo += ' Excluir independentemente do débito anterior (relatório não disponível).';
-    else c.motivo += ' Relatório anterior não disponível: com débito anterior seria Excluir (regra 1); permanece sob análise.';
-  }
-  return c;
-}
-function classificarRegras(u, ctx, vouch, ant){
   const base = BASE_TIPO(ctx.tipo);
   if(u.situacao === 'encerrada') return { r:'ENCERRADA', regra:'—', motivo: u.encerramento && u.encerramento.motivo ? u.encerramento.motivo : 'Acompanhamento encerrado.' };
   if(u.override){
@@ -118,6 +105,6 @@ const TEXTO_REGRAS = `
 <li><b>Só Vouch + BI negativo.</b> PREVENTIVO só se vigência &lt; 6 meses <i>e</i> menos de 3 cobranças; caso contrário → EXCLUIR.</li>
 </ol>
 <p><b>Acompanhamento → base REANÁLISE.</b> Reanálise periódica (a cada ~3 meses). Só o Vouch entra: <b>3 ou mais</b> taxas vencidas → EXCLUIR; abaixo de 3 → permanece em REANÁLISE.</p>
-<p><b>Item 5.5</b> — faltando insumo, a unidade fica no status-base e a pendência é registrada, sem inferência. Relatório lido sem casamento = sem cobrança (0). <b>Sem relatório anterior</b>: não se supõe débito anterior; o resultado é o que vale em qualquer caso (sem Vouch = sob análise; regra 4/5 que exclui, exclui também pela regra 1) e a justificativa registra a falta do relatório.</p>
+<p><b>Item 5.5</b> — faltando insumo, a unidade fica no status-base e a pendência é registrada, sem inferência. Relatório lido sem casamento = sem cobrança (0).</p>
 <p>Toda linha de taxa conta igual (arrecadação, rateio, parcela de acordo). Marcadores como "Jurídico" ficam só como informação na evidência.</p>
 <p>Saída do acompanhamento: exclusão da garantia ou troca de titularidade concluída. Regra de saída por tempo ou por rodadas zeradas: pendente de definição.</p>`;
