@@ -127,7 +127,7 @@ async function eventoCartao(e, tipo){
   if(tipo === 'input' && t.dataset.campo){
     u[t.dataset.campo] = t.value;
     if(t.dataset.campo === 'unid') u.unidAuto = false;
-    if(['unid','titular','cpf'].includes(t.dataset.campo)) recalc = true; else { const c = classificar(u, contextoDe(ctx.r), u.vouch, u.ant); u.resultado = c.r; u.regra = c.regra; u.motivo = c.motivo; }
+    if(['unid','titular','cpf'].includes(t.dataset.campo)) recalc = true; else { const c = classificar(u, contextoDe(ctx.r), u.vouch, u.ant); u.resultado = c.r; u.regra = c.regra; u.motivo = c.motivo; u.pendente = !!c.pendente; }
     if(u.titular && u.completar) u.completar = false;
     agendarSalvar(card.dataset.rid); if(tipo === 'input' && ['obs','motivoAjuste','titular','cpf','unid'].includes(t.dataset.campo)){ atualizarResumoSemRender(card.dataset.rid); return; }
   }
@@ -181,7 +181,7 @@ function fichaHTML(r){
   <div class="f-secao">Unidades sinalizadas × relatórios de inadimplência</div>
   <table class="f-tab"><thead><tr><th style="width:8%">UNID.</th><th style="width:26%">TITULAR</th><th style="width:14%">CPF</th>${semColAnt?'':'<th style="width:18%">INADIMPLÊNCIA ANTERIOR</th>'}<th style="width:16%">VOUCH</th><th style="width:18%">RESULTADO</th></tr></thead><tbody>${
     res.length ? res.map(u => `<tr><td><b>${esc(u.unid||'—')}</b></td><td>${esc(u.titular||'(a completar)')}</td><td>${esc(u.cpf||'—')}</td>${semColAnt?'':`<td>${antTxt(u)}</td>`}<td>${sit(u.vouch)}</td>
-      <td class="res ${classeRes(u.resultado)}">${esc(rotuloStatus(u.resultado))}</td></tr>`).join('')
+      <td class="res ${classeRes(u.resultado)}">${esc(rotuloStatus(u.resultado))}${motivoCurto(u, r) ? `<small>${esc(motivoCurto(u, r))}</small>` : ''}</td></tr>`).join('')
     : `<tr><td colspan="6" style="text-align:center;color:#6b7f88">Sem unidades sinalizadas.</td></tr>`}
   </tbody></table>
   <div class="f-legenda">

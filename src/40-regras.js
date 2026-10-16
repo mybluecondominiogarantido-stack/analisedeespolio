@@ -32,7 +32,20 @@ function contagem(u, campo, dev, relatorioLido){
 const BASE_TIPO = tipo => tipo === 'acompanhamento' ? 'REANÁLISE' : 'PREVENTIVO';
 
 /* ctx: {tipo, semAnt, biPos (true/false/null), vig (meses|null)} ; vouch/ant: contagens (null = sem leitura) */
+/* Política 5.5: sem o relatório anterior não se infere débito anterior. Como o Manter foi descontinuado, o resultado
+   é o mesmo de supor "sem débito" (sem Vouch = sob análise; regra 4/5 que exclui excluiria também pela regra 1);
+   muda só a justificativa, que registra a falta do relatório. Não trava a conclusão. */
 function classificar(u, ctx, vouch, ant){
+  const c = classificarRegras(u, ctx, vouch, ant);
+  if(ctx.semAnt && ctx.tipo !== 'acompanhamento' && !u.override && u.situacao !== 'encerrada' && ['3','4','5'].includes(c.regra)){
+    c.semAnterior = true;
+    if(c.regra === '3') c.motivo = 'Sem cobrança no Vouch; relatório anterior não disponível (não inferido).';
+    else if(c.r === 'EXCLUIR') c.motivo += ' Excluir independentemente do débito anterior (relatório não disponível).';
+    else c.motivo += ' Relatório anterior não disponível: com débito anterior seria Excluir (regra 1); permanece sob análise.';
+  }
+  return c;
+}
+function classificarRegras(u, ctx, vouch, ant){
   const base = BASE_TIPO(ctx.tipo);
   if(u.situacao === 'encerrada') return { r:'ENCERRADA', regra:'—', motivo: u.encerramento && u.encerramento.motivo ? u.encerramento.motivo : 'Acompanhamento encerrado.' };
   if(u.override){
@@ -70,6 +83,25 @@ function classificar(u, ctx, vouch, ant){
     : { r:'EXCLUIR', regra:'5', motivo:`BI negativo, ${ctx.vig} meses de vigência, ${vouch} cobrança(s).` };
 }
 
+/* justificativa curta da ficha: uma linha, sem número de regra */
+function motivoCurto(u, r){
+  const nV = n => n === 1 ? '1 no Vouch' : n + ' no Vouch';
+  const vig = r.idadeGarantia === null || r.idadeGarantia === undefined || r.idadeGarantia === '' ? null : +r.idadeGarantia;
+  // a falta do relatório anterior já aparece na coluna da ficha; não repete aqui
+  switch(String(u.regra)){
+    case 'Manual': return 'Ajuste da coordenação' + (u.motivoAjuste ? ': ' + u.motivoAjuste : '');
+    case '1': return nV(u.vouch) + ' + débito anterior';
+    case '2': return 'Sem Vouch · anterior recorrente (' + u.ant + ')';
+    case '3': return 'Sem cobrança no Vouch' ;
+    case '4': return nV(u.vouch) + ' · BI positivo' ;
+    case '5': return nV(u.vouch) + ' · BI negativo · ' + (vig === null ? '' : vig + (vig === 1 ? ' mês' : ' meses')) ;
+    case 'Acompanhamento': return u.vouch ? (u.vouch >= 3 ? u.vouch + ' taxas acumuladas no Vouch' : nV(u.vouch)) : 'Sem cobrança no Vouch';
+    case '5.5': return u.vouch === null || u.vouch === undefined ? 'Insumo pendente: Vouch' : /BI/.test(u.motivo || '') ? 'Insumo pendente: BI' : /vig/i.test(u.motivo || '') ? 'Insumo pendente: vigência' : 'Insumo pendente';
+    case 'Carga': return 'Carga inicial';
+    case '—': return u.encerramento && u.encerramento.motivo ? u.encerramento.motivo : 'Encerrada';
+    default: return '';
+  }
+}
 const sufStatus = r => r === 'PREVENTIVO' ? 'PREV' : r === 'EXCLUIR' ? 'EXCLUIR' : r === 'ENCERRADA' ? 'ENC' : 'REAN';
 const classeSelo = r => r === 'EXCLUIR' ? 's-exc' : r === 'PREVENTIVO' ? 's-prev' : r === 'ENCERRADA' ? 's-enc' : 's-rean';
 const classeRes  = r => 'res-' + sufStatus(r);
@@ -86,6 +118,6 @@ const TEXTO_REGRAS = `
 <li><b>Só Vouch + BI negativo.</b> PREVENTIVO só se vigência &lt; 6 meses <i>e</i> menos de 3 cobranças; caso contrário → EXCLUIR.</li>
 </ol>
 <p><b>Acompanhamento → base REANÁLISE.</b> Reanálise periódica (a cada ~3 meses). Só o Vouch entra: <b>3 ou mais</b> taxas vencidas → EXCLUIR; abaixo de 3 → permanece em REANÁLISE.</p>
-<p><b>Item 5.5</b> — faltando insumo, a unidade fica no status-base e a pendência é registrada, sem inferência. Relatório lido sem casamento = sem cobrança (0).</p>
+<p><b>Item 5.5</b> — faltando insumo, a unidade fica no status-base e a pendência é registrada, sem inferência. Relatório lido sem casamento = sem cobrança (0). <b>Sem relatório anterior</b>: não se supõe débito anterior; o resultado é o que vale em qualquer caso (sem Vouch = sob análise; regra 4/5 que exclui, exclui também pela regra 1) e a justificativa registra a falta do relatório.</p>
 <p>Toda linha de taxa conta igual (arrecadação, rateio, parcela de acordo). Marcadores como "Jurídico" ficam só como informação na evidência.</p>
 <p>Saída do acompanhamento: exclusão da garantia ou troca de titularidade concluída. Regra de saída por tempo ou por rodadas zeradas: pendente de definição.</p>`;
