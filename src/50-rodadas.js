@@ -68,7 +68,7 @@ function pendentesVerificacao(){
 function responsavelDoCondominio(chave, solicitacao){
   const c = (S.carteira.itens || []).find(x => x.chave === chave || (solicitacao && normCond(x.nome) === normCond(solicitacao.condominio.nome)));
   if(c && c.assistenteCredito) return { nome: c.assistenteCredito, papel: 'assistente de crédito', setor: S.acesso.ticketSetor || 'Crédito', carteira: c };
-  if(solicitacao && solicitacao.origem === 'implantacao') return { nome: solicitacao.solicitanteNome, papel: 'assistente de implantação (solicitante)', setor: 'Implantação', usuarioId: solicitacao.solicitanteId, carteira: c || null };
+  if(solicitacao && solicitacao.tipo !== 'avulso') return { nome: solicitacao.solicitanteNome, papel: 'assistente de implantação (solicitante)', setor: 'Implantação', usuarioId: solicitacao.solicitanteId, carteira: c || null };
   return { nome: '', papel: '', setor: S.acesso.ticketSetor || 'Crédito', carteira: c || null };
 }
 
