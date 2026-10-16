@@ -11,7 +11,7 @@
   <nav class="tabs" id="tabs">
     <button class="tab ativa" data-tab="dash">Dashboard</button>
     <button class="tab" data-tab="nova">Nova análise <span class="n" id="nNova" hidden></span></button>
-    <button class="tab" data-tab="lote">Reanálise do dia <span class="n" id="nFila" hidden></span></button>
+    <button class="tab" data-tab="lote">Fila de acompanhamento <span class="n" id="nFila" hidden></span></button>
     <button class="tab" data-tab="hist">Histórico</button>
     <button class="tab" data-tab="conf">Configurações</button>
   </nav>
@@ -141,7 +141,7 @@
 
 <!-- ================= REANÁLISE DO DIA ================= -->
 <section class="painel" id="p-lote">
-  <div class="nota"><b>Reanálise em lote:</b> selecione os condomínios da fila, arraste os PDFs do Vouch de uma vez e o sistema identifica cada condomínio pelo cabeçalho. Só o Vouch entra; as unidades vêm da rodada anterior. Conclusão e ficha são por condomínio.</div>
+  <div class="nota"><b>Fila de acompanhamento:</b> selecione os condomínios da fila, arraste os PDFs do Vouch de uma vez e o sistema identifica cada condomínio pelo cabeçalho. Só o Vouch entra; as unidades vêm da rodada anterior. Conclusão e ficha são por condomínio.</div>
   <div class="card">
     <header><h2>Fila de acompanhamento</h2><div class="acoes"><span class="pill" id="loteContagem"></span><button class="btn sec mini" id="btnSelVencidos">Selecionar vencidos</button><button class="btn sec mini" id="btnSelNenhum">Limpar seleção</button></div></header>
     <div class="tabela-wrap" id="loteFila"></div>

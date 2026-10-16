@@ -237,7 +237,7 @@ tr.clic{cursor:pointer}tr.clic:hover td{background:var(--surface-2)}
   <nav class="tabs" id="tabs">
     <button class="tab ativa" data-tab="dash">Dashboard</button>
     <button class="tab" data-tab="nova">Nova análise <span class="n" id="nNova" hidden></span></button>
-    <button class="tab" data-tab="lote">Reanálise do dia <span class="n" id="nFila" hidden></span></button>
+    <button class="tab" data-tab="lote">Fila de acompanhamento <span class="n" id="nFila" hidden></span></button>
     <button class="tab" data-tab="hist">Histórico</button>
     <button class="tab" data-tab="conf">Configurações</button>
   </nav>
@@ -367,7 +367,7 @@ tr.clic{cursor:pointer}tr.clic:hover td{background:var(--surface-2)}
 
 <!-- ================= REANÁLISE DO DIA ================= -->
 <section class="painel" id="p-lote">
-  <div class="nota"><b>Reanálise em lote:</b> selecione os condomínios da fila, arraste os PDFs do Vouch de uma vez e o sistema identifica cada condomínio pelo cabeçalho. Só o Vouch entra; as unidades vêm da rodada anterior. Conclusão e ficha são por condomínio.</div>
+  <div class="nota"><b>Fila de acompanhamento:</b> selecione os condomínios da fila, arraste os PDFs do Vouch de uma vez e o sistema identifica cada condomínio pelo cabeçalho. Só o Vouch entra; as unidades vêm da rodada anterior. Conclusão e ficha são por condomínio.</div>
   <div class="card">
     <header><h2>Fila de acompanhamento</h2><div class="acoes"><span class="pill" id="loteContagem"></span><button class="btn sec mini" id="btnSelVencidos">Selecionar vencidos</button><button class="btn sec mini" id="btnSelNenhum">Limpar seleção</button></div></header>
     <div class="tabela-wrap" id="loteFila"></div>
@@ -1598,7 +1598,7 @@ function renderNovaLista(){
   lista.hidden = false; editor.hidden = true;
   const rasc = S.rodadas.filter(r => r.status === 'rascunho').sort((a,b) => (b.criadaEm||'').localeCompare(a.criadaEm||''));
   lista.innerHTML = `
-    <div class="card"><header><h2>Iniciar</h2><span class="dica">implantação é a 1ª análise de um condomínio; reanálise de vários condomínios fica na aba “Reanálise do dia”</span></header>
+    <div class="card"><header><h2>Iniciar</h2><span class="dica">implantação é a 1ª análise de um condomínio; a reanálise dos condomínios em acompanhamento fica na aba “Fila de acompanhamento”</span></header>
       <div class="corpo acoes">
         <button class="btn" id="btnNovaImplantacao">Nova análise de implantação</button>
         <button class="btn sec" id="btnNovaAcomp">Reanálise de um condomínio</button>
@@ -1838,7 +1838,7 @@ $('#btnBaixarFicha').onclick = () => { if(S.rodada) baixarFichaPDF(S.rodada); };
 
 /* ===== 62-ui-lote.js ===== */
 /* ======================================================================
-   Reanálise do dia — vários condomínios em lote (só o Vouch entra)
+   Fila de acompanhamento — reanálise de vários condomínios em lote (só o Vouch entra)
    ====================================================================== */
 function renderLote(){ renderLoteFila(); renderLoteRevisao(); }
 function renderLoteFila(){

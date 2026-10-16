@@ -7,7 +7,7 @@ function renderNovaLista(){
   lista.hidden = false; editor.hidden = true;
   const rasc = S.rodadas.filter(r => r.status === 'rascunho').sort((a,b) => (b.criadaEm||'').localeCompare(a.criadaEm||''));
   lista.innerHTML = `
-    <div class="card"><header><h2>Iniciar</h2><span class="dica">implantação é a 1ª análise de um condomínio; reanálise de vários condomínios fica na aba “Reanálise do dia”</span></header>
+    <div class="card"><header><h2>Iniciar</h2><span class="dica">implantação é a 1ª análise de um condomínio; a reanálise dos condomínios em acompanhamento fica na aba “Fila de acompanhamento”</span></header>
       <div class="corpo acoes">
         <button class="btn" id="btnNovaImplantacao">Nova análise de implantação</button>
         <button class="btn sec" id="btnNovaAcomp">Reanálise de um condomínio</button>

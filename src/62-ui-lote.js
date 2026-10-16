@@ -1,5 +1,5 @@
 /* ======================================================================
-   Reanálise do dia — vários condomínios em lote (só o Vouch entra)
+   Fila de acompanhamento — reanálise de vários condomínios em lote (só o Vouch entra)
    ====================================================================== */
 function renderLote(){ renderLoteFila(); renderLoteRevisao(); }
 function renderLoteFila(){

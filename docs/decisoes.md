@@ -19,7 +19,7 @@ Registro do que foi decidido com a Coordenação de Cobrança (out/2026) para a 
 - **Só espólio entra no acompanhamento.** Condomínios verificados sem espólio não são registrados no módulo; a planilha de controle serve apenas como carga inicial da fila.
 - **Implantação**: um condomínio por vez, regras 1 a 5, base Preventivo.
 - **Fila de acompanhamento**: prazo de **90 dias** a partir da data da análise, por condomínio; vencidos em vermelho no dashboard.
-- **Reanálise do dia (lote)**: selecionar na fila, arrastar vários PDFs do Vouch, identificação do condomínio pelo cabeçalho (CNPJ, senão nome), unidades vêm da rodada anterior, revisão por exceção, **conclusão por condomínio**.
+- **Fila de acompanhamento (reanálise em lote)**: selecionar na fila, arrastar vários PDFs do Vouch, identificação do condomínio pelo cabeçalho (CNPJ, senão nome), unidades vêm da rodada anterior, revisão por exceção, **conclusão por condomínio**.
 - **Fichas**: uma por condomínio, baixadas **uma a uma**, nome `AE-AAAA-NNNN - Condomínio.pdf`, salvas pela assistente de crédito na pasta do condomínio.
 - **Protocolo** sequencial começando em **AE-2026-0001**.
 - **Rodada concluída trava**; correção gera nova rodada.
