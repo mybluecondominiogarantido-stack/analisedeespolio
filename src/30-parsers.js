@@ -9,9 +9,12 @@ async function pdfParaTexto(file){
   const doc = await pdfjsLib.getDocument({data: await file.arrayBuffer()}).promise;
   const saida = [];
   for(let p = 1; p <= doc.numPages; p++){
-    const c = await (await doc.getPage(p)).getTextContent();
+    const pagina = await doc.getPage(p);
+    const c = await pagina.getTextContent();
+    // posição na página como ela é exibida (considera páginas giradas, ex.: relatórios em paisagem salvos com rotação de 90°)
+    const vp = pagina.getViewport({ scale: 1 });
     const itens = c.items.filter(i => i.str.trim())
-      .map(i => ({x:i.transform[4], y:i.transform[5], t:i.str.trim()}))
+      .map(i => { const t = pdfjsLib.Util.transform(vp.transform, i.transform); return { x: t[4], y: -t[5], t: i.str.trim() }; })
       .sort((a,b) => b.y - a.y || a.x - b.x);
     let linha = [], base = null;
     const fechar = () => { if(linha.length) saida.push(linha.sort((a,b)=>a.x-b.x).map(i=>i.t).join(' | ')); linha=[]; };
@@ -65,7 +68,7 @@ function competenciaDe(linha){
      (linhas de continuação com o mês da competência, "Judicial", "#007550 (3/7)", valores)
      Subtotal | …
    ====================================================================== */
-const RE_VOUCH_DEVEDOR = /^(?:([A-Za-z0-9]{1,6})\s*-\s*)?([A-Za-z]{0,3}\d{1,5}[A-Za-z]?)\s*\|\s*([^|]*[A-Za-zÀ-ú]{3,}[^|]*?)\s*(?:\|\s*(\d{3}\.?\d{3}\.?\d{3}-?\d{2}|\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2})\b[^|]*)?(?:\|.*)?$/;
+const RE_VOUCH_DEVEDOR = /^(?:([A-Za-z0-9]{1,6})\s*-\s*)?((?:(?!TOTAL|SUBTOTAL|P[ÁA]GINA)[A-Za-zÀ-ú]{2,12}\.?\s+)?[A-Za-z]{0,3}\d{1,5}[A-Za-z]?)\s*\|\s*([^|]*[A-Za-zÀ-ú]{3,}[^|]*?)\s*(?:\|\s*(\d{3}\.?\d{3}\.?\d{3}-?\d{2}|\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2})\b[^|]*)?(?:\|.*)?$/;
 const RE_VOUCH_TAXA = /^(\d{7,9})\s*\|\s*(.+)$/;
 
 function ehRelatorioVouch(txt){ return /Relat[óo]rio de Inadimpl[êe]ncias?\s*-\s*Consolidado/i.test(txt) || /FAN R&V/i.test(txt); }
@@ -179,8 +182,32 @@ function extrairDevedoresTransposto(txt){
   return [...mapa.values()];
 }
 
+/* "Inadimplências consolidadas" por unidade (ex.: MSA Gestão): linha da unidade com os totais,
+   depois uma linha por competência "NOME - NN:000 | MM/AAAA | DD/MM/AAAA | atraso | valor ...". Nome que quebra de linha é ignorado. */
+function extrairDevedoresConsolidado(txt){
+  if(!/INADIMPL[ÊE]NCIAS CONSOLIDADAS/i.test(txt)) return null;
+  const lista = []; let atual = null;
+  for(const bruta of txt.split(/\r?\n/)){
+    const linha = bruta.trim(); if(!linha) continue;
+    const cel = linha.split('|').map(c => c.trim());
+    if(/^[A-Za-z0-9][A-Za-z0-9 .\/-]{0,11}$/.test(cel[0]) && /\d/.test(cel[0]) && cel.length >= 3 && cel.slice(1).every(c => /^[\d.,-]+$/.test(c))){
+      atual = { unidade: cel[0], unidadeTxt: cel[0], nome: '', cpf: '', cobrancas: [] }; lista.push(atual); continue;
+    }
+    if(!atual) continue;
+    const iComp = cel.findIndex(c => /^\d{2}\/\d{4}$/.test(c));
+    if(iComp > 0 && /^\d{2}\/\d{2}\/\d{4}$/.test(cel[iComp + 1] || '')){
+      const nome = cel[0].replace(/\s*-\s*NN:.*$/i, '').trim();
+      if(!atual.nome && nome) atual.nome = nome;
+      atual.cobrancas.push({ texto: linha.slice(0, 170), comp: cel[iComp], venc: cel[iComp + 1], incluir: true });
+    }
+  }
+  const ok = lista.filter(b => b.cobrancas.length);
+  return ok.length ? ok : null;
+}
 function extrairDevedores(txt, soValor){
   if(ehRelatorioVouch(txt)) return lerVouch(txt).devedores;
+  const cons = extrairDevedoresConsolidado(txt);
+  if(cons) return cons;
   const trans = extrairDevedoresTransposto(txt);
   if(trans) return trans.filter(b => b.cobrancas.length);
   const lista = [];

@@ -73,4 +73,6 @@ Registro do que foi decidido com a Coordenação de Cobrança (out/2026) para a 
 - **Protocolo**: contador protegido no banco contra números repetidos (`docs/sql/protocolo-contador.sql`).
 - **Extração das Unidades (Vouch) na solicitação**: a Implantação marca as unidades em espólio no sistema e gera a extração já filtrada; anexada no formulário, preenche condomínio (pelo CNPJ do cabeçalho), unidades, titulares (sem o prefixo "Espólio de") e CPF. Só esses campos são aproveitados; valores e contatos são descartados. A solicitação guarda o nome do arquivo de origem. A contagem de taxas da análise continua pelo PDF do Vouch. O arquivo de enriquecimento (óbito por nome) não é usado.
 - **CPF na solicitação**: continua opcional.
+- **Ficha sem as caixas de resumo** por resultado (repetiam a tabela e cresciam sem limite); observações em uma linha, só quando houver.
+- **Leitura de PDFs**: unidades com palavra antes do número no Vouch (SALA 215, LOJA 01, GARAGEM 12); páginas giradas (relatórios em paisagem); relatório anterior no formato "Inadimplências consolidadas" por unidade (ex.: MSA Gestão).
 

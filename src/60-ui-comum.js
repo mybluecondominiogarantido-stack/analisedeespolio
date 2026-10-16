@@ -150,7 +150,6 @@ document.addEventListener('click', e => { if(e.target.dataset && e.target.datase
 function fichaHTML(r){
   const res = r.unidades || [];
   const grupo = x => res.filter(u => u.resultado === x);
-  const nomes = a => a.length ? a.map(u => `${u.unid||'s/ unid.'} — ${u.titular||'(a completar)'}`).join('; ') : '—';
   const obs = res.filter(u => (u.obs||'').trim()).map(u => `${u.unid||u.titular}: ${u.obs.trim()}`).join('; ');
   const bi = r.semBi || !r.bi || r.bi.valor === null || r.bi.valor === undefined ? null : (r.bi.sinal === '-' ? -Math.abs(r.bi.valor) : Math.abs(r.bi.valor));
   const vig = (r.idadeGarantia === null || r.idadeGarantia === undefined || r.idadeGarantia === '') ? null : +r.idadeGarantia;
@@ -190,12 +189,7 @@ function fichaHTML(r){
     <span><i style="background:#C0392B"></i> Excluir da garantia</span>
   </div>
   <div class="f-rodape-tab">Inadimplência anterior = débito antes da garantia MyBlue. Vouch = sistema interno MyBlue. • Classificação conforme a Política de Análise de Espólio.</div>
-  <div class="f-caixas">
-    <div class="f-caixa cx-EXCLUIR"><h4>Excluir da garantia</h4><p>${esc(nomes(grupo('EXCLUIR')))}</p></div>
-    <div class="f-caixa cx-REAN"><h4>Sob análise · Reanálise</h4><p>${esc(nomes(grupo('REANÁLISE')))}</p></div>
-    <div class="f-caixa cx-PREV"><h4>Sob análise · Preventivo</h4><p>${esc(nomes(grupo('PREVENTIVO')))}</p></div>
-    <div class="f-caixa"><h4>Observações</h4><p>${esc(obs||'—')}</p></div>
-  </div>
+  ${obs ? `<div class="f-nota" style="margin-top:8px"><b>Observações:</b> ${esc(obs)}</div>` : ''}
   <div class="f-rodape"><span>MyBlue Condomínio Garantido | contato@myblue.com.br | www.myblue.com.br | 0800 085 9277</span><span>${esc(r.protocolo||'rascunho')} · gerada em ${fmtData(hojeISO())}</span></div>`;
 }
 const nomeFicha = r => nomeArquivoSeguro(`${r.status === 'concluida' && r.protocolo ? r.protocolo : 'RASCUNHO' + (r.protocolo ? ' ' + r.protocolo : '')} - ${r.condominio.nome || 'condominio'}`) + '.pdf';

@@ -82,6 +82,7 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   ok(res[0].r === 'EXCLUIR' && res[0].regra === '5', 'BI negativo, 4 meses, 3 taxas → Excluir (regra 5)');
   ok(res[2].r === 'PREVENTIVO' && res[2].regra === '3', 'sem Vouch → Preventivo (regra 3)');
   const ficha = await p.evaluate(() => fichaHTML(S.rodada));
+  ok(!/f-caixa/.test(ficha), 'ficha sem as caixas de resumo por resultado');
   ok(/3 no Vouch · BI negativo · 4 meses</.test(ficha) && /Sem cobrança no Vouch</.test(ficha) && !/Regra \d/.test(ficha), 'ficha traz justificativa curta, sem número de regra');
   const semAnt = await p.evaluate(() => { const u = novaUnidade('X','',''); const base = { tipo:'implantacao', semAnt:true, biPos:true, vig:10 };
     return [classificar(u, base, 1, null), classificar(u, base, 4, null), classificar(u, { ...base, semAnt:false }, 1, 2)].map(c => c.r + '|' + c.regra + '|' + (c.pendente ? 'P' : '-')); });
