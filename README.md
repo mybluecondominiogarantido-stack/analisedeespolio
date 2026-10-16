@@ -1,6 +1,6 @@
 # Análise de Espólio · MyBlue
 
-Módulo do portal MyBlue para a Coordenação de Cobrança: análise de implantação de espólios, fila de acompanhamento com prazo de 90 dias e histórico por condomínio, reanálise em lote e ficha em PDF por condomínio.
+Módulo do portal MyBlue para a Coordenação de Cobrança: solicitações de análise (implantação e Cobrança), análise de implantação e avulsa, fila de acompanhamento com prazo de 90 dias e histórico por condomínio, reanálise em lote, ficha em PDF por condomínio e ticket para a pasta do CPD.
 
 ## Arquivos
 
@@ -14,6 +14,8 @@ Módulo do portal MyBlue para a Coordenação de Cobrança: análise de implanta
 | `docs/fluxograma-analise-espolio.html` | Fluxograma do processo |
 | `docs/mockup-analise-espolio.html` | Mockup aprovado do layout |
 | `docs/decisoes.md` | Decisões alinhadas com a coordenação |
+| `docs/sql/notificacoes-trigger.sql` | Gatilho de avisos no sino do portal (não aplicado) |
+| `test/fixtures/carteira-exemplo.json` | Carteira fictícia para o teste de ponta a ponta |
 
 ## Como publicar no portal
 
@@ -34,7 +36,11 @@ Bibliotecas externas (cdnjs): pdf.js 3.11.174, SheetJS 0.18.5 e html2pdf.js 0.10
 | `evidencias/{rodadaId}` | Texto extraído dos PDFs e devedores lidos |
 | `bi_base/atual` | Base do dia do Power BI, compartilhada |
 | `meta/estado` | Sequência do protocolo por ano (`AE-AAAA-NNNN`) |
-| `historico` | Log de ações (conclusão, ficha, carga, base do BI) |
+| `historico` | Log de ações (conclusão, ficha, carga, base do BI, solicitação, ticket) |
+| `solicitacoes` | Solicitações de análise (condomínio, unidades, solicitante, status, protocolo, resultado) |
+| `verificacoes` | Respostas da verificação da implantação (assumido / sem espólio) |
+| `carteira/atual` | Cópia da carteira do portal (`/api/carteira`) com responsáveis por condomínio |
+| `meta/acesso` | Lista da gestão, mês inicial da verificação, rota e setor do ticket |
 
 A fila de acompanhamento é derivada: última rodada concluída de cada condomínio, unidades ativas (não excluídas, não encerradas), prazo = data da análise + 90 dias.
 

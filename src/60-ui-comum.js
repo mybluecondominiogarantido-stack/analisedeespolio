@@ -7,11 +7,20 @@ function mostrarAba(nome){
   $$('.painel').forEach(p => p.classList.toggle('ativa', p.id === 'p-' + nome));
   window.scrollTo({ top: 0 });
   if(nome === 'lote') renderLote();
+  if(nome === 'sol') renderSolicitacoes();
   if(nome === 'conf') renderConf();
 }
 $('#tabs').addEventListener('click', e => { const b = e.target.closest('.tab'); if(b) mostrarAba(b.dataset.tab); });
 
+function aplicarPerfil(){
+  const gestao = ehGestao();
+  $$('.tab').forEach(t => { t.hidden = !gestao && t.dataset.tab !== 'sol'; });
+  if(!gestao && S.aba !== 'sol') mostrarAba('sol');
+}
 function renderTudo(){
+  aplicarPerfil();
+  renderSolicitacoes();
+  if(!ehGestao()) return;
   renderDashboard();
   renderNovaLista();
   renderBadges();
@@ -24,6 +33,8 @@ function renderBadges(){
   const nf = $('#nFila'); nf.hidden = !f.length; nf.textContent = venc ? `${venc} vencida${venc>1?'s':''}` : `${f.length}`; nf.classList.toggle('alerta', venc > 0);
   const rasc = S.rodadas.filter(r => r.status === 'rascunho').length;
   const nn = $('#nNova'); nn.hidden = !rasc; nn.textContent = `${rasc} rascunho${rasc>1?'s':''}`;
+  const novas = solicitacoesNovas().length; const pend = ehGestao() ? pendentesVerificacao().length : 0;
+  const ns = $('#nSol'); ns.hidden = !(novas || pend); ns.textContent = novas ? `${novas} nova${novas>1?'s':''}` : `${pend} a verificar`; ns.classList.toggle('alerta', novas > 0);
 }
 function renderListaCondominios(){
   const nomes = new Set();

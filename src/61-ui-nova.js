@@ -68,8 +68,10 @@ function renderEditorResumo(){
   $('#novaResumo').innerHTML = `<span class="pill">${esc(r.protocolo || 'sem protocolo')}</span><span class="pill">${tipoRodadaTxt(r)}</span>
     <span class="pill">Sinalizados <b>${s.total}</b></span><span class="pill">Sob análise <b>${s.prev + s.rean}</b></span><span class="pill">Excluir <b>${s.excluir}</b></span>${s.pendentes?`<span class="pill" style="color:#b57a12">Pendências <b>${s.pendentes}</b></span>`:''}
     <span style="flex:1"></span>
+    ${travada ? `<button class="btn sec mini" id="btnTicketEditor">Abrir ticket</button>` : ''}
     <button class="btn sec mini" id="btnFecharEditor">${travada?'Fechar':'Salvar e fechar'}</button>
     ${travada ? '' : `<button class="btn sec mini" id="btnSalvarRasc">Salvar rascunho</button><button class="btn mini" id="btnConcluir" ${!CAN_WRITE?'disabled':''}>Concluir análise</button>`}`;
+  if($('#btnTicketEditor')) $('#btnTicketEditor').onclick = () => abrirTicketModal(r, r.solicitacaoId ? S.solicitacoes.find(x => x.id === r.solicitacaoId) : null);
   $('#btnFecharEditor').onclick = async () => { if(!travada){ try{ if(r.condominio.nome || r.unidades.length){ await salvarRodada(r); await salvarEvidencias(r.id, { textos: S.textos, dev: S.dev }); } }catch(e){ toast(dbErr(e), 5000); return; } } fecharEditor(); };
   if(!travada){
     $('#btnSalvarRasc').onclick = async () => { try{ await salvarRodada(r); await salvarEvidencias(r.id, { textos: S.textos, dev: S.dev }); toast('Rascunho salvo.'); }catch(e){ toast(dbErr(e), 5000); } };
@@ -81,6 +83,7 @@ function renderEditorResumo(){
         toast('Rodada ' + r.protocolo + ' concluída.');
         renderEditor();
         if(await confirmar('Baixar a ficha em PDF agora?')) await baixarFichaPDF(r);
+        if(window.claude && !DB._local && await confirmar('Abrir o ticket para quem guarda a ficha na pasta?')) abrirTicketModal(r, r.solicitacaoId ? S.solicitacoes.find(x => x.id === r.solicitacaoId) : null);
       }catch(e){ toast(e.message || dbErr(e), 6000); }
     };
   }

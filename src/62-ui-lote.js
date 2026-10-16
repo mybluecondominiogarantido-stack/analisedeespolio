@@ -91,7 +91,7 @@ function renderLoteAndamento(){
       <td>${s.excluir ? `<span class="selo s-exc">${s.excluir} excluir</span> ` : ''}<span class="selo s-rean">${s.rean + s.prev} permanece(m)</span>${s.enc ? ` <span class="selo s-enc">${s.enc} encerrada(s)</span>` : ''}</td>
       <td>${exc ? `<span class="selo s-rean">${exc} a revisar</span>` : '<span class="ajuda" style="margin:0">sem exceções</span>'}</td>
       <td>${s.total}</td>
-      <td class="acoes">${concluida ? `<span class="selo s-ok">${esc(r.protocolo)}</span><button class="btn sec mini" data-ficha="${i}">Baixar ficha</button>`
+      <td class="acoes">${concluida ? `<span class="selo s-ok">${esc(r.protocolo)}</span><button class="btn sec mini" data-ficha="${i}">Baixar ficha</button><button class="btn sec mini" data-ticket="${i}">Ticket</button>`
         : `<button class="btn sec mini" data-revisar="${i}">Revisar</button><button class="btn mini" data-concluir="${i}" ${!CAN_WRITE?'disabled':''}>Concluir e baixar ficha</button>`}</td></tr>`;
   }).join('');
   const nConc = S.lote.itens.filter(it => it.rodada && it.rodada.status === 'concluida').length;
@@ -107,6 +107,7 @@ function renderLoteAndamento(){
   wrap.querySelectorAll('[data-escolher]').forEach(sel => sel.onchange = () => { const it = S.lote.itens[+sel.dataset.escolher]; const x = f[+sel.value]; if(!x) return; it.ident = { modo: 'manual', score: 1 }; montarRodadaDoItem(it, x); S.lote.selecionados.add(x.chave); renderLote(); });
   wrap.querySelectorAll('[data-descartar]').forEach(b => b.onclick = () => { S.lote.itens.splice(+b.dataset.descartar, 1); renderLote(); });
   wrap.querySelectorAll('[data-ficha]').forEach(b => b.onclick = () => baixarFichaPDF(S.lote.itens[+b.dataset.ficha].rodada));
+  wrap.querySelectorAll('[data-ticket]').forEach(b => b.onclick = () => abrirTicketModal(S.lote.itens[+b.dataset.ticket].rodada, null));
   wrap.querySelectorAll('[data-revisar]').forEach(b => b.onclick = () => renderLoteModal(+b.dataset.revisar));
   wrap.querySelectorAll('[data-concluir]').forEach(b => b.onclick = () => concluirItemLote(+b.dataset.concluir));
 }

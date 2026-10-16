@@ -1,0 +1,6 @@
+{ "condominios": [
+  { "codigo": "C1", "nome": "CONDOMINIO ESMERALDA IV", "razao_social": "CONDOMINIO ESMERALDA IV", "cnpj": "54.641.400/0001-05", "comarca": "CE", "situacao": "ATIVO", "inicio_contrato": "2026-06-15", "assistente_credito": "ASSISTENTE DE CREDITO TESTE - 4601", "analista_cobranca": "ANALISTA COBRANCA TESTE - 4602", "analista_extrajudicial": "" },
+  { "codigo": "C2", "nome": "CONDOMINIO JARDIM DE NAZARE", "razao_social": "CONDOMINIO JARDIM DE NAZARE", "cnpj": "00.116.267/0001-49", "comarca": "CE", "situacao": "ATIVO", "inicio_contrato": "2026-09-01", "assistente_credito": "", "analista_cobranca": "ANALISTA COBRANCA TESTE - 4602", "analista_extrajudicial": "" },
+  { "codigo": "C3", "nome": "CONDOMINIO ANTIGO EXEMPLO", "razao_social": "CONDOMINIO ANTIGO EXEMPLO", "cnpj": "11.111.111/0001-11", "comarca": "PB", "situacao": "ATIVO", "inicio_contrato": "2026-01-10", "assistente_credito": "ASSISTENTE DE CREDITO TESTE - 4601" },
+  { "codigo": "C4", "nome": "CONDOMINIO DISTRATADO EXEMPLO", "razao_social": "CONDOMINIO DISTRATADO EXEMPLO", "cnpj": "22.222.222/0001-22", "comarca": "PB", "situacao": "DISTRATADO", "inicio_contrato": "2026-08-01" }
+] }

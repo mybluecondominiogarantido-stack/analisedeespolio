@@ -30,6 +30,15 @@ Registro do que foi decidido com a Coordenação de Cobrança (out/2026) para a 
 - **Sem aba de histórico**: o histórico de cada condomínio (rodadas, fichas e evolução das unidades) abre pelo nome na Fila de acompanhamento; os que saíram do acompanhamento ficam numa seção recolhida no fim da fila. Quatro abas: Dashboard, Nova análise, Fila de acompanhamento, Configurações.
 - **Dashboard** com quatro cartões, nesta ordem: espólios sinalizados (acumulado), análises do mês, pendentes (unidades com reanálise vencida), excluídas (acumulado).
 
+## Solicitações de análise (out/2026)
+- **Perfis**: gestão (coordenação de Cobrança; inicial: Beatriz Teixeira, lista editável em Configurações) e solicitantes (assistentes de implantação e analistas de Cobrança). Controle feito dentro do módulo, mesmo nível do Comissionamento; o acesso ao módulo é liberado no portal.
+- **A solicitação substitui o e-mail de sinalização**: condomínio, origem (implantação ou Cobrança), unidades (bloco-unidade, titular, CPF) e observações. Só texto, sem anexos. Sem prazo de atendimento; mostra há quantos dias espera.
+- **Verificação da implantação**: a carteira do portal (início de contrato) gera a lista de condomínios implantados a verificar; acumula até alguém marcar "sem espólio" ou enviar a solicitação. "Assumir" evita duas pessoas no mesmo condomínio. Idade em dias serve de SLA.
+- **Ciclo**: nova → vista (gestão abriu) → em análise (rodada criada já preenchida) → concluída (protocolo e resultado por unidade; o solicitante baixa a ficha para ciência) ou devolvida (com motivo).
+- **Ticket por solicitação**: ao concluir, "Abrir ticket" para quem guarda a ficha na pasta do CPD: a assistente de crédito definida no condomínio; se não houver, a assistente de implantação que solicitou; se nenhuma, a gestão escolhe. Depende de rota do portal (configurável, padrão `/api/tickets`); sem rota, o texto fica pronto para copiar.
+- **Dashboard**: "Pendentes" passa a ser solicitações ainda não vistas.
+- **Avisos no sino**: gatilho no banco do portal escrito em `docs/sql/notificacoes-trigger.sql`, **não aplicado** até aval.
+
 ## Saída do acompanhamento
 - Exclusão da garantia (3+ taxas no Vouch em acompanhamento) ou **troca de titularidade concluída** (encerramento manual com motivo).
 - Regra de saída por tempo ou por rodadas zeradas: **pendente de definição da política**.

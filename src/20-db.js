@@ -7,7 +7,7 @@
      DB.doc('c/id').set(obj) / .update(patch) / .delete() / .get() / .onSnapshot(cb, err)
      snapshot: .docs[] (id, data()), .exists, .data(), .docChanges()
    ====================================================================== */
-const COLECOES = { rodadas:'rodadas', evidencias:'evidencias', verificacoes:'verificacoes', meta:'meta', bi:'bi_base', historico:'historico' };
+const COLECOES = { rodadas:'rodadas', evidencias:'evidencias', verificacoes:'verificacoes', meta:'meta', bi:'bi_base', historico:'historico', solicitacoes:'solicitacoes', carteira:'carteira' };
 
 function LocalDB(prefixo){
   const KEY = prefixo || 'myblue_espolio_local';
@@ -52,6 +52,18 @@ function dbErr(e){
 }
 
 let DB = null, NS_USER = null, ME = { id:null, name:'' }, CAN_WRITE = true;
+/* perfil: 'gestao' (coordenação de Cobrança) ou 'solicitante' (implantação e analistas de Cobrança) */
+let PERFIL = 'gestao';
+const GESTAO_PADRAO = ['BEATRIZ TEIXEIRA'];
+function calcularPerfil(acesso){
+  const lista = (acesso && acesso.gestao && acesso.gestao.length) ? acesso.gestao : GESTAO_PADRAO.map(n => ({ nome: n }));
+  const euId = ME.id === null || ME.id === undefined ? '' : String(ME.id);
+  const euNome = normNome(ME.name);
+  const sou = lista.some(g => (g.id !== undefined && g.id !== null && String(g.id) === euId && euId !== '' && euId !== 'local') || (g.nome && normNome(g.nome) === euNome));
+  if(DB && DB._local) return localStorage.getItem('myblue_espolio_perfil') === 'solicitante' ? 'solicitante' : 'gestao';
+  return sou ? 'gestao' : 'solicitante';
+}
+const ehGestao = () => PERFIL === 'gestao';
 
 async function conectarBase(){
   const sync = $('#sync');
@@ -69,6 +81,11 @@ async function conectarBase(){
   }
   const chip = $('#chipUsuario');
   if(ME.name){ chip.textContent = ME.name + (CAN_WRITE ? '' : ' · somente leitura'); chip.hidden = false; }
+}
+function atualizarChipPerfil(){
+  const chip = $('#chipUsuario');
+  chip.textContent = (ME.name || 'Usuário') + ' · ' + (ehGestao() ? 'gestão' : 'solicitante') + (CAN_WRITE ? '' : ' · somente leitura');
+  chip.hidden = false;
 }
 
 /* grava com update; se o doc não existe, set */

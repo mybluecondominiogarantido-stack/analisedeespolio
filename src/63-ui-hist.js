@@ -44,12 +44,13 @@ function abrirCondominioModal(chave){
 
 function abrirRodadaModal(r, voltar){
   if(!r) return;
-  const acoes = `${voltar ? '<button class="btn sec mini" id="mVoltar">← Condomínio</button>' : ''}<button class="btn sec mini" id="mCsv">CSV</button><button class="btn sec mini" id="mImprimir">Imprimir</button><button class="btn mini" id="mFicha">Baixar ficha</button>` +
+  const acoes = `${voltar ? '<button class="btn sec mini" id="mVoltar">← Condomínio</button>' : ''}${r.status === 'concluida' ? '<button class="btn sec mini" id="mTicket">Abrir ticket</button>' : ''}<button class="btn sec mini" id="mCsv">CSV</button><button class="btn sec mini" id="mImprimir">Imprimir</button><button class="btn mini" id="mFicha">Baixar ficha</button>` +
     (r.status === 'rascunho' ? `<button class="btn sec mini" id="mContinuar">Continuar</button>` : '');
   abrirModal(`${r.protocolo || 'Rascunho'} · ${r.condominio.nome}`, `<div class="ficha" style="padding:18px 22px">${fichaHTML(r)}</div>
     <p class="ajuda">Criada em ${fmtData((r.criadaEm||'').slice(0,10))} por ${esc(r.criadoPorNome||'—')}${r.concluidaEm ? ` · concluída em ${fmtData(r.concluidaEm.slice(0,10))} por ${esc(r.concluidoPorNome||'—')}` : ''}${r.vouch && r.vouch.arquivo ? ` · Vouch: ${esc(r.vouch.arquivo)}` : ''}</p>
     ${r.unidades.some(u => u.override || u.encerramento) ? `<div class="card" style="margin-top:10px"><header><h2>Ajustes e encerramentos</h2></header><div class="tabela-wrap"><table><thead><tr><th>Unidade</th><th>Titular</th><th>Ajuste</th><th>Motivo</th></tr></thead><tbody>${r.unidades.filter(u => u.override || u.encerramento).map(u => `<tr><td>${esc(u.unid)}</td><td>${esc(u.titular)}</td><td>${u.override ? (u.override==='EXCLUIR'?'Excluir':'Sob análise') : 'Encerrada'}</td><td>${esc(u.motivoAjuste || (u.encerramento && u.encerramento.motivo) || '')}</td></tr>`).join('')}</tbody></table></div></div>` : ''}`, acoes);
   if(voltar) $('#mVoltar').onclick = voltar;
+  if($('#mTicket')) $('#mTicket').onclick = () => abrirTicketModal(r, r.solicitacaoId ? S.solicitacoes.find(x => x.id === r.solicitacaoId) : null);
   $('#mFicha').onclick = () => baixarFichaPDF(r);
   $('#mImprimir').onclick = () => imprimirFicha(r);
   $('#mCsv').onclick = () => csvAcompanhamento([r], nomeArquivoSeguro(`Acompanhamento Espolio - ${r.condominio.nome}`) + '.csv');

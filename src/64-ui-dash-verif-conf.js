@@ -13,7 +13,7 @@ function renderDashboard(){
   $('#dashTiles').innerHTML = `
     <div class="tile"><small>Espólios sinalizados</small><strong>${pan.total}</strong><em>total de unidades desde o início</em></div>
     <div class="tile"><small>Análises do mês</small><strong>${doMes.length}</strong><em>${doMes.filter(r=>r.tipo==='implantacao').length} implantação · ${doMes.filter(r=>r.tipo==='avulso').length} avulso · ${doMes.filter(r=>r.tipo==='acompanhamento').length} acompanhamento</em></div>
-    <div class="tile ${venc.length?'alerta':''}"><small>Pendentes</small><strong>${unidVenc}</strong><em>reanálise vencida · ${venc.length} condomínio(s) há mais de ${PRAZO_REANALISE_DIAS} dias</em></div>
+    <div class="tile ${solicitacoesNovas().length?'alerta':''}"><small>Pendentes</small><strong>${solicitacoesNovas().length}</strong><em>solicitações ainda não vistas · ${venc.length} reanálise(s) vencida(s) na fila</em></div>
     <div class="tile"><small>Excluídas</small><strong>${pan.excluidas}</strong><em>da garantia · acumulado</em></div>`;
   renderGraficoMensal(conc);
   const top = f.slice(0, 8);
@@ -61,7 +61,35 @@ $('#btnResumo').onclick = () => {
 };
 
 /* ---------- configurações ---------- */
+function renderConfGestao(){
+  const lista = S.acesso.gestao && S.acesso.gestao.length ? S.acesso.gestao : GESTAO_PADRAO.map(n => ({ nome: n, padrao: true }));
+  $('#confGestao').innerHTML = `<p class="ajuda" style="margin:0 0 8px">Gestão: vê tudo, cria e conclui análises. Solicitantes (assistentes de implantação e analistas de Cobrança): veem só a aba Solicitações. O acesso ao módulo em si é liberado no portal.</p>
+    <table><thead><tr><th>Gestão</th><th></th></tr></thead><tbody>${lista.map((g,i) => `<tr><td>${esc(g.nome||'')}${g.id?` <span class="ajuda" style="margin:0;display:inline">· login ${esc(String(g.id))}</span>`:''}${g.padrao?' <span class="selo s-rasc">padrão</span>':''}</td><td>${g.padrao?'':`<button class="btn perigo mini" data-gestao-rm="${i}">×</button>`}</td></tr>`).join('')}</tbody></table>
+    <div class="acoes" style="margin-top:10px"><input type="text" id="confGestaoNome" class="campo" style="width:auto;min-width:220px" placeholder="Nome como aparece no portal"><button class="btn sec mini" id="confGestaoAdd">Adicionar à gestão</button><button class="btn sec mini" id="confGestaoEu">Adicionar a mim (${esc(ME.name||'eu')})</button></div>
+    <div style="margin-top:12px"><label>Verificar implantações a partir de</label><input type="month" id="confVerifDesde" class="campo" style="width:auto" value="${esc(S.acesso.verificacaoDesde||'')}"><p class="ajuda">Condomínios com início de contrato antes desse mês não entram nos pendentes de verificação (já cobertos pela planilha de controle).</p></div>
+    ${DB._local ? `<div class="acoes" style="margin-top:12px"><button class="btn sec mini" id="confPerfilToggle">Ver como ${ehGestao() ? 'solicitante' : 'gestão'} (modo local)</button></div>` : ''}`;
+  const salvar = patch => gravarDoc(COLECOES.meta + '/acesso', patch, S.acesso);
+  const atual = () => (S.acesso.gestao && S.acesso.gestao.length ? S.acesso.gestao : GESTAO_PADRAO.map(n => ({ nome: n }))).map(g => ({ nome: g.nome, id: g.id || null }));
+  $('#confGestaoAdd').onclick = () => { const n = $('#confGestaoNome').value.trim(); if(!n) return; salvar({ gestao: atual().concat([{ nome: n, id: null }]) }); };
+  $('#confGestaoEu').onclick = () => salvar({ gestao: atual().concat([{ nome: ME.name, id: ME.id }]) });
+  $('#confGestao').querySelectorAll('[data-gestao-rm]').forEach(b => b.onclick = async () => { const l = atual(); l.splice(+b.dataset.gestaoRm, 1); if(!l.length && !(await confirmar('Sem ninguém na gestão, volta ao padrão (Beatriz Teixeira). Continuar?'))) return; salvar({ gestao: l }); });
+  $('#confVerifDesde').onchange = e => salvar({ verificacaoDesde: e.target.value });
+  if($('#confPerfilToggle')) $('#confPerfilToggle').onclick = () => { localStorage.setItem('myblue_espolio_perfil', ehGestao() ? 'solicitante' : 'gestao'); PERFIL = calcularPerfil(S.acesso); atualizarChipPerfil(); aplicarPerfil(); renderTudo(); };
+}
+function renderConfCarteira(){
+  const c = S.carteira;
+  $('#confCarteira').innerHTML = `<p class="ajuda" style="margin:0 0 8px">${c.itens && c.itens.length ? `<b>${c.itens.length} condomínios</b> · atualizada em ${fmtData((c.atualizadoEm||'').slice(0,10))} · origem: ${esc(c.origem||'')}` : 'Carteira não carregada. No portal ela é lida automaticamente; fora dele, importe um JSON ou Excel do cadastro.'}</p>
+    <div class="doc"><div class="ico">CAD</div><div><b>Importar carteira (JSON ou Excel)</b><span>colunas: condomínio, CNPJ, comarca, início do contrato, assistente de crédito, analista de cobrança</span></div><input type="file" accept=".json,.xlsx,.xls,.csv" id="confCarteiraArquivo"></div>
+    ${window.claude && !DB._local ? '<div class="acoes" style="margin-top:8px"><button class="btn sec mini" id="confCarteiraSync">Atualizar do portal agora</button></div>' : ''}
+    <div class="grade" style="margin-top:12px"><div><label>Rota do portal para abrir tickets</label><input type="text" id="confTicketRota" class="campo" value="${esc(S.acesso.ticketRota||'/api/tickets')}"></div><div><label>Setor padrão do ticket</label><input type="text" id="confTicketSetor" class="campo" value="${esc(S.acesso.ticketSetor||'Crédito')}"></div></div>
+    <p class="ajuda">O ticket vai para a assistente de crédito do condomínio; sem assistente na carteira, vai para a assistente de implantação que solicitou. A rota precisa ser liberada por quem mantém o portal.</p>`;
+  $('#confCarteiraArquivo').onchange = async e => { const f = e.target.files[0]; e.target.value = ''; if(!f) return; try{ const n = await importarCarteiraArquivo(f); toast(`Carteira importada: ${n} condomínios.`); }catch(err){ toast('Não deu para importar: ' + err.message, 6000); } };
+  if($('#confCarteiraSync')) $('#confCarteiraSync').onclick = async () => { await sincronizarCarteira(); toast('Carteira atualizada.'); };
+  $('#confTicketRota').onchange = e => gravarDoc(COLECOES.meta + '/acesso', { ticketRota: e.target.value.trim() || '/api/tickets' }, S.acesso);
+  $('#confTicketSetor').onchange = e => gravarDoc(COLECOES.meta + '/acesso', { ticketSetor: e.target.value.trim() || 'Crédito' }, S.acesso);
+}
 function renderConf(){
+  renderConfGestao(); renderConfCarteira();
   $('#confAcesso').innerHTML = `<div class="doc"><div class="ico">${esc((ME.name||'?').split(' ').map(p=>p[0]).join('').slice(0,2).toUpperCase())}</div><div><b>${esc(ME.name||'Usuário')}</b><span>${CAN_WRITE ? 'pode criar e concluir análises' : 'somente leitura'}</span></div></div>
     <p class="ajuda">Somente a coordenação de Cobrança cria e conclui análises. Quem mais tiver o módulo liberado no portal só consulta.</p>`;
   $('#confRegras').innerHTML = TEXTO_REGRAS;

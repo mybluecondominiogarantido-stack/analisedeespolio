@@ -115,17 +115,67 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   await p.click('#modal [data-ver]'); await p.waitForTimeout(300);
   ok(/AE-2026-0002/.test(await p.$eval('#modal h2', e => e.textContent)), 'clique na rodada abre a ficha');
   await p.click('#mVoltar'); await p.waitForTimeout(200); await p.click('#modal [data-fechar]');
-  ok((await p.$$eval('.tab', t => t.length)) === 4, 'quatro abas: dashboard, nova análise, fila, configurações');
+  ok((await p.$$eval('.tab', t => t.length)) === 5, 'cinco abas: dashboard, solicitações, nova análise, fila, configurações');
   await p.click('[data-tab="dash"]'); await p.click('#btnResumo'); await p.waitForTimeout(300);
   ok(/AE-2026-0001/.test(await p.$eval('#resumoMensal', e => e.textContent)), 'resumo mensal lista a rodada do mês');
   const tiles = await p.$eval('#dashTiles', e => e.textContent);
   ok(/Espólios sinalizados/.test(tiles) && /Pendentes/.test(tiles) && /Excluídas/.test(tiles) && /Análises do mês/.test(tiles) && (await p.$$eval('#dashTiles .tile', t => t.length)) === 4, 'dashboard mostra os quatro cartões: total, pendentes (vencidas), excluídas, análises do mês');
   await shot('dashboard');
 
-  /* 6 · persistência local: recarrega e confere */
+  /* 6 · solicitações: carteira, perfil solicitante, pendentes de verificação, envio, gestão inicia e conclui, ficha para o solicitante */
+  await p.click('[data-tab="conf"]'); await p.waitForTimeout(200);
+  await p.setInputFiles('#confCarteiraArquivo', path.join(__dirname, 'fixtures', 'carteira-exemplo.json'));
+  await p.waitForFunction(() => S.carteira.itens && S.carteira.itens.length === 4, { timeout: 10000 }); await p.waitForTimeout(300);
+  const pend = await p.evaluate(() => pendentesVerificacao().map(c => c.nome));
+  ok(pend.length === 2 && pend.includes('CONDOMINIO JARDIM DE NAZARE') && !pend.includes('CONDOMINIO ESMERALDA IV'), `pendentes de verificação excluem quem já tem rodada e os distratados (${pend.join(', ')})`);
+  await p.click('#confPerfilToggle'); await p.waitForTimeout(300);
+  ok((await p.$$eval('.tab', t => t.filter(x => !x.hidden).length)) === 1, 'solicitante vê só a aba Solicitações');
+  const chaveNaz = await p.evaluate(() => S.carteira.itens.find(c => c.nome === 'CONDOMINIO JARDIM DE NAZARE').chave);
+  await p.click(`[data-assumir="${chaveNaz}"]`); await p.waitForTimeout(400);
+  ok(/Coordenação de Cobrança/.test(await p.$eval('#p-sol', e => e.textContent)), 'Assumir registra quem assumiu');
+  await p.click(`[data-solicitar="${chaveNaz}"]`); await p.waitForTimeout(300);
+  ok((await p.inputValue('#solCond')) === 'CONDOMINIO JARDIM DE NAZARE' && (await p.inputValue('#solCnpj')) === '00.116.267/0001-49', 'formulário vem preenchido com condomínio e CNPJ');
+  await p.fill('#solUnidades [data-su="unid"]', 'A - 101'); await p.fill('#solUnidades [data-su="titular"]', 'TITULAR DE TESTE'); await p.fill('#solObs', 'teste automatizado');
+  await p.click('#solEnviar'); await p.waitForFunction(() => S.solicitacoes.length === 1, { timeout: 10000 }); await p.waitForTimeout(300);
+  ok((await p.$$eval('#p-sol [data-sol]', t => t.length)) === 1, 'Minhas solicitações lista a solicitação enviada');
+  ok((await p.evaluate(() => pendentesVerificacao().length)) === 1, 'condomínio solicitado sai dos pendentes de verificação');
+  await shot('solicitante');
+  // gestão
+  await p.evaluate(() => { localStorage.setItem('myblue_espolio_perfil', 'gestao'); }); await p.reload();
+  await p.waitForFunction(() => S.pronto.s && S.solicitacoes.length === 1 && S.pronto.r, { timeout: 20000 }); await p.waitForTimeout(400);
+  ok(/1 nova/.test(await p.$eval('#nSol', e => e.textContent)), 'gestão vê o contador de solicitação nova');
+  ok(/Pendentes\s*1/.test((await p.$eval('#dashTiles', e => e.textContent)).replace(/\s+/g, ' ')), 'cartão Pendentes mostra 1 solicitação não vista');
+  await p.click('[data-tab="sol"]'); await p.waitForTimeout(300);
+  await p.click('#p-sol [data-sol]'); await p.waitForTimeout(400);
+  ok((await p.evaluate(() => S.solicitacoes[0].status)) === 'vista', 'abrir a solicitação marca como vista');
+  await p.click('#mSolIniciar'); await p.waitForFunction(() => S.rodada && S.rodada.solicitacaoId, { timeout: 10000 }); await p.waitForTimeout(300);
+  ok((await p.evaluate(() => S.rodada.unidades.length === 1 && S.rodada.unidades[0].unid === 'A - 101' && S.rodada.condominio.cnpj === '00.116.267/0001-49')), 'Iniciar análise abre a rodada com condomínio e unidade da solicitação');
+  await p.setInputFiles('#docVouch input[type=file]', path.join(pdfs, arq('nazare')));
+  await p.waitForFunction(() => document.querySelector('#docVouch').classList.contains('ok'), { timeout: 30000 });
+  await p.fill('#inicio', '2'); await p.fill('#bi', '100'); await p.click('#sinalBi [data-sinal="+"]'); await p.check('#semAnterior'); await p.waitForTimeout(300);
+  const uNaz = await p.evaluate(() => S.rodada.unidades[0]);
+  ok(uNaz.vouch === 9 && uNaz.resultado === 'EXCLUIR', `unidade casada pelo número com 9 taxas → Excluir (${uNaz.vouch}, ${uNaz.resultado})`);
+  await p.click('#btnConcluir'); await p.waitForFunction(() => S.rodada && S.rodada.status === 'concluida', { timeout: 15000 }); await p.waitForTimeout(500);
+  const solFinal = await p.evaluate(() => S.solicitacoes[0]);
+  ok(solFinal.status === 'concluida' && /^AE-2026-000\d$/.test(solFinal.protocolo) && solFinal.resultado[0].resultado === 'EXCLUIR', `conclusão atualiza a solicitação (${solFinal.status}, ${solFinal.protocolo})`);
+  ok(!!(await p.$('#btnTicketEditor')), 'botão Abrir ticket aparece na rodada concluída');
+  await p.click('#btnTicketEditor'); await p.waitForTimeout(300);
+  ok(/Coordenação de Cobrança/.test(await p.inputValue('#tkResp')) && /A - 101/.test(await p.inputValue('#tkTexto')), 'ticket vai para a assistente de implantação que solicitou quando a carteira não tem assistente de crédito');
+  await p.click('#modal [data-fechar]'); await p.click('#btnFecharEditor'); await p.waitForTimeout(300);
+  // solicitante vê o resultado e baixa a ficha
+  await p.evaluate(() => { localStorage.setItem('myblue_espolio_perfil', 'solicitante'); }); await p.reload();
+  await p.waitForFunction(() => S.pronto.s && S.solicitacoes.length === 1, { timeout: 20000 }); await p.waitForTimeout(400);
+  await p.click('#p-sol [data-sol]'); await p.waitForTimeout(300);
+  const [dl3] = await Promise.all([p.waitForEvent('download', { timeout: 60000 }), p.click('#mSolFicha')]);
+  ok(/CONDOMINIO JARDIM DE NAZARE\.pdf$/.test(dl3.suggestedFilename()), `solicitante baixa a ficha da análise concluída (${dl3.suggestedFilename()})`);
+  await shot('solicitacao-concluida');
+  await p.click('#modal [data-fechar]');
+  await p.evaluate(() => { localStorage.setItem('myblue_espolio_perfil', 'gestao'); });
+
+  /* 7 · persistência local: recarrega e confere */
   await p.reload(); await p.waitForFunction(() => S.pronto.r && S.rodadas.length > 0, { timeout: 20000 }); await p.waitForTimeout(300);
   const nR = await p.evaluate(() => S.rodadas.filter(r => r.status === 'concluida').length);
-  ok(nR === 37, `rodadas persistidas após recarregar: ${nR} (35 carga + 2)`);
+  ok(nR === 38, `rodadas persistidas após recarregar: ${nR} (35 carga + 3)`);
 
   fs.unlinkSync(tmp); await b.close();
   if(erros.length){ console.log('\nerros de console/página:'); erros.forEach(e => console.log('  -', e.slice(0, 300))); }

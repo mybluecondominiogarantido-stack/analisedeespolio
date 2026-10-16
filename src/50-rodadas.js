@@ -13,8 +13,11 @@ const S = {
   rodadas: [],          // todas as rodadas (snapshot)
   verificacoes: [],
   meta: { seq: {} },
+  acesso: { gestao: [], verificacaoDesde: '', ticketRota: '/api/tickets', ticketSetor: 'Crédito' },
   bi: { base: [], enviadoEm: '', por: '' },
-  pronto: { r:false, v:false, m:false, b:false },
+  solicitacoes: [],
+  carteira: { itens: [], atualizadoEm: '', origem: '' },
+  pronto: { r:false, v:false, m:false, b:false, a:false, s:false, c:false },
   aba: 'dash',
   // editor (nova análise)
   rodada: null,         // rodada em edição (objeto)
@@ -30,6 +33,43 @@ function assinarBase(){
   DB.collection(COLECOES.verificacoes).onSnapshot(snap => { S.verificacoes = snap.docs.map(d => ({ id: d.id, ...d.data() })); pronto('v'); if(S.pronto.v) renderTudo(); }, fail);
   DB.doc(COLECOES.meta + '/estado').onSnapshot(snap => { S.meta = snap.exists ? snap.data() : { seq: {} }; pronto('m'); }, fail);
   DB.doc(COLECOES.bi + '/atual').onSnapshot(snap => { S.bi = snap.exists ? snap.data() : { base: [], enviadoEm:'', por:'' }; pronto('b'); renderBiInfo(); }, fail);
+  DB.doc(COLECOES.meta + '/acesso').onSnapshot(snap => { S.acesso = { gestao: [], verificacaoDesde: '', ticketRota: '/api/tickets', ticketSetor: 'Crédito', ...(snap.exists ? snap.data() : {}) }; const antes = PERFIL; PERFIL = calcularPerfil(S.acesso); atualizarChipPerfil(); if(antes !== PERFIL) aplicarPerfil(); pronto('a'); if(S.pronto.a) renderTudo(); }, fail);
+  DB.collection(COLECOES.solicitacoes).onSnapshot(snap => { S.solicitacoes = snap.docs.map(d => ({ id: d.id, ...d.data() })); pronto('s'); if(S.pronto.s) renderTudo(); }, fail);
+  DB.doc(COLECOES.carteira + '/atual').onSnapshot(snap => { S.carteira = snap.exists ? snap.data() : { itens: [], atualizadoEm:'', origem:'' }; pronto('c'); if(S.pronto.c) renderTudo(); }, fail);
+}
+
+/* ---------- solicitações ----------
+   { condominio:{nome,cnpj,chave}, origem:'implantacao'|'cobranca', tipo:'implantacao'|'avulso', unidades:[{unid,titular,cpf}], obs,
+     solicitanteId, solicitanteNome, criadaEm, status:'nova'|'vista'|'em_analise'|'concluida'|'devolvida', vistaEm, rodadaId, protocolo,
+     resultado:[{unid,titular,resultado,regra}], motivoDevolucao, concluidaEm } */
+const solicitacoesNovas = () => S.solicitacoes.filter(x => x.status === 'nova');
+const minhasSolicitacoes = () => S.solicitacoes.filter(x => String(x.solicitanteId) === String(ME.id)).sort((a,b) => (b.criadaEm||'').localeCompare(a.criadaEm||''));
+async function criarSolicitacao(dados){
+  const doc = { ...dados, solicitanteId: ME.id, solicitanteNome: ME.name, criadaEm: nowISO(), status: 'nova', vistaEm: null, rodadaId: null, protocolo: '', resultado: [], motivoDevolucao: '' };
+  const ref = await DB.collection(COLECOES.solicitacoes).add(doc);
+  registrarHistorico('solicitacao', { solicitacaoId: ref.id, condominio: dados.condominio.nome, unidades: dados.unidades.length });
+  return ref.id;
+}
+const atualizarSolicitacao = (id, patch) => gravarDoc(COLECOES.solicitacoes + '/' + id, patch);
+
+/* ---------- verificação da implantação: condomínios da carteira com início de contrato, ainda sem resposta ---------- */
+function pendentesVerificacao(){
+  const desde = S.acesso.verificacaoDesde || '';
+  const respondidos = new Set(S.verificacoes.filter(v => v.resultado === 'sem_espolio').map(v => v.chave).filter(Boolean));
+  const comRodada = new Set(S.rodadas.map(r => r.condominio.chave));
+  const comSolic = new Set(S.solicitacoes.map(x => x.condominio.chave));
+  const hoje = hojeISO();
+  return (S.carteira.itens || []).filter(c => c.inicio && (!desde || c.inicio >= desde) && c.situacao !== 'DISTRATADO')
+    .filter(c => !respondidos.has(c.chave) && !comRodada.has(c.chave) && !comSolic.has(c.chave) && !respondidos.has('nome:' + normCond(c.nome)))
+    .map(c => ({ ...c, dias: diasEntre(c.inicio, hoje), assumido: (S.verificacoes.find(v => v.chave === c.chave && v.resultado === 'assumido') || null) }))
+    .sort((a,b) => a.inicio.localeCompare(b.inicio));
+}
+/* responsável pelo aviso/ticket: assistente de crédito da carteira; senão a assistente de implantação que solicitou */
+function responsavelDoCondominio(chave, solicitacao){
+  const c = (S.carteira.itens || []).find(x => x.chave === chave || (solicitacao && normCond(x.nome) === normCond(solicitacao.condominio.nome)));
+  if(c && c.assistenteCredito) return { nome: c.assistenteCredito, papel: 'assistente de crédito', setor: S.acesso.ticketSetor || 'Crédito', carteira: c };
+  if(solicitacao && solicitacao.origem === 'implantacao') return { nome: solicitacao.solicitanteNome, papel: 'assistente de implantação (solicitante)', setor: 'Implantação', usuarioId: solicitacao.solicitanteId, carteira: c || null };
+  return { nome: '', papel: '', setor: S.acesso.ticketSetor || 'Crédito', carteira: c || null };
 }
 
 /* ---------- protocolo sequencial AE-AAAA-NNNN ---------- */
@@ -163,6 +203,11 @@ async function concluirRodada(r){
   r.resumo = resumoRodada(r);
   await salvarRodada(r);
   registrarHistorico('conclusao', { rodadaId: r.id, protocolo: r.protocolo, condominio: r.condominio.nome, tipo: r.tipo, resumo: r.resumo });
+  if(r.solicitacaoId){
+    try{ await atualizarSolicitacao(r.solicitacaoId, { status: 'concluida', rodadaId: r.id, protocolo: r.protocolo, concluidaEm: nowISO(),
+      resultado: r.unidades.map(u => ({ unid: u.unid, titular: u.titular, cpf: u.cpf, resultado: u.resultado, regra: u.regra, motivo: u.motivo })) }); }
+    catch(e){ console.warn('solicitação não atualizada', e); }
+  }
   return r;
 }
 /* nova rodada de acompanhamento a partir da última concluída do condomínio */

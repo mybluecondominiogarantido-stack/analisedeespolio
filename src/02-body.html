@@ -10,6 +10,7 @@
   </div>
   <nav class="tabs" id="tabs">
     <button class="tab ativa" data-tab="dash">Dashboard</button>
+    <button class="tab" data-tab="sol">Solicitações <span class="n" id="nSol" hidden></span></button>
     <button class="tab" data-tab="nova">Nova análise <span class="n" id="nNova" hidden></span></button>
     <button class="tab" data-tab="lote">Fila de acompanhamento <span class="n" id="nFila" hidden></span></button>
     <button class="tab" data-tab="conf">Configurações</button>
@@ -40,6 +41,9 @@
     <div class="corpo" id="resumoMensal"><div class="vazio">Escolha o mês e clique em “Gerar resumo”.</div></div>
   </div>
 </section>
+
+<!-- ================= SOLICITAÇÕES ================= -->
+<section class="painel" id="p-sol"></section>
 
 <!-- ================= NOVA ANÁLISE (IMPLANTAÇÃO) ================= -->
 <section class="painel" id="p-nova">
@@ -163,6 +167,16 @@
         <div id="confBiInfo" class="ajuda" style="margin:0 0 10px"></div>
         <div class="doc"><div class="ico">XLS</div><div><b>Subir nova base do dia</b><span>Excel ou CSV com Condomínio, Idade (meses) e Resultado</span></div><input type="file" accept=".xlsx,.xls,.csv" id="confBiArquivo"></div>
       </div>
+    </div>
+  </div>
+  <div class="dois">
+    <div class="card">
+      <header><h2>Gestão e perfis</h2><span class="dica">quem não está na gestão é solicitante</span></header>
+      <div class="corpo" id="confGestao"></div>
+    </div>
+    <div class="card">
+      <header><h2>Carteira do portal e tickets</h2><span class="dica">responsáveis por condomínio</span></header>
+      <div class="corpo" id="confCarteira"></div>
     </div>
   </div>
   <div class="card">
