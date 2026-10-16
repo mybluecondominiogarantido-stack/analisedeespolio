@@ -47,11 +47,13 @@ function assinarBase(){
      resultado:[{unid,titular,resultado,regra}], motivoDevolucao, concluidaEm } */
 const solicitacoesNovas = () => S.solicitacoes.filter(x => x.status === 'nova');
 const minhasSolicitacoes = () => S.solicitacoes.filter(x => String(x.solicitanteId) === String(ME.id)).sort((a,b) => (b.criadaEm||'').localeCompare(a.criadaEm||''));
+/* o protocolo nasce na solicitação e acompanha a análise até a ficha (excluídas e devolvidas deixam o número sem uso) */
 async function criarSolicitacao(dados){
-  const doc = { ...dados, solicitanteId: ME.id, solicitanteNome: ME.name, criadaEm: nowISO(), status: 'nova', vistaEm: null, rodadaId: null, protocolo: '', resultado: [], motivoDevolucao: '' };
+  const protocolo = await proximoProtocolo();
+  const doc = { ...dados, solicitanteId: ME.id, solicitanteNome: ME.name, criadaEm: nowISO(), status: 'nova', vistaEm: null, rodadaId: null, protocolo, resultado: [], motivoDevolucao: '' };
   const ref = await DB.collection(COLECOES.solicitacoes).add(doc);
-  registrarHistorico('solicitacao', { solicitacaoId: ref.id, condominio: dados.condominio.nome, unidades: dados.unidades.length });
-  return ref.id;
+  registrarHistorico('solicitacao', { solicitacaoId: ref.id, protocolo, condominio: dados.condominio.nome, unidades: dados.unidades.length });
+  return { id: ref.id, protocolo };
 }
 const atualizarSolicitacao = (id, patch) => gravarDoc(COLECOES.solicitacoes + '/' + id, patch);
 
@@ -215,7 +217,7 @@ async function excluirSolicitacao(x){
   await DB.doc(COLECOES.solicitacoes + '/' + x.id).delete();
   registrarHistorico('exclusao', { alvo: 'solicitacao', solicitacaoId: x.id, condominio: x.condominio.nome, solicitante: x.solicitanteNome });
 }
-/* conclusão: trava, atribui protocolo, define situação das unidades e prazo */
+/* conclusão: trava, atribui protocolo (se a rodada veio de solicitação, mantém o da solicitação), define situação das unidades e prazo */
 async function concluirRodada(r){
   const pend = r.unidades.filter(u => u.pendente && !u.override);
   if(pend.length) throw new Error(`${pend.length} pendência(s) (regra 5.5) impedem a conclusão. Resolva o insumo ou faça o ajuste manual com motivo.`);

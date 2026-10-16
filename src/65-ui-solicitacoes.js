@@ -121,8 +121,8 @@ function ligarFormSolicitacao(card){
     const origem = extra ? 'gestao' : (papeis().implantacao ? 'implantacao' : 'avulso');
     try{
       const c = (S.carteira.itens||[]).find(x => normCond(x.nome) === normCond(nome));
-      await criarSolicitacao({ condominio: { nome: c ? c.nome : nome, cnpj: cnpj || (c ? c.cnpj : ''), chave: chaveCond(c ? c.nome : nome, cnpj || (c ? c.cnpj : '')) }, origem, tipo, unidades, obs: q('#solObs').value.trim(), ...(extra ? extra.dados : {}) });
-      toast('Solicitação enviada.'); renderSolicitacoes();
+      const criada = await criarSolicitacao({ condominio: { nome: c ? c.nome : nome, cnpj: cnpj || (c ? c.cnpj : ''), chave: chaveCond(c ? c.nome : nome, cnpj || (c ? c.cnpj : '')) }, origem, tipo, unidades, obs: q('#solObs').value.trim(), ...(extra ? extra.dados : {}) });
+      toast('Solicitação enviada · protocolo ' + criada.protocolo + '.', 4000); renderSolicitacoes();
       return true;
     }catch(e){ st.innerHTML = `<div class="erro">${esc(dbErr(e))}</div>`; return false; }
   };
@@ -192,7 +192,7 @@ function abrirSolicitacaoModal(x){
     if(tipoEsc !== x.tipo) await atualizarSolicitacao(x.id, { tipo: tipoEsc });
     const r = novaRodada(tipoEsc, { ...x.condominio });
     if(r.tipo === 'avulso') r.semAnterior = true;
-    r.analista = x.solicitanteNome || ''; r.solicitacaoId = x.id; r.nota = x.obs ? 'Solicitação: ' + x.obs : '';
+    r.analista = x.solicitanteNome || ''; r.solicitacaoId = x.id; if(x.protocolo) r.protocolo = x.protocolo; r.nota = x.obs ? 'Solicitação: ' + x.obs : '';
     (x.unidades || []).forEach(u => r.unidades.push(novaUnidade(u.unid, u.titular, u.cpf)));
     try{ await salvarRodada(r); await atualizarSolicitacao(x.id, { status: 'em_analise', rodadaId: r.id, emAnaliseEm: nowISO() }); }catch(e){ toast(dbErr(e), 5000); return; }
     fecharModal(); abrirEditor(r);

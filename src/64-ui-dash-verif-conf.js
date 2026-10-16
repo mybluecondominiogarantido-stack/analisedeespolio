@@ -13,7 +13,7 @@ function renderDashboard(){
   $('#dashTiles').innerHTML = `
     <div class="tile hero"><small>Espólios sinalizados</small><strong>${pan.total}</strong><em>total de unidades desde o início</em></div>
     <div class="tile"><small>Análises do mês</small><strong>${doMes.length}</strong><em>${doMes.filter(r=>r.tipo==='implantacao').length} implantação · ${doMes.filter(r=>r.tipo==='avulso').length} avulso · ${doMes.filter(r=>r.tipo==='acompanhamento').length} acompanhamento</em></div>
-    <div class="tile ${solicitacoesNovas().length?'alerta':''}"><small>Pendentes</small><strong>${solicitacoesNovas().length}</strong><em>solicitações ainda não vistas · ${venc.length} reanálise(s) vencida(s) na fila</em></div>
+    <div class="tile ${solicitacoesNovas().length + venc.length ? 'alerta' : ''}"><small>Pendentes</small><strong>${solicitacoesNovas().length + venc.length}</strong><em>${solicitacoesNovas().length} solicitação(ões) não vista(s) · ${venc.length} reanálise(s) vencida(s) na fila</em></div>
     <div class="tile"><small>Excluídas</small><strong>${pan.excluidas}</strong><em>da garantia · acumulado</em></div>
     <div class="tile ${impl.atrasados?'alerta':''}"><small>Implantação atrasada</small><strong>${impl.atrasados}</strong><em>de meses anteriores, sem verificação · ${impl.doMes} do mês aguardando</em></div>`;
   renderGraficoMensal(conc);

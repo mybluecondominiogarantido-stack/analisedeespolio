@@ -69,7 +69,7 @@ O quadro de condomínios em implantação já começa em **agosto de 2026**: ent
 
 Fazer uma vez, com dados reais, antes de anunciar para a equipe.
 
-1. **Solicitação.** Uma analista envia uma solicitação de um condomínio real. Uma assistente de implantação confere se o quadro mostra os condomínios com vigência no mês e os atrasados. Na conta da Beatriz, a aba Solicitações mostra "1 nova" e o Dashboard mostra "Pendentes 1".
+1. **Solicitação.** Uma analista envia uma solicitação de um condomínio real. Uma assistente de implantação confere se o quadro mostra os condomínios com vigência no mês e os atrasados. A analista vê o protocolo na hora (AE-2026-0001). Na conta da Beatriz, a aba Solicitações mostra "1 nova", o sino avisa e o cartão Pendentes do Dashboard conta essa solicitação somada às reanálises vencidas.
 2. **Análise.** A Beatriz abre a solicitação, clica em "Iniciar análise", anexa o PDF do Vouch e conclui. A ficha baixa com o nome `AE-2026-0001 - Condomínio.pdf`.
 3. **Retorno.** A analista vê a solicitação como "Concluída" em "Minhas solicitações" e baixa a mesma ficha.
 4. **Fila.** O condomínio aparece na Fila de acompanhamento com prazo de 90 dias.

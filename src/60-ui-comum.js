@@ -197,7 +197,7 @@ function fichaHTML(r){
   </div>
   <div class="f-rodape"><span>MyBlue Condomínio Garantido | contato@myblue.com.br | www.myblue.com.br | (85) 4042.9277</span><span>${esc(r.protocolo||'rascunho')} · gerada em ${fmtData(hojeISO())}</span></div>`;
 }
-const nomeFicha = r => nomeArquivoSeguro(`${r.protocolo || 'RASCUNHO'} - ${r.condominio.nome || 'condominio'}`) + '.pdf';
+const nomeFicha = r => nomeArquivoSeguro(`${r.status === 'concluida' && r.protocolo ? r.protocolo : 'RASCUNHO' + (r.protocolo ? ' ' + r.protocolo : '')} - ${r.condominio.nome || 'condominio'}`) + '.pdf';
 
 async function baixarFichaPDF(r){
   if(typeof html2pdf === 'undefined'){ imprimirFicha(r); return; }

@@ -61,8 +61,10 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   await p.click('#modal #solEnviar'); await p.waitForFunction(() => S.solicitacoes.length === 1, { timeout: 10000 }); await p.waitForTimeout(400);
   const reg = await p.evaluate(() => S.solicitacoes[0]);
   ok(reg.solicitanteNome === 'Assistente de Implantação Teste' && reg.tipo === 'implantacao' && reg.origem === 'gestao' && reg.registradaPor === 'Coordenação de Cobrança', 'gestão registra solicitação em nome de quem pediu, com o tipo escolhido');
+  ok(reg.protocolo === 'AE-2026-0001', `protocolo nasce na solicitação (${reg.protocolo})`);
   await p.click('#p-sol [data-sol]'); await p.waitForTimeout(300); await p.click('#mSolIniciar');
   await p.waitForFunction(() => S.rodada && S.rodada.solicitacaoId, { timeout: 10000 }); await p.waitForTimeout(300);
+  ok((await p.evaluate(() => S.rodada.protocolo + ' | ' + nomeFicha(S.rodada))) === 'AE-2026-0001 | RASCUNHO AE-2026-0001 - CONDOMINIO ESMERALDA IV.pdf', 'análise iniciada leva o protocolo da solicitação; ficha de rascunho sai marcada como RASCUNHO');
   ok((await p.$$eval('.tab', t => t.filter(x => !x.hidden).length)) === 5 && (await p.$eval('#p-nova', e => e.classList.contains('ativa'))), 'editor abre como tela temporária, sem aba própria');
   await p.setInputFiles('#docVouch input[type=file]', path.join(pdfs, arq('esmeralda')));
   await p.waitForFunction(() => document.querySelector('#docVouch').classList.contains('ok'), { timeout: 30000 });
@@ -191,7 +193,8 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   // gestão
   await papeisLocal('gestao');
   ok(/1 nova/.test(await p.$eval('#nSol', e => e.textContent)), 'gestão vê o contador de solicitação nova');
-  ok(/Pendentes\s*1/.test((await p.$eval('#dashTiles', e => e.textContent)).replace(/\s+/g, ' ')), 'cartão Pendentes mostra 1 solicitação não vista');
+  const pendEsperado = await p.evaluate(() => solicitacoesNovas().length + fila().filter(i => i.vencida).length);
+  ok(new RegExp('Pendentes\\s*' + pendEsperado + '\\s*1 solicitação').test((await p.$eval('#dashTiles', e => e.textContent)).replace(/\s+/g, ' ')), `cartão Pendentes soma a solicitação não vista e as reanálises vencidas (${pendEsperado})`);
   await p.click('[data-tab="sol"]'); await p.waitForTimeout(300);
   await p.click('#p-sol [data-sol]'); await p.waitForTimeout(400);
   ok((await p.evaluate(() => S.solicitacoes.find(x => x.status !== 'concluida').status)) === 'vista', 'abrir a solicitação marca como vista');

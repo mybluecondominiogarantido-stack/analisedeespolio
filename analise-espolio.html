@@ -1285,11 +1285,13 @@ function assinarBase(){
      resultado:[{unid,titular,resultado,regra}], motivoDevolucao, concluidaEm } */
 const solicitacoesNovas = () => S.solicitacoes.filter(x => x.status === 'nova');
 const minhasSolicitacoes = () => S.solicitacoes.filter(x => String(x.solicitanteId) === String(ME.id)).sort((a,b) => (b.criadaEm||'').localeCompare(a.criadaEm||''));
+/* o protocolo nasce na solicitação e acompanha a análise até a ficha (excluídas e devolvidas deixam o número sem uso) */
 async function criarSolicitacao(dados){
-  const doc = { ...dados, solicitanteId: ME.id, solicitanteNome: ME.name, criadaEm: nowISO(), status: 'nova', vistaEm: null, rodadaId: null, protocolo: '', resultado: [], motivoDevolucao: '' };
+  const protocolo = await proximoProtocolo();
+  const doc = { ...dados, solicitanteId: ME.id, solicitanteNome: ME.name, criadaEm: nowISO(), status: 'nova', vistaEm: null, rodadaId: null, protocolo, resultado: [], motivoDevolucao: '' };
   const ref = await DB.collection(COLECOES.solicitacoes).add(doc);
-  registrarHistorico('solicitacao', { solicitacaoId: ref.id, condominio: dados.condominio.nome, unidades: dados.unidades.length });
-  return ref.id;
+  registrarHistorico('solicitacao', { solicitacaoId: ref.id, protocolo, condominio: dados.condominio.nome, unidades: dados.unidades.length });
+  return { id: ref.id, protocolo };
 }
 const atualizarSolicitacao = (id, patch) => gravarDoc(COLECOES.solicitacoes + '/' + id, patch);
 
@@ -1453,7 +1455,7 @@ async function excluirSolicitacao(x){
   await DB.doc(COLECOES.solicitacoes + '/' + x.id).delete();
   registrarHistorico('exclusao', { alvo: 'solicitacao', solicitacaoId: x.id, condominio: x.condominio.nome, solicitante: x.solicitanteNome });
 }
-/* conclusão: trava, atribui protocolo, define situação das unidades e prazo */
+/* conclusão: trava, atribui protocolo (se a rodada veio de solicitação, mantém o da solicitação), define situação das unidades e prazo */
 async function concluirRodada(r){
   const pend = r.unidades.filter(u => u.pendente && !u.override);
   if(pend.length) throw new Error(`${pend.length} pendência(s) (regra 5.5) impedem a conclusão. Resolva o insumo ou faça o ajuste manual com motivo.`);
@@ -1748,7 +1750,7 @@ function fichaHTML(r){
   </div>
   <div class="f-rodape"><span>MyBlue Condomínio Garantido | contato@myblue.com.br | www.myblue.com.br | (85) 4042.9277</span><span>${esc(r.protocolo||'rascunho')} · gerada em ${fmtData(hojeISO())}</span></div>`;
 }
-const nomeFicha = r => nomeArquivoSeguro(`${r.protocolo || 'RASCUNHO'} - ${r.condominio.nome || 'condominio'}`) + '.pdf';
+const nomeFicha = r => nomeArquivoSeguro(`${r.status === 'concluida' && r.protocolo ? r.protocolo : 'RASCUNHO' + (r.protocolo ? ' ' + r.protocolo : '')} - ${r.condominio.nome || 'condominio'}`) + '.pdf';
 
 async function baixarFichaPDF(r){
   if(typeof html2pdf === 'undefined'){ imprimirFicha(r); return; }
@@ -2238,7 +2240,7 @@ function renderDashboard(){
   $('#dashTiles').innerHTML = `
     <div class="tile hero"><small>Espólios sinalizados</small><strong>${pan.total}</strong><em>total de unidades desde o início</em></div>
     <div class="tile"><small>Análises do mês</small><strong>${doMes.length}</strong><em>${doMes.filter(r=>r.tipo==='implantacao').length} implantação · ${doMes.filter(r=>r.tipo==='avulso').length} avulso · ${doMes.filter(r=>r.tipo==='acompanhamento').length} acompanhamento</em></div>
-    <div class="tile ${solicitacoesNovas().length?'alerta':''}"><small>Pendentes</small><strong>${solicitacoesNovas().length}</strong><em>solicitações ainda não vistas · ${venc.length} reanálise(s) vencida(s) na fila</em></div>
+    <div class="tile ${solicitacoesNovas().length + venc.length ? 'alerta' : ''}"><small>Pendentes</small><strong>${solicitacoesNovas().length + venc.length}</strong><em>${solicitacoesNovas().length} solicitação(ões) não vista(s) · ${venc.length} reanálise(s) vencida(s) na fila</em></div>
     <div class="tile"><small>Excluídas</small><strong>${pan.excluidas}</strong><em>da garantia · acumulado</em></div>
     <div class="tile ${impl.atrasados?'alerta':''}"><small>Implantação atrasada</small><strong>${impl.atrasados}</strong><em>de meses anteriores, sem verificação · ${impl.doMes} do mês aguardando</em></div>`;
   renderGraficoMensal(conc);
@@ -2454,8 +2456,8 @@ function ligarFormSolicitacao(card){
     const origem = extra ? 'gestao' : (papeis().implantacao ? 'implantacao' : 'avulso');
     try{
       const c = (S.carteira.itens||[]).find(x => normCond(x.nome) === normCond(nome));
-      await criarSolicitacao({ condominio: { nome: c ? c.nome : nome, cnpj: cnpj || (c ? c.cnpj : ''), chave: chaveCond(c ? c.nome : nome, cnpj || (c ? c.cnpj : '')) }, origem, tipo, unidades, obs: q('#solObs').value.trim(), ...(extra ? extra.dados : {}) });
-      toast('Solicitação enviada.'); renderSolicitacoes();
+      const criada = await criarSolicitacao({ condominio: { nome: c ? c.nome : nome, cnpj: cnpj || (c ? c.cnpj : ''), chave: chaveCond(c ? c.nome : nome, cnpj || (c ? c.cnpj : '')) }, origem, tipo, unidades, obs: q('#solObs').value.trim(), ...(extra ? extra.dados : {}) });
+      toast('Solicitação enviada · protocolo ' + criada.protocolo + '.', 4000); renderSolicitacoes();
       return true;
     }catch(e){ st.innerHTML = `<div class="erro">${esc(dbErr(e))}</div>`; return false; }
   };
@@ -2525,7 +2527,7 @@ function abrirSolicitacaoModal(x){
     if(tipoEsc !== x.tipo) await atualizarSolicitacao(x.id, { tipo: tipoEsc });
     const r = novaRodada(tipoEsc, { ...x.condominio });
     if(r.tipo === 'avulso') r.semAnterior = true;
-    r.analista = x.solicitanteNome || ''; r.solicitacaoId = x.id; r.nota = x.obs ? 'Solicitação: ' + x.obs : '';
+    r.analista = x.solicitanteNome || ''; r.solicitacaoId = x.id; if(x.protocolo) r.protocolo = x.protocolo; r.nota = x.obs ? 'Solicitação: ' + x.obs : '';
     (x.unidades || []).forEach(u => r.unidades.push(novaUnidade(u.unid, u.titular, u.cpf)));
     try{ await salvarRodada(r); await atualizarSolicitacao(x.id, { status: 'em_analise', rodadaId: r.id, emAnaliseEm: nowISO() }); }catch(e){ toast(dbErr(e), 5000); return; }
     fecharModal(); abrirEditor(r);
