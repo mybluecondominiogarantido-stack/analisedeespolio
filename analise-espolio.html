@@ -2199,8 +2199,6 @@ function renderConfCarteira(){
 }
 function renderConf(){
   renderConfGestao(); renderConfCarteira();
-  $('#confAcesso').innerHTML = `<div class="doc"><div class="ico">${esc((ME.name||'?').split(' ').map(p=>p[0]).join('').slice(0,2).toUpperCase())}</div><div><b>${esc(ME.name||'Usuário')}</b><span>${CAN_WRITE ? 'pode criar e concluir análises' : 'somente leitura'}</span></div></div>
-    <p class="ajuda">Somente a coordenação de Cobrança cria e conclui análises. Quem mais tiver o módulo liberado no portal só consulta.</p>`;
   $('#confRegras').innerHTML = TEXTO_REGRAS;
   renderBiInfo();
 }
