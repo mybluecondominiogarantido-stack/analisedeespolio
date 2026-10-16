@@ -59,6 +59,12 @@ function htmlFormSolicitacao(pre){
       <div id="solStatus"></div>
     </div></div>`;
 }
+/* aviso de campo obrigatório que não passa despercebido: mensagem no formulário, faixa de aviso, campo em vermelho com o cursor */
+function avisoForm(st, msg, campo){
+  st.innerHTML = `<div class="erro">${esc(msg)}</div>`; toast(msg, 5000);
+  if(campo){ campo.classList.add('invalido'); campo.focus(); campo.scrollIntoView({ block: 'center', behavior: 'smooth' }); const tira = () => { campo.classList.remove('invalido'); campo.removeEventListener('input', tira); campo.removeEventListener('change', tira); }; campo.addEventListener('input', tira); campo.addEventListener('change', tira); }
+  else st.scrollIntoView({ block: 'center', behavior: 'smooth' });
+}
 function linhaUnidadeSol(u){ u = u || {}; return `<tr><td><input type="text" data-su="unid" value="${esc(u.unid||'')}" placeholder="A - 101"></td><td><input type="text" data-su="titular" value="${esc(u.titular||'')}" placeholder="nome completo"></td><td><input type="text" data-su="cpf" value="${esc(u.cpf||'')}" placeholder="000.000.000-00"></td><td><button class="btn perigo mini" data-su-rm>×</button></td></tr>`; }
 
 function htmlListaSolicitacoes(lista, titulo, dica, modo){
@@ -115,8 +121,8 @@ function ligarFormSolicitacao(card){
     const nome = cond.value.trim(); const cnpj = cnpjEl.value.trim();
     const unidades = [...tb.querySelectorAll('tr')].map(tr => ({ unid: tr.querySelector('[data-su="unid"]').value.trim(), titular: tr.querySelector('[data-su="titular"]').value.trim(), cpf: tr.querySelector('[data-su="cpf"]').value.trim() })).filter(u => u.unid || u.titular || u.cpf);
     const st = q('#solStatus');
-    if(!nome){ st.innerHTML = '<div class="erro">Informe o condomínio.</div>'; return false; }
-    if(!unidades.length || unidades.some(u => !u.titular && !u.unid)){ st.innerHTML = '<div class="erro">Informe ao menos uma unidade com titular.</div>'; return false; }
+    if(!nome){ avisoForm(st, 'Informe o condomínio.', cond); return false; }
+    if(!unidades.length || unidades.some(u => !u.titular && !u.unid)){ avisoForm(st, 'Informe ao menos uma unidade com titular.', tb.querySelector('[data-su="titular"]')); return false; }
     const tipo = extra ? extra.tipo : tipoPeloPapel(nome, cnpj).tipo;
     const origem = extra ? 'gestao' : (papeis().implantacao ? 'implantacao' : 'avulso');
     try{
@@ -124,9 +130,9 @@ function ligarFormSolicitacao(card){
       const criada = await criarSolicitacao({ condominio: { nome: c ? c.nome : nome, cnpj: cnpj || (c ? c.cnpj : ''), chave: chaveCond(c ? c.nome : nome, cnpj || (c ? c.cnpj : '')) }, origem, tipo, unidades, obs: q('#solObs').value.trim(), ...(extra ? extra.dados : {}) });
       toast('Solicitação enviada · protocolo ' + criada.protocolo + '.', 4000); renderSolicitacoes();
       return true;
-    }catch(e){ st.innerHTML = `<div class="erro">${esc(dbErr(e))}</div>`; return false; }
+    }catch(e){ avisoForm(st, e && e.message && !e.code ? e.message : dbErr(e)); return false; }
   };
-  q('#solEnviar').onclick = () => enviar();
+  q('#solEnviar').onclick = async () => { const b = q('#solEnviar'); if(b.disabled) return; const txt = b.textContent; b.disabled = true; b.textContent = 'Enviando…'; try{ await enviar(); } finally { if(b.isConnected){ b.disabled = false; b.textContent = txt; } } };
   return enviar;
 }
 
@@ -140,12 +146,12 @@ function abrirRegistrarSolicitacao(pre){
   const btn = card.querySelector('#solEnviar'); btn.textContent = 'Registrar';
   const st = card.querySelector('#solStatus');
   btn.onclick = async () => {
-    const quem = $('#rsNome').value.trim(); if(!quem){ st.innerHTML = '<div class="erro">Informe quem pediu.</div>'; return; }
-    const tipo = $('#rsTipo').value; if(!tipo){ st.innerHTML = '<div class="erro">Escolha o tipo: implantação ou avulso.</div>'; return; }
+    const quem = $('#rsNome').value.trim(); if(!quem){ avisoForm(st, 'Informe quem pediu.', $('#rsNome')); return; }
+    const tipo = $('#rsTipo').value; if(!tipo){ avisoForm(st, 'Escolha o tipo: implantação ou avulso.', $('#rsTipo')); return; }
     const meuNome = ME.name, meuId = ME.id;
     ME.name = quem; ME.id = 'registrada:' + normNome(quem);
-    let ok = false;
-    try{ ok = await enviar({ tipo, dados: { registradaPor: meuNome, canal: $('#rsCanal').value } }); } finally { ME.name = meuNome; ME.id = meuId; }
+    let ok = false; btn.disabled = true; btn.textContent = 'Registrando…';
+    try{ ok = await enviar({ tipo, dados: { registradaPor: meuNome, canal: $('#rsCanal').value } }); } finally { ME.name = meuNome; ME.id = meuId; if(btn.isConnected){ btn.disabled = false; btn.textContent = 'Registrar'; } }
     if(ok) fecharModal();
   };
 }

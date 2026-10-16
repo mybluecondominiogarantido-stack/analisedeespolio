@@ -57,6 +57,7 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   await p.click('#modal #solAddUnid'); await p.fill('#modal #solUnidades tr:nth-child(3) [data-su="unid"]', 'B - 305'); await p.fill('#modal #solUnidades tr:nth-child(3) [data-su="titular"]', 'FULANO DE TAL QUE NAO EXISTE'); await p.fill('#modal #solUnidades tr:nth-child(3) [data-su="cpf"]', '111.222.333-44');
   await p.click('#modal #solEnviar'); await p.waitForTimeout(200);
   ok(/Escolha o tipo/.test(await p.$eval('#modal #solStatus', e => e.textContent)) && (await p.evaluate(() => S.solicitacoes.length)) === 0, 'registro pela gestão exige escolher o tipo');
+  ok((await p.$eval('#rsTipo', e => e.classList.contains('invalido'))) && /Escolha o tipo/.test(await p.$eval('#toast', e => e.textContent)), 'campo que falta fica em vermelho e o aviso aparece na faixa de mensagem');
   await p.selectOption('#rsTipo', 'implantacao');
   await p.click('#modal #solEnviar'); await p.waitForFunction(() => S.solicitacoes.length === 1, { timeout: 10000 }); await p.waitForTimeout(400);
   const reg = await p.evaluate(() => S.solicitacoes[0]);
