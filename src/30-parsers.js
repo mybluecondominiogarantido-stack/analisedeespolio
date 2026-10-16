@@ -341,6 +341,30 @@ function lerSinalizacao(txt){
 /* ======================================================================
    4) Base do Power BI (Excel/CSV do dia ou PDF de um condomínio)
    ====================================================================== */
+/* "Extração das Unidades" do Vouch, filtrada pela Implantação só com as unidades marcadas em espólio.
+   Cabeçalho: "NOME DO CONDOMÍNIO - CNPJ 00.000.000/0000-00"; tabela: Unidade | Contato (proprietário) | Proprietário CPF/CNPJ | ...
+   Só unidade, titular e CPF são aproveitados; valores, contatos e prazos são descartados. */
+async function lerExtracaoUnidades(file){
+  const rows = await planilhaParaMatriz(file);
+  let condominio = '', cnpj = '';
+  for(const r of rows.slice(0, 15)){
+    const t = r.map(c => String(c || '')).join(' ');
+    const m = t.match(/^\s*(.+?)\s*-\s*CNPJ\s*([\d./-]{14,18})/i);
+    if(m){ condominio = m[1].trim(); cnpj = fmtCnpj(m[2]); break; }
+  }
+  const hi = rows.findIndex(r => r.some(c => /^unidade$/i.test(String(c).trim())) && r.some(c => /cpf/i.test(String(c))));
+  if(hi < 0) return null;
+  const head = rows[hi].map(c => String(c || '').toLowerCase().trim());
+  const cU = head.findIndex(h => /^unidade$/.test(h)), cN = head.findIndex(h => /contato|propriet[áa]rio$|nome/.test(h) && !/cpf/.test(h)), cC = head.findIndex(h => /cpf/.test(h));
+  const unidades = [];
+  for(const r of rows.slice(hi + 1)){
+    const unid = String(r[cU] ?? '').trim(); if(!unid) continue;
+    const nome = String(r[cN] ?? '').trim().replace(/^esp[óo]lio\s+(de|do|da)\s+/i, '').trim();
+    const doc = String(r[cC] ?? '').trim();
+    unidades.push({ unid, titular: nome, cpf: soDigitos(doc).length === 11 ? doc : '' });
+  }
+  return { condominio, cnpj, unidades };
+}
 async function planilhaParaMatriz(file){
   if(typeof XLSX === 'undefined') throw new Error('leitor de Excel não carregou (verifique a conexão)');
   const wb = XLSX.read(await file.arrayBuffer(), {type:'array'});

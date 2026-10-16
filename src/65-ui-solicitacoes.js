@@ -51,6 +51,8 @@ function htmlFormSolicitacao(pre){
         <div><label>CNPJ</label><input type="text" id="solCnpj" class="campo" value="${esc(pre.cnpj||'')}" placeholder="preenchido pela carteira, ou digite para buscar"></div>
       </div>
       ${pre.semTipo ? '' : `<p class="ajuda" id="solTipoInfo">${esc(tipoPeloPapel(pre.nome, pre.cnpj).texto)}</p>`}
+      <div class="doc" style="margin-top:12px"><div class="ico">XLS</div><div><b>Importar extração das unidades (Vouch)</b><span>preenche condomínio, unidades, titulares e CPF · confira antes de enviar</span></div><input type="file" accept=".xlsx,.xls,.csv" id="solExtracao"></div>
+      <div id="solExtracaoInfo"></div>
       <label style="margin-top:12px">Unidades sinalizadas</label>
       <div class="tabela-wrap"><table id="solUnidades"><thead><tr><th style="width:140px">Bloco - unidade</th><th>Titular (falecido)</th><th style="width:170px">CPF</th><th></th></tr></thead><tbody></tbody></table></div>
       <div class="acoes" style="margin-top:8px"><button class="btn sec mini" id="solAddUnid">Adicionar unidade</button></div>
@@ -114,6 +116,22 @@ function ligarFormSolicitacao(card){
   const aplicarCond = c => { cond.value = c.nome; cnpjEl.value = c.cnpj || ''; cnpjEl.dataset.auto = '1'; tipoInfo(); };
   ['input','change'].forEach(ev => cond.addEventListener(ev, () => { const c = acharPorNome(cond.value); if(c && (!cnpjEl.value.trim() || cnpjEl.dataset.auto)) aplicarCond(c); else if(!c){ if(cnpjEl.dataset.auto){ cnpjEl.value = ''; delete cnpjEl.dataset.auto; } tipoInfo(); } }));
   ['input','change'].forEach(ev => cnpjEl.addEventListener(ev, () => { delete cnpjEl.dataset.auto; const c = acharPorCnpj(cnpjEl.value); if(c) aplicarCond(c); else tipoInfo(); }));
+  /* extração das unidades do Vouch: preenche o formulário; nada é enviado sem conferência */
+  q('#solExtracao').addEventListener('change', async e => {
+    const f = e.target.files[0]; e.target.value = ''; if(!f) return;
+    const info = q('#solExtracaoInfo');
+    try{
+      const x = await lerExtracaoUnidades(f);
+      if(!x || !x.unidades.length){ info.innerHTML = '<div class="erro">Não reconheci a extração: espero as colunas Unidade, Contato e Proprietário CPF/CNPJ.</div>'; return; }
+      const c = x.cnpj ? acharPorCnpj(x.cnpj) : null;
+      if(c) aplicarCond(c); else { cond.value = x.condominio; cnpjEl.value = x.cnpj; delete cnpjEl.dataset.auto; tipoInfo(); }
+      const vazias = [...tb.querySelectorAll('tr')].filter(tr => [...tr.querySelectorAll('input')].every(i => !i.value.trim()));
+      vazias.forEach(tr => tr.remove());
+      x.unidades.forEach(u => tb.insertAdjacentHTML('beforeend', linhaUnidadeSol(u)));
+      card.dataset.fonte = f.name;
+      info.innerHTML = `<div class="ok">${x.unidades.length} unidade(s) importada(s) de “${esc(f.name)}”${c ? '' : ' · <b>condomínio não encontrado na carteira pelo CNPJ, confira</b>'}. Confira e remova o que não for espólio antes de enviar.</div>`;
+    }catch(err){ info.innerHTML = `<div class="erro">Não deu para ler o arquivo: ${esc(err.message || err)}</div>`; }
+  });
   q('#solLimpar').onclick = () => { const pai = card.parentNode; card.outerHTML = htmlFormSolicitacao(); ligarFormSolicitacao(pai.querySelector('#cardNovaSol')); };
   /* extra (registro pela gestão): { tipo, dados } */
   const enviar = async (extra) => {
@@ -127,7 +145,7 @@ function ligarFormSolicitacao(card){
     const origem = extra ? 'gestao' : (papeis().implantacao ? 'implantacao' : 'avulso');
     try{
       const c = (S.carteira.itens||[]).find(x => normCond(x.nome) === normCond(nome));
-      const criada = await criarSolicitacao({ condominio: { nome: c ? c.nome : nome, cnpj: cnpj || (c ? c.cnpj : ''), chave: chaveCond(c ? c.nome : nome, cnpj || (c ? c.cnpj : '')) }, origem, tipo, unidades, obs: q('#solObs').value.trim(), ...(extra ? extra.dados : {}) });
+      const criada = await criarSolicitacao({ condominio: { nome: c ? c.nome : nome, cnpj: cnpj || (c ? c.cnpj : ''), chave: chaveCond(c ? c.nome : nome, cnpj || (c ? c.cnpj : '')) }, origem, tipo, unidades, obs: q('#solObs').value.trim(), ...(card.dataset.fonte ? { fonte: card.dataset.fonte } : {}), ...(extra ? extra.dados : {}) });
       toast('Solicitação enviada · protocolo ' + criada.protocolo + '.', 4000); renderSolicitacoes();
       return true;
     }catch(e){ avisoForm(st, e && e.message && !e.code ? e.message : dbErr(e)); return false; }

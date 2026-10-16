@@ -71,3 +71,6 @@ Registro do que foi decidido com a Coordenação de Cobrança (out/2026) para a 
 - **Reanálise**: idade da garantia calculada pela carteira (início do contrato até a data da reanálise) e BI da base do dia, só como informação na ficha; o resultado continua só pelo Vouch.
 - **Ficha**: a tabela de cima mostra o início do contrato (a idade fica no quadro de destaques); "Próxima reanálise" só aparece, na ficha e no ticket, se alguma unidade continua em acompanhamento.
 - **Protocolo**: contador protegido no banco contra números repetidos (`docs/sql/protocolo-contador.sql`).
+- **Extração das Unidades (Vouch) na solicitação**: a Implantação marca as unidades em espólio no sistema e gera a extração já filtrada; anexada no formulário, preenche condomínio (pelo CNPJ do cabeçalho), unidades, titulares (sem o prefixo "Espólio de") e CPF. Só esses campos são aproveitados; valores e contatos são descartados. A solicitação guarda o nome do arquivo de origem. A contagem de taxas da análise continua pelo PDF do Vouch. O arquivo de enriquecimento (óbito por nome) não é usado.
+- **CPF na solicitação**: continua opcional.
+

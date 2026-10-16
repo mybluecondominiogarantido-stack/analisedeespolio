@@ -208,6 +208,13 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   ok((await p.$$eval('#p-minhas [data-sol]', t => t.length)) === 1, 'Minhas solicitações lista só a solicitação de quem está logado');
   ok((await p.evaluate(() => pendentesVerificacao().length)) === 1, 'condomínio solicitado sai do quadro');
   await p.click('[data-tab="pedir"]'); await p.waitForTimeout(200);
+  await p.setInputFiles('#p-pedir #solExtracao', path.join(__dirname, 'fixtures', 'extracao-unidades-exemplo.xlsx'));
+  await p.waitForFunction(() => /importada/.test(document.querySelector('#p-pedir #solExtracaoInfo').textContent), { timeout: 10000 });
+  const ext = await p.evaluate(() => ({ cond: document.querySelector('#p-pedir #solCond').value, cnpj: document.querySelector('#p-pedir #solCnpj').value,
+    u: [...document.querySelectorAll('#p-pedir #solUnidades tbody tr')].map(tr => [...tr.querySelectorAll('input')].map(i => i.value).join('|')) }));
+  ok(ext.cond === 'CONDOMINIO ATRASADO EXEMPLO' && ext.cnpj === '33.333.333/0001-33' && ext.u.length === 3 && ext.u[0] === 'SALA 101|FULANO DE TESTE|111.111.111-11' && ext.u[1].startsWith('SALA 102|BELTRANA EXEMPLO'), `extração das unidades preenche condomínio, unidades, titulares e CPF (${JSON.stringify(ext)})`);
+  await p.click('#p-pedir #solLimpar'); await p.waitForTimeout(150);
+  await p.click('[data-tab="pedir"]'); await p.waitForTimeout(200);
   await shot('solicitante-implantacao');
   // papel Solicitante avulso
   await papeisLocal('avulso');
