@@ -75,4 +75,5 @@ Registro do que foi decidido com a Coordenação de Cobrança (out/2026) para a 
 - **CPF na solicitação**: continua opcional.
 - **Ficha sem as caixas de resumo** por resultado (repetiam a tabela e cresciam sem limite); observações em uma linha, só quando houver.
 - **Leitura de PDFs**: unidades com palavra antes do número no Vouch (SALA 215, LOJA 01, GARAGEM 12); páginas giradas (relatórios em paisagem); relatório anterior no formato "Inadimplências consolidadas" por unidade (ex.: MSA Gestão).
+- **Ficha com muitas unidades**: encolhe até 80% para caber em uma página; passando disso, segue para novas páginas sem cortar linhas (raro).
 

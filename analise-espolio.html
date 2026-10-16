@@ -1829,7 +1829,7 @@ function fichaHTML(r){
   </div>
   ${r.nota ? `<div class="f-nota">${esc(r.nota)}</div>` : ''}
   <div class="f-secao">Unidades sinalizadas × relatórios de inadimplência</div>
-  <table class="f-tab"><thead><tr><th style="width:8%">UNID.</th><th style="width:26%">TITULAR</th><th style="width:14%">CPF</th>${semColAnt?'':'<th style="width:18%">INADIMPLÊNCIA ANTERIOR</th>'}<th style="width:16%">VOUCH</th><th style="width:18%">RESULTADO</th></tr></thead><tbody>${
+  <table class="f-tab"><thead><tr><th style="width:11%">UNID.</th><th style="width:23%">TITULAR</th><th style="width:14%">CPF</th>${semColAnt?'':'<th style="width:18%">INADIMPLÊNCIA ANTERIOR</th>'}<th style="width:16%">VOUCH</th><th style="width:18%">RESULTADO</th></tr></thead><tbody>${
     res.length ? res.map(u => `<tr><td><b>${esc(u.unid||'—')}</b></td><td>${esc(u.titular||'(a completar)')}</td><td>${esc(u.cpf||'—')}</td>${semColAnt?'':`<td>${antTxt(u)}</td>`}<td>${sit(u.vouch)}</td>
       <td class="res ${classeRes(u.resultado)}">${esc(rotuloStatus(u.resultado))}${motivoCurto(u, r) ? `<small>${esc(motivoCurto(u, r))}</small>` : ''}</td></tr>`).join('')
     : `<tr><td colspan="6" style="text-align:center;color:#6b7f88">Sem unidades sinalizadas.</td></tr>`}
@@ -1855,9 +1855,12 @@ async function baixarFichaPDF(r){
   try{
     await new Promise(res => setTimeout(res, 50));
     const h = el.offsetHeight;
-    if(h > ALT_MAX){ const k = ALT_MAX / h; el.style.width = (LARG / k) + 'px'; el.style.transform = `scale(${k})`; }
-    wrap.style.height = Math.min(h, ALT_MAX) + 'px';
-    await html2pdf().set({ margin: 6, filename: nomeFicha(r), image: { type:'jpeg', quality: 0.95 }, html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0 }, jsPDF: { unit:'mm', format:'a4', orientation:'landscape' }, pagebreak: { mode: ['css'] } }).from(wrap).save();
+    // cabe em uma página encolhendo até K_MIN (letra ainda legível); com mais unidades, segue para outra página sem cortar linhas
+    const K_MIN = 0.8;
+    if(h > ALT_MAX && ALT_MAX / h >= K_MIN){ const k = ALT_MAX / h; el.style.width = (LARG / k) + 'px'; el.style.transform = `scale(${k})`; wrap.style.height = ALT_MAX + 'px'; }
+    else if(h > ALT_MAX){ wrap.style.overflow = 'visible'; }
+    else wrap.style.height = h + 'px';
+    await html2pdf().set({ margin: 6, filename: nomeFicha(r), image: { type:'jpeg', quality: 0.95 }, html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0 }, jsPDF: { unit:'mm', format:'a4', orientation:'landscape' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.f-destaques', '.f-legenda', '.f-nota', '.f-id'] } }).from(wrap).save();
     registrarHistorico('ficha', { rodadaId: r.id, protocolo: r.protocolo, condominio: r.condominio.nome, arquivo: nomeFicha(r) });
   } finally { wrap.remove(); }
 }
