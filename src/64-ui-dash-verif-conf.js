@@ -11,7 +11,7 @@ function renderDashboard(){
   const pan = panoramaUnidades();
   const unidVenc = venc.reduce((s,i) => s + i.unidades.length, 0);
   $('#dashTiles').innerHTML = `
-    <div class="tile"><small>Espólios sinalizados</small><strong>${pan.total}</strong><em>total de unidades desde o início</em></div>
+    <div class="tile hero"><small>Espólios sinalizados</small><strong>${pan.total}</strong><em>total de unidades desde o início</em></div>
     <div class="tile"><small>Análises do mês</small><strong>${doMes.length}</strong><em>${doMes.filter(r=>r.tipo==='implantacao').length} implantação · ${doMes.filter(r=>r.tipo==='avulso').length} avulso · ${doMes.filter(r=>r.tipo==='acompanhamento').length} acompanhamento</em></div>
     <div class="tile ${solicitacoesNovas().length?'alerta':''}"><small>Pendentes</small><strong>${solicitacoesNovas().length}</strong><em>solicitações ainda não vistas · ${venc.length} reanálise(s) vencida(s) na fila</em></div>
     <div class="tile"><small>Excluídas</small><strong>${pan.excluidas}</strong><em>da garantia · acumulado</em></div>`;
