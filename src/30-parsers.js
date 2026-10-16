@@ -93,7 +93,7 @@ function lerVouch(txt){
     if((m = linha.match(/Consolidado\s*\(At[ée]\s+(\d{2}\/\d{2}\/\d{4})\)/i))){ r.corte = m[1]; const e = linha.match(/Emiss[ãa]o:\s*(\d{2}\/\d{2}\/\d{4})/i); if(e) r.emissao = e[1]; continue; }
     if((m = linha.match(/^Total\s*\((\d+)\s+taxas?\s+em\s+(\d+)\s+unidades?/i))){ if(r.totalTaxas === null){ r.totalTaxas = +m[1]; r.totalUnidades = +m[2]; } fecharDevedor(); continue; }
     if(/^Subtotal\b/i.test(linha)){ fecharDevedor(); continue; }
-    if(/^(Documento\b|Valor\b|Relat[óo]rio|FAN R&V|Tel:|Total\b)/i.test(linha)) continue;
+    if(/^(Documento\b|Valor\b|Relat[óo]rio|FAN R&V|Tel:|Total\b|Nada consta|Em dia|Sem (d[ée]bitos?|pend[êe]ncias?|inadimpl))/i.test(linha)) continue;
 
     if((m = linha.match(RE_VOUCH_TAXA))){
       if(!atual){ r.avisos.push('Taxa sem devedor: ' + linha.slice(0,60)); continue; }
@@ -143,12 +143,13 @@ function lerVouch(txt){
   }
   fecharDevedor();
 
-  r.devedores.forEach(d => d.cobrancas.forEach(t => { if(!t.comp) t.comp = t.venc.slice(3); delete t._valorPendente; delete t.compAno; }));
+  r.devedores.forEach(d => { d.cobrancas.forEach(t => { if(!t.comp) t.comp = t.venc.slice(3); delete t._valorPendente; delete t.compAno; }); d.nadaConsta = d.cobrancas.length === 0; });
   r.lidas = r.devedores.reduce((s,d) => s + d.cobrancas.length, 0);
-  r.devedores = r.devedores.filter(d => d.cobrancas.length);
-  r.conferido = r.totalTaxas !== null && r.lidas === r.totalTaxas && r.devedores.length === r.totalUnidades;
+  r.inadimplentes = r.devedores.filter(d => !d.nadaConsta).length;
+  r.emDia = r.devedores.length - r.inadimplentes;
+  r.conferido = r.totalTaxas !== null && r.lidas === r.totalTaxas && r.inadimplentes === r.totalUnidades;
   if(r.totalTaxas !== null && !r.conferido)
-    r.avisos.push(`Leitura divergente: li ${r.lidas} taxas em ${r.devedores.length} unidades, o relatório informa ${r.totalTaxas} em ${r.totalUnidades}.`);
+    r.avisos.push(`Leitura divergente: li ${r.lidas} taxas em ${r.inadimplentes} unidades, o relatório informa ${r.totalTaxas} em ${r.totalUnidades}.`);
   if(r.totalTaxas === null) r.avisos.push('Não encontrei a linha "Total (N taxas em M unidades)" — não foi possível conferir a leitura.');
   return r;
 }

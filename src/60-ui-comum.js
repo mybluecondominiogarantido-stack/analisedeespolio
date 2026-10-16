@@ -41,7 +41,7 @@ function cardUnidade(u, r, dev, rid, opts){
   opts = opts || {};
   const c = { r: u.resultado, regra: u.regra, motivo: u.motivo };
   const travada = r.status === 'concluida';
-  const cas = campo => { const k = u.cas[campo]; if(u.esc[campo] === 'manual') return '<span class="casamento">contagem manual</span>'; if(!k) return `<span class="casamento nao">não localizado</span>`; return `<span class="casamento ${k.modo==='nome'?'fraco':''}">↔ ${esc(k.nome)}${k.unid?' ('+esc(k.unid)+')':''} · ${esc(k.modo)}</span>`; };
+  const cas = campo => { const k = u.cas[campo]; if(u.esc[campo] === 'manual') return '<span class="casamento">contagem manual</span>'; if(!k) return `<span class="casamento nao">não localizado no relatório</span>`; return `<span class="casamento ${k.modo==='nome'?'fraco':''}">↔ ${esc(k.nome)}${k.unid?' ('+esc(k.unid)+')':''} · ${esc(k.modo)}${k.nadaConsta?' · <b>nada consta</b>':''}</span>`; };
   const destaque = opts.destaque ? ' destaque' : '';
   const anterior = opts.anterior;   // resultado na rodada anterior (lote)
   const mudou = anterior && anterior !== u.resultado;
@@ -55,7 +55,7 @@ function cardUnidade(u, r, dev, rid, opts){
   return `<details class="unid${destaque}" data-rid="${rid}" data-uid="${u.id}" ${opts.aberto?'open':''}>
     <summary>
       <div class="num">${esc(u.unid || '—')}</div>
-      <div class="quem"><b>${esc(u.titular || '(titular a completar)')}</b><span>${esc(u.cpf || 'sem CPF')}${u.completar?' · <b style="color:#b57a12">completar</b>':''}</span>
+      <div class="quem"><b>${esc(u.titular || '(titular a completar)')}</b><span>${esc(u.cpf || 'sem CPF')}${u.completar?' · <b style="color:#b57a12">completar</b>':''}${u.titularAuto==='vouch'?' · titular vindo do Vouch, confira':''}</span>
         <div class="taxas"><span>Vouch <b>${u.vouch===null||u.vouch===undefined?'—':u.vouch}</b></span>${semAnt?'':`<span>Anterior <b>${u.ant===null||u.ant===undefined?'—':u.ant}</b></span>`}${anterior?`<span>antes: <b>${esc(rotuloStatus(anterior))}</b></span>`:''}</div></div>
       <div class="res"><span class="selo ${classeSelo(c.r)}">${esc(rotuloStatus(c.r))}</span>${mudou?' <span class="selo s-rean">mudou</span>':''}${u.pendente?' <span class="selo s-rean">pendência 5.5</span>':''}<div class="motivo">Regra ${esc(c.regra)} · ${esc(c.motivo)}</div></div>
     </summary>

@@ -112,7 +112,8 @@ function renderDiagnostico(){
     if(!lista.length) return `<div class="aviso"><b>${titulo}:</b> nenhum devedor reconhecido. Ou o PDF é escaneado (sem texto), ou o layout é diferente do previsto. Revise o texto extraído.</div>`;
     const casados = r.unidades.filter(u => u.esc[campo] !== null && u.esc[campo] !== undefined).length;
     const conf = campo === 'vouch' && r.vouch ? (r.vouch.conferido ? ` · conferido com o total do relatório (${r.vouch.totalTaxas} taxas em ${r.vouch.totalUnidades} unidades)` : ` · <b style="color:var(--red)">leitura divergente do total impresso (${r.vouch.lidas} lidas de ${r.vouch.totalTaxas})</b>`) : '';
-    return `<div class="${campo==='vouch' && r.vouch && !r.vouch.conferido ? 'aviso' : 'ok'}"><b>${titulo}:</b> ${lista.length} devedor(es) com cobrança em aberto · ${casados} de ${r.unidades.length} espólios casados${conf}${r.vouch && r.vouch.corte && campo==='vouch' ? ' · consolidado até ' + esc(r.vouch.corte) : ''}
+    const emDia = lista.filter(b => b.nadaConsta).length;
+    return `<div class="${campo==='vouch' && r.vouch && !r.vouch.conferido ? 'aviso' : 'ok'}"><b>${titulo}:</b> ${lista.length - emDia} devedor(es) com cobrança em aberto${emDia ? ` · ${emDia} unidade(s) em dia (nada consta)` : ''} · ${casados} de ${r.unidades.length} espólios casados${conf}${r.vouch && r.vouch.corte && campo==='vouch' ? ' · consolidado até ' + esc(r.vouch.corte) : ''}
       <details style="margin-top:6px"><summary style="cursor:pointer;font-size:12.5px">Ver devedores encontrados</summary><ul style="margin:6px 0 0;padding-left:18px;font-size:12.5px">${lista.map(b => `<li>${esc(b.nome)}${b.unidadeTxt||b.unidade?' — '+esc(b.unidadeTxt||b.unidade):''}${b.cpf?' — '+esc(b.cpf):''} — <b>${b.cobrancas.filter(c=>c.incluir!==false).length}</b> taxa(s)</li>`).join('')}</ul></details></div>`;
   };
   $('#diagnostico').innerHTML = item('Vouch','vouch') + (r.tipo === 'acompanhamento' ? '' : item('Administradora anterior','ant'));

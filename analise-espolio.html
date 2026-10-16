@@ -702,7 +702,7 @@ function lerVouch(txt){
     if((m = linha.match(/Consolidado\s*\(At[ée]\s+(\d{2}\/\d{2}\/\d{4})\)/i))){ r.corte = m[1]; const e = linha.match(/Emiss[ãa]o:\s*(\d{2}\/\d{2}\/\d{4})/i); if(e) r.emissao = e[1]; continue; }
     if((m = linha.match(/^Total\s*\((\d+)\s+taxas?\s+em\s+(\d+)\s+unidades?/i))){ if(r.totalTaxas === null){ r.totalTaxas = +m[1]; r.totalUnidades = +m[2]; } fecharDevedor(); continue; }
     if(/^Subtotal\b/i.test(linha)){ fecharDevedor(); continue; }
-    if(/^(Documento\b|Valor\b|Relat[óo]rio|FAN R&V|Tel:|Total\b)/i.test(linha)) continue;
+    if(/^(Documento\b|Valor\b|Relat[óo]rio|FAN R&V|Tel:|Total\b|Nada consta|Em dia|Sem (d[ée]bitos?|pend[êe]ncias?|inadimpl))/i.test(linha)) continue;
 
     if((m = linha.match(RE_VOUCH_TAXA))){
       if(!atual){ r.avisos.push('Taxa sem devedor: ' + linha.slice(0,60)); continue; }
@@ -752,12 +752,13 @@ function lerVouch(txt){
   }
   fecharDevedor();
 
-  r.devedores.forEach(d => d.cobrancas.forEach(t => { if(!t.comp) t.comp = t.venc.slice(3); delete t._valorPendente; delete t.compAno; }));
+  r.devedores.forEach(d => { d.cobrancas.forEach(t => { if(!t.comp) t.comp = t.venc.slice(3); delete t._valorPendente; delete t.compAno; }); d.nadaConsta = d.cobrancas.length === 0; });
   r.lidas = r.devedores.reduce((s,d) => s + d.cobrancas.length, 0);
-  r.devedores = r.devedores.filter(d => d.cobrancas.length);
-  r.conferido = r.totalTaxas !== null && r.lidas === r.totalTaxas && r.devedores.length === r.totalUnidades;
+  r.inadimplentes = r.devedores.filter(d => !d.nadaConsta).length;
+  r.emDia = r.devedores.length - r.inadimplentes;
+  r.conferido = r.totalTaxas !== null && r.lidas === r.totalTaxas && r.inadimplentes === r.totalUnidades;
   if(r.totalTaxas !== null && !r.conferido)
-    r.avisos.push(`Leitura divergente: li ${r.lidas} taxas em ${r.devedores.length} unidades, o relatório informa ${r.totalTaxas} em ${r.totalUnidades}.`);
+    r.avisos.push(`Leitura divergente: li ${r.lidas} taxas em ${r.inadimplentes} unidades, o relatório informa ${r.totalTaxas} em ${r.totalUnidades}.`);
   if(r.totalTaxas === null) r.avisos.push('Não encontrei a linha "Total (N taxas em M unidades)" — não foi possível conferir a leitura.');
   return r;
 }
@@ -1068,7 +1069,10 @@ function melhorDevedor(u, lista){
     if(s > melhorS){ melhorS = s; melhor = i; }
   });
   if(melhorS < 0.75) return null;
-  return { i: melhor, score: melhorS, modo: melhorS >= 9 ? 'CPF' : melhorS >= 1.6 ? 'nome + unidade' : 'nome' };
+  const b = lista[melhor];
+  const unidIgual = uNorm && normUnid(b.unidadeTxt || b.unidade) === uNorm;
+  const nomeBate = scoreNome(u.titular, b.nome) >= 0.75;
+  return { i: melhor, score: melhorS, modo: melhorS >= 9 ? 'CPF' : unidIgual && nomeBate ? 'nome + unidade' : unidIgual ? 'unidade' : 'nome' };
 }
 
 /* contagem de taxas de um espólio em um relatório (campo 'vouch' ou 'ant') */
@@ -1253,7 +1257,10 @@ function recalcular(r, dev, lidos){
       if(u.esc[campo] === 'manual') return;
       const m = melhorDevedor(u, dev[campo]);
       u.esc[campo] = m ? m.i : null;
-      u.cas[campo] = m ? { nome: dev[campo][m.i].nome, unid: dev[campo][m.i].unidadeTxt || dev[campo][m.i].unidade, modo: m.modo, score: m.score } : null;
+      const b = m ? dev[campo][m.i] : null;
+      u.cas[campo] = b ? { nome: b.nome, unid: b.unidadeTxt || b.unidade, modo: m.modo, score: m.score, nadaConsta: !!b.nadaConsta } : null;
+      // unidade da carga inicial (sem titular) casada pelo número no Vouch: preenche titular e CPF para conferência
+      if(b && campo === 'vouch' && m.modo === 'unidade' && !u.titular){ u.titular = b.nome; if(!u.cpf && b.cpf) u.cpf = b.cpf; u.titularAuto = 'vouch'; u.completar = false; }
     });
     if(!u.unid || u.unidAuto){
       const bv = u.esc.vouch !== null && u.esc.vouch !== 'manual' ? dev.vouch[u.esc.vouch] : null;
@@ -1391,7 +1398,7 @@ function cardUnidade(u, r, dev, rid, opts){
   opts = opts || {};
   const c = { r: u.resultado, regra: u.regra, motivo: u.motivo };
   const travada = r.status === 'concluida';
-  const cas = campo => { const k = u.cas[campo]; if(u.esc[campo] === 'manual') return '<span class="casamento">contagem manual</span>'; if(!k) return `<span class="casamento nao">não localizado</span>`; return `<span class="casamento ${k.modo==='nome'?'fraco':''}">↔ ${esc(k.nome)}${k.unid?' ('+esc(k.unid)+')':''} · ${esc(k.modo)}</span>`; };
+  const cas = campo => { const k = u.cas[campo]; if(u.esc[campo] === 'manual') return '<span class="casamento">contagem manual</span>'; if(!k) return `<span class="casamento nao">não localizado no relatório</span>`; return `<span class="casamento ${k.modo==='nome'?'fraco':''}">↔ ${esc(k.nome)}${k.unid?' ('+esc(k.unid)+')':''} · ${esc(k.modo)}${k.nadaConsta?' · <b>nada consta</b>':''}</span>`; };
   const destaque = opts.destaque ? ' destaque' : '';
   const anterior = opts.anterior;   // resultado na rodada anterior (lote)
   const mudou = anterior && anterior !== u.resultado;
@@ -1405,7 +1412,7 @@ function cardUnidade(u, r, dev, rid, opts){
   return `<details class="unid${destaque}" data-rid="${rid}" data-uid="${u.id}" ${opts.aberto?'open':''}>
     <summary>
       <div class="num">${esc(u.unid || '—')}</div>
-      <div class="quem"><b>${esc(u.titular || '(titular a completar)')}</b><span>${esc(u.cpf || 'sem CPF')}${u.completar?' · <b style="color:#b57a12">completar</b>':''}</span>
+      <div class="quem"><b>${esc(u.titular || '(titular a completar)')}</b><span>${esc(u.cpf || 'sem CPF')}${u.completar?' · <b style="color:#b57a12">completar</b>':''}${u.titularAuto==='vouch'?' · titular vindo do Vouch, confira':''}</span>
         <div class="taxas"><span>Vouch <b>${u.vouch===null||u.vouch===undefined?'—':u.vouch}</b></span>${semAnt?'':`<span>Anterior <b>${u.ant===null||u.ant===undefined?'—':u.ant}</b></span>`}${anterior?`<span>antes: <b>${esc(rotuloStatus(anterior))}</b></span>`:''}</div></div>
       <div class="res"><span class="selo ${classeSelo(c.r)}">${esc(rotuloStatus(c.r))}</span>${mudou?' <span class="selo s-rean">mudou</span>':''}${u.pendente?' <span class="selo s-rean">pendência 5.5</span>':''}<div class="motivo">Regra ${esc(c.regra)} · ${esc(c.motivo)}</div></div>
     </summary>
@@ -1678,7 +1685,8 @@ function renderDiagnostico(){
     if(!lista.length) return `<div class="aviso"><b>${titulo}:</b> nenhum devedor reconhecido. Ou o PDF é escaneado (sem texto), ou o layout é diferente do previsto. Revise o texto extraído.</div>`;
     const casados = r.unidades.filter(u => u.esc[campo] !== null && u.esc[campo] !== undefined).length;
     const conf = campo === 'vouch' && r.vouch ? (r.vouch.conferido ? ` · conferido com o total do relatório (${r.vouch.totalTaxas} taxas em ${r.vouch.totalUnidades} unidades)` : ` · <b style="color:var(--red)">leitura divergente do total impresso (${r.vouch.lidas} lidas de ${r.vouch.totalTaxas})</b>`) : '';
-    return `<div class="${campo==='vouch' && r.vouch && !r.vouch.conferido ? 'aviso' : 'ok'}"><b>${titulo}:</b> ${lista.length} devedor(es) com cobrança em aberto · ${casados} de ${r.unidades.length} espólios casados${conf}${r.vouch && r.vouch.corte && campo==='vouch' ? ' · consolidado até ' + esc(r.vouch.corte) : ''}
+    const emDia = lista.filter(b => b.nadaConsta).length;
+    return `<div class="${campo==='vouch' && r.vouch && !r.vouch.conferido ? 'aviso' : 'ok'}"><b>${titulo}:</b> ${lista.length - emDia} devedor(es) com cobrança em aberto${emDia ? ` · ${emDia} unidade(s) em dia (nada consta)` : ''} · ${casados} de ${r.unidades.length} espólios casados${conf}${r.vouch && r.vouch.corte && campo==='vouch' ? ' · consolidado até ' + esc(r.vouch.corte) : ''}
       <details style="margin-top:6px"><summary style="cursor:pointer;font-size:12.5px">Ver devedores encontrados</summary><ul style="margin:6px 0 0;padding-left:18px;font-size:12.5px">${lista.map(b => `<li>${esc(b.nome)}${b.unidadeTxt||b.unidade?' — '+esc(b.unidadeTxt||b.unidade):''}${b.cpf?' — '+esc(b.cpf):''} — <b>${b.cobrancas.filter(c=>c.incluir!==false).length}</b> taxa(s)</li>`).join('')}</ul></details></div>`;
   };
   $('#diagnostico').innerHTML = item('Vouch','vouch') + (r.tipo === 'acompanhamento' ? '' : item('Administradora anterior','ant'));

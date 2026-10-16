@@ -109,7 +109,10 @@ function recalcular(r, dev, lidos){
       if(u.esc[campo] === 'manual') return;
       const m = melhorDevedor(u, dev[campo]);
       u.esc[campo] = m ? m.i : null;
-      u.cas[campo] = m ? { nome: dev[campo][m.i].nome, unid: dev[campo][m.i].unidadeTxt || dev[campo][m.i].unidade, modo: m.modo, score: m.score } : null;
+      const b = m ? dev[campo][m.i] : null;
+      u.cas[campo] = b ? { nome: b.nome, unid: b.unidadeTxt || b.unidade, modo: m.modo, score: m.score, nadaConsta: !!b.nadaConsta } : null;
+      // unidade da carga inicial (sem titular) casada pelo número no Vouch: preenche titular e CPF para conferência
+      if(b && campo === 'vouch' && m.modo === 'unidade' && !u.titular){ u.titular = b.nome; if(!u.cpf && b.cpf) u.cpf = b.cpf; u.titularAuto = 'vouch'; u.completar = false; }
     });
     if(!u.unid || u.unidAuto){
       const bv = u.esc.vouch !== null && u.esc.vouch !== 'manual' ? dev.vouch[u.esc.vouch] : null;

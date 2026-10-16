@@ -14,7 +14,10 @@ function melhorDevedor(u, lista){
     if(s > melhorS){ melhorS = s; melhor = i; }
   });
   if(melhorS < 0.75) return null;
-  return { i: melhor, score: melhorS, modo: melhorS >= 9 ? 'CPF' : melhorS >= 1.6 ? 'nome + unidade' : 'nome' };
+  const b = lista[melhor];
+  const unidIgual = uNorm && normUnid(b.unidadeTxt || b.unidade) === uNorm;
+  const nomeBate = scoreNome(u.titular, b.nome) >= 0.75;
+  return { i: melhor, score: melhorS, modo: melhorS >= 9 ? 'CPF' : unidIgual && nomeBate ? 'nome + unidade' : unidIgual ? 'unidade' : 'nome' };
 }
 
 /* contagem de taxas de um espólio em um relatório (campo 'vouch' ou 'ant') */
