@@ -128,7 +128,7 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   await p.waitForFunction(() => S.carteira.itens && S.carteira.itens.length === 4, { timeout: 10000 }); await p.waitForTimeout(300);
   const pend = await p.evaluate(() => pendentesVerificacao().map(c => c.nome));
   ok(pend.length === 2 && pend.includes('CONDOMINIO JARDIM DE NAZARE') && !pend.includes('CONDOMINIO ESMERALDA IV'), `pendentes de verificação excluem quem já tem rodada e os distratados (${pend.join(', ')})`);
-  await p.click('#confPerfilToggle'); await p.waitForTimeout(300);
+  await p.click('#chipTrocar'); await p.waitForTimeout(300);
   ok((await p.$$eval('.tab', t => t.filter(x => !x.hidden).length)) === 2, 'solicitante vê só as abas Solicitar análise e Minhas solicitações');
   const chaveNaz = await p.evaluate(() => S.carteira.itens.find(c => c.nome === 'CONDOMINIO JARDIM DE NAZARE').chave);
   await p.click(`[data-assumir="${chaveNaz}"]`); await p.waitForTimeout(400);

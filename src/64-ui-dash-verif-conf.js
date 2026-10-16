@@ -67,14 +67,13 @@ function renderConfGestao(){
     <table><thead><tr><th>Gestão</th><th></th></tr></thead><tbody>${lista.map((g,i) => `<tr><td>${esc(g.nome||'')}${g.id?` <span class="ajuda" style="margin:0;display:inline">· login ${esc(String(g.id))}</span>`:''}${g.padrao?' <span class="selo s-rasc">padrão</span>':''}</td><td>${g.padrao?'':`<button class="btn perigo mini" data-gestao-rm="${i}">×</button>`}</td></tr>`).join('')}</tbody></table>
     <div class="acoes" style="margin-top:10px"><input type="text" id="confGestaoNome" class="campo" style="width:auto;min-width:220px" placeholder="Nome como aparece no portal"><button class="btn sec mini" id="confGestaoAdd">Adicionar à gestão</button><button class="btn sec mini" id="confGestaoEu">Adicionar a mim (${esc(ME.name||'eu')})</button></div>
     <div style="margin-top:12px"><label>Verificar implantações a partir de</label><input type="month" id="confVerifDesde" class="campo" style="width:auto" value="${esc(S.acesso.verificacaoDesde||'')}"><p class="ajuda">Condomínios com início de contrato antes desse mês não entram nos pendentes de verificação (já cobertos pela planilha de controle).</p></div>
-    ${DB._local ? `<div class="acoes" style="margin-top:12px"><button class="btn sec mini" id="confPerfilToggle">Ver como ${ehGestao() ? 'solicitante' : 'gestão'} (modo local)</button></div>` : ''}`;
+    ${DB._local ? `<p class="ajuda">Modo local: para testar o outro perfil, use "ver como…" no chip do usuário, no alto da página.</p>` : ''}`;
   const salvar = patch => gravarDoc(COLECOES.meta + '/acesso', patch, S.acesso);
   const atual = () => (S.acesso.gestao && S.acesso.gestao.length ? S.acesso.gestao : GESTAO_PADRAO.map(n => ({ nome: n }))).map(g => ({ nome: g.nome, id: g.id || null }));
   $('#confGestaoAdd').onclick = () => { const n = $('#confGestaoNome').value.trim(); if(!n) return; salvar({ gestao: atual().concat([{ nome: n, id: null }]) }); };
   $('#confGestaoEu').onclick = () => salvar({ gestao: atual().concat([{ nome: ME.name, id: ME.id }]) });
   $('#confGestao').querySelectorAll('[data-gestao-rm]').forEach(b => b.onclick = async () => { const l = atual(); l.splice(+b.dataset.gestaoRm, 1); if(!l.length && !(await confirmar('Sem ninguém na gestão, volta ao padrão (Beatriz Teixeira). Continuar?'))) return; salvar({ gestao: l }); });
   $('#confVerifDesde').onchange = e => salvar({ verificacaoDesde: e.target.value });
-  if($('#confPerfilToggle')) $('#confPerfilToggle').onclick = () => { localStorage.setItem('myblue_espolio_perfil', ehGestao() ? 'solicitante' : 'gestao'); PERFIL = calcularPerfil(S.acesso); atualizarChipPerfil(); aplicarPerfil(); renderTudo(); };
 }
 function renderConfCarteira(){
   const c = S.carteira;

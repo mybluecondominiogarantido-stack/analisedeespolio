@@ -84,8 +84,11 @@ async function conectarBase(){
 }
 function atualizarChipPerfil(){
   const chip = $('#chipUsuario');
-  chip.textContent = (ME.name || 'Usuário') + ' · ' + (ehGestao() ? 'gestão' : 'solicitante') + (CAN_WRITE ? '' : ' · somente leitura');
+  const local = DB && DB._local;
+  chip.innerHTML = esc(ME.name || 'Usuário') + ' · ' + (ehGestao() ? 'gestão' : 'solicitante') + (CAN_WRITE ? '' : ' · somente leitura')
+    + (local ? ` <button class="link" id="chipTrocar" style="margin-left:6px">ver como ${ehGestao() ? 'solicitante' : 'gestão'}</button>` : '');
   chip.hidden = false;
+  if(local) $('#chipTrocar').onclick = () => { localStorage.setItem('myblue_espolio_perfil', ehGestao() ? 'solicitante' : 'gestao'); PERFIL = calcularPerfil(S.acesso); atualizarChipPerfil(); aplicarPerfil(); renderTudo(); };
 }
 
 /* grava com update; se o doc não existe, set */
