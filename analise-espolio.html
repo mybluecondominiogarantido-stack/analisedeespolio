@@ -304,7 +304,7 @@ tr.clic{cursor:pointer}tr.clic:hover td{background:var(--surface-2)}
           <div class="corpo">
             <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:14px">
               <span style="font-weight:700;color:var(--petrol);font-size:13px">Tipo de análise</span>
-              <div class="seg" id="tipoAnalise"><button type="button" data-tipo="implantacao" class="ativo">Implantação</button><button type="button" data-tipo="acompanhamento">Acompanhamento</button></div>
+              <span class="selo s-prev" id="tipoRotulo">Implantação · 1ª análise</span>
               <span class="ajuda" style="margin:0" id="tipoAjuda">Implantação: 1ª análise, base Preventivo, regras 1 a 5.</span>
             </div>
             <div class="grade">
@@ -1580,10 +1580,9 @@ function renderNovaLista(){
   lista.hidden = false; editor.hidden = true;
   const rasc = S.rodadas.filter(r => r.status === 'rascunho').sort((a,b) => (b.criadaEm||'').localeCompare(a.criadaEm||''));
   lista.innerHTML = `
-    <div class="card"><header><h2>Iniciar</h2><span class="dica">implantação é a 1ª análise de um condomínio; a reanálise dos condomínios em acompanhamento fica na aba “Fila de acompanhamento”</span></header>
+    <div class="card"><header><h2>Iniciar</h2><span class="dica">implantação é a 1ª análise de um condomínio e alimenta a fila de acompanhamento · a reanálise fica na aba Fila de acompanhamento</span></header>
       <div class="corpo acoes">
         <button class="btn" id="btnNovaImplantacao">Nova análise de implantação</button>
-        <button class="btn sec" id="btnNovaAcomp">Reanálise de um condomínio</button>
       </div></div>
     <div class="card"><header><h2>Rascunhos</h2><span class="dica">${rasc.length} em andamento</span></header>
       ${rasc.length ? `<div class="tabela-wrap"><table><thead><tr><th>Condomínio</th><th>Tipo</th><th>Criado em</th><th>Unidades</th><th></th></tr></thead><tbody>${
@@ -1592,19 +1591,9 @@ function renderNovaLista(){
       : '<div class="corpo"><div class="vazio">Nenhum rascunho. Comece uma nova análise.</div></div>'}
     </div>`;
   $('#btnNovaImplantacao').onclick = () => abrirEditor(novaRodada('implantacao'));
-  $('#btnNovaAcomp').onclick = escolherCondominioParaReanalise;
   lista.querySelectorAll('[data-continuar]').forEach(b => b.onclick = () => { const r = S.rodadas.find(x => x.id === b.dataset.continuar); if(r) abrirEditor(JSON.parse(JSON.stringify(r))); });
   lista.querySelectorAll('[data-excluir-rasc]').forEach(b => b.onclick = async () => { if(!(await confirmar('Excluir este rascunho? Isso não pode ser desfeito.'))) return; await DB.doc(COLECOES.rodadas + '/' + b.dataset.excluirRasc).delete(); try{ await DB.doc(COLECOES.evidencias + '/' + b.dataset.excluirRasc).delete(); }catch(_){} toast('Rascunho excluído.'); });
 }
-function escolherCondominioParaReanalise(){
-  const f = fila();
-  if(!f.length){ toast('Não há condomínios em acompanhamento na fila.'); return; }
-  abrirModal('Reanálise de um condomínio', `<p class="ajuda" style="margin:0 0 10px">Escolha o condomínio. As unidades da última rodada já vêm carregadas.</p>
-    <select id="selReanalise" class="campo">${f.map((i,n) => `<option value="${n}">${esc(i.condominio.nome)} · ${i.unidades.length} unid. · prazo ${fmtData(i.prazo)}${i.vencida?' (vencida)':''}</option>`).join('')}</select>
-    <div class="acoes" style="margin-top:12px"><button class="btn" id="btnConfReanalise">Abrir rodada</button></div>`);
-  $('#btnConfReanalise').onclick = () => { const it = f[+$('#selReanalise').value]; fecharModal(); abrirEditor(rodadaDeAcompanhamento(it.rodada)); };
-}
-
 async function abrirEditor(r){
   S.rodada = r; S.dev = { vouch: [], ant: [] }; S.textos = { vouch:'', ant:'', email:'' };
   if(r.id){ try{ const ev = await carregarEvidencias(r.id); if(ev){ S.textos = { vouch:'', ant:'', email:'', ...(ev.textos||{}) }; S.dev = { vouch: [], ant: [], ...(ev.dev||{}) }; } }catch(_){} }
@@ -1621,7 +1610,8 @@ function renderEditor(){
   set('#inicio', r.idadeGarantia, r.idadeAuto); set('#analista', r.analista, r.analistaAuto);
   set('#bi', r.bi ? r.bi.valor : '', r.biAuto); set('#dataAnalise', r.dataAnalise); set('#nota', r.nota);
   $$('#sinalBi button').forEach(b => b.classList.toggle('ativo', b.dataset.sinal === ((r.bi && r.bi.sinal) || '-')));
-  $$('#tipoAnalise button').forEach(b => b.classList.toggle('ativo', b.dataset.tipo === r.tipo));
+  $('#tipoRotulo').textContent = r.tipo === 'acompanhamento' ? 'Acompanhamento · reanálise' : 'Implantação · 1ª análise';
+  $('#tipoRotulo').className = 'selo ' + (r.tipo === 'acompanhamento' ? 's-rean' : 's-prev');
   $('#tipoAjuda').textContent = r.tipo === 'acompanhamento' ? 'Acompanhamento: reanálise, base Reanálise, só o Vouch entra (3+ taxas exclui).' : 'Implantação: 1ª análise, base Preventivo, regras 1 a 5.';
   $('#semAnterior').checked = !!r.semAnterior; $('#semBi').checked = !!r.semBi;
   $('#relVouch').value = S.textos.vouch; $('#relAdmin').value = S.textos.ant; $('#relEmail').value = S.textos.email;
@@ -1794,7 +1784,6 @@ ligarCampo('#bi', (v, r) => { r.bi = v === '' ? null : { valor: +String(v).repla
 ligarCampo('#dataAnalise', (v, r) => { r.dataAnalise = v || hojeISO(); });
 ligarCampo('#nota', (v, r) => { r.nota = v; });
 $('#sinalBi').addEventListener('click', e => { const b = e.target.closest('button[data-sinal]'); if(!b || !S.rodada) return; $$('#sinalBi button').forEach(x => x.classList.toggle('ativo', x === b)); const r = S.rodada; if(r.bi) r.bi.sinal = b.dataset.sinal; delete r.biAuto; delete $('#bi').dataset.auto; recalcular(r, S.dev, { vouch: !!S.textos.vouch.trim(), ant: !!S.textos.ant.trim() }); renderEditorUnidades(true); renderFichaPreview(); agendarSalvar('nova'); });
-$('#tipoAnalise').addEventListener('click', e => { const b = e.target.closest('button[data-tipo]'); if(!b || !S.rodada) return; S.rodada.tipo = b.dataset.tipo; renderEditor(); agendarSalvar('nova'); });
 ['#semAnterior','#semBi'].forEach(id => $(id).addEventListener('change', e => { if(!S.rodada) return; S.rodada[id === '#semAnterior' ? 'semAnterior' : 'semBi'] = e.target.checked; recalcular(S.rodada, S.dev, { vouch: !!S.textos.vouch.trim(), ant: !!S.textos.ant.trim() }); renderEditorUnidades(true); renderFichaPreview(); agendarSalvar('nova'); }));
 
 /* bloco 3 */
