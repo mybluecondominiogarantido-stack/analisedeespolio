@@ -13,6 +13,8 @@ Módulo do portal MyBlue para a Coordenação de Cobrança: solicitações de an
 | `test/e2e.js` | Teste de ponta a ponta em Chromium headless, em modo local |
 | `docs/fluxograma-analise-espolio.html` | Fluxograma do processo |
 | `docs/mockup-analise-espolio.html` | Mockup aprovado do layout |
+| `docs/formatador-relatorio-anterior.md` | Instrução do projeto no Claude que converte qualquer relatório anterior para a planilha padrão |
+| `docs/modelos/Relatorio_anterior_padrao.xlsx` | Modelo da planilha padrão do relatório anterior |
 | `docs/decisoes.md` | Decisões alinhadas com a coordenação |
 | `docs/guia-implantacao-portal.md` | **Guia de implantação no portal** |
 | `docs/sql/carteira-e-modulo.sql` | Cadastro do módulo e carteira espelhada (aplicado em 16/10/2026) |

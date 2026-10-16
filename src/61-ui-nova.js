@@ -180,8 +180,16 @@ $('#docsGrade').addEventListener('change', async e => {
   const origem = inp.dataset.doc;
   if(origem === 'bi'){ await subirBaseBi(f); aplicarBaseBi(); renderFichaPreview(); return; }
   const span = inp.parentElement.querySelector('span'); span.textContent = 'Lendo ' + f.name + '…';
-  try{ const txt = await pdfParaTexto(f); processarTexto(origem, txt, f.name); }
-  catch(err){ span.textContent = 'Não deu para ler o PDF: ' + err.message; inp.parentElement.classList.add('erro'); }
+  try{
+    if(origem === 'ant' && /\.(xlsx|xls|csv)$/i.test(f.name)){
+      const pl = await lerPlanilhaAnterior(f); processarTexto('ant', pl.texto, f.name);
+      const nCob = (S.dev.ant || []).reduce((s, d) => s + d.cobrancas.length, 0);
+      span.innerHTML = `Planilha padrão: <b>${pl.unidades} unidade(s)</b> e <b>${pl.linhas} linha(s)</b> lidas · ${nCob} competência(s) contadas. Confira com o total do relatório original.`;
+      return;
+    }
+    const txt = await pdfParaTexto(f); processarTexto(origem, txt, f.name);
+  }
+  catch(err){ span.textContent = 'Não deu para ler o arquivo: ' + err.message; inp.parentElement.classList.add('erro'); }
 });
 async function subirBaseBi(f){
   const ehPlanilha = /\.(xlsx|xls|csv)$/i.test(f.name);

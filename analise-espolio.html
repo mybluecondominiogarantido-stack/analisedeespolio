@@ -304,7 +304,7 @@ tr.clic{cursor:pointer}
           <div class="corpo">
             <div class="grade" id="docsGrade">
               <div class="doc" id="docVouch"><div class="ico">PDF</div><div><b>Inadimplência MyBlue (Vouch)</b><span>Relatório consolidado do Vouch</span></div><input type="file" accept="application/pdf" data-doc="vouch"></div>
-              <div class="doc" id="docAnt"><div class="ico">PDF</div><div><b>Inadimplência anterior</b><span>Relatório da administradora anterior</span></div><input type="file" accept="application/pdf" data-doc="ant"></div>
+              <div class="doc" id="docAnt"><div class="ico">PDF</div><div><b>Inadimplência anterior</b><span>PDF da administradora anterior ou planilha padrão (Excel/CSV)</span></div><input type="file" accept="application/pdf,.xlsx,.xls,.csv" data-doc="ant"></div>
               <div class="doc" id="docEmail"><div class="ico">PDF</div><div><b>E-mail de sinalização</b><span>Espólios sinalizados pela Cobrança</span></div><input type="file" accept="application/pdf" data-doc="email"></div>
               <div class="doc" id="docBi"><div class="ico">BI</div><div><b>Power BI · base do dia</b><span id="docBiStatus">Nenhuma base carregada</span></div><input type="file" accept=".xlsx,.xls,.csv,application/pdf" data-doc="bi"></div>
             </div>
@@ -882,24 +882,27 @@ function extrairDevedoresConsolidado(txt){
 function extrairDevedoresRotulados(txt){
   const linhas = txt.split(/\r?\n/);
   if(linhas.filter(l => /^\s*Unidade\s*:\s*\S/i.test(l)).length < 1) return null;
+  const padrao = /PLANILHA PADR[ÃA]O/i.test(linhas[0] || '');   // vinda da planilha padrão: vencimento é opcional
   const lista = []; let atual = null;
   for(const bruta of linhas){
     const linha = bruta.trim(); if(!linha) continue;
     const mU = linha.match(/^Unidade\s*:\s*([^|]+?)\s*(?:\||$)/i);
     if(mU){
-      const partes = mU[1].split(/\s+-\s+/);
-      const unid = partes.shift().trim(), nome = partes.join(' - ').trim();
+      // planilha padrão: "Unidade: A - 101 | Titular: NOME | CPF" (a unidade pode ter hífen); relatórios: "Unidade: SALA 601 - NOME"
+      const mT = linha.match(/\|\s*Titular:\s*([^|]*)/i);
+      const partes = mT ? [mU[1]] : mU[1].split(/\s+-\s+/);
+      const unid = partes.shift().trim(), nome = mT ? mT[1].trim() : partes.join(' - ').trim();
       atual = { unidade: unid, unidadeTxt: unid, nome, cpf: (linha.match(RE_CPF) || [''])[0], cobrancas: [], _comps: new Set() };
       lista.push(atual); continue;
     }
     if(!atual || /^total\b/i.test(linha)) continue;
     const cel = linha.split('|').map(c => c.trim());
     const iComp = cel.findIndex(c => /^\d{2}\/\d{4}$/.test(c));
-    if(iComp < 0 || !cel.slice(iComp + 1).some(c => /^\d{2}\/\d{2}\/\d{4}$/.test(c))) continue;
+    if(iComp < 0 || (!padrao && !cel.slice(iComp + 1).some(c => /^\d{2}\/\d{2}\/\d{4}$/.test(c)))) continue;
     if(/^(tarifa|multa|juros|honor|custas|corre[çc])/i.test(cel[0] || '')) continue;
     if(atual._comps.has(cel[iComp])) continue;
     atual._comps.add(cel[iComp]);
-    atual.cobrancas.push({ texto: linha.slice(0, 170), comp: cel[iComp], venc: cel.slice(iComp + 1).find(c => /^\d{2}\/\d{2}\/\d{4}$/.test(c)), incluir: true });
+    atual.cobrancas.push({ texto: linha.slice(0, 170), comp: cel[iComp], venc: cel.slice(iComp + 1).find(c => /^\d{2}\/\d{2}\/\d{4}$/.test(c)) || '', incluir: true });
   }
   lista.forEach(b => delete b._comps);
   const ok = lista.filter(b => b.cobrancas.length);
@@ -1074,6 +1077,38 @@ function lerSinalizacao(txt){
 /* "Extração das Unidades" do Vouch, filtrada pela Implantação só com as unidades marcadas em espólio.
    Cabeçalho: "NOME DO CONDOMÍNIO - CNPJ 00.000.000/0000-00"; tabela: Unidade | Contato (proprietário) | Proprietário CPF/CNPJ | ...
    Só unidade, titular e CPF são aproveitados; valores, contatos e prazos são descartados. */
+/* Planilha padrão do relatório anterior (Excel ou CSV): Unidade | Titular | CPF | Descrição | Competência | Vencimento,
+   uma linha por cobrança em aberto. Vira o texto "Unidade: X - titular" que extrairDevedoresRotulados já lê,
+   com as mesmas regras de contagem (competências distintas; tarifa, multa, juros e honorários soltos não contam). */
+async function lerPlanilhaAnterior(file){
+  let rows;
+  if(/\.csv$/i.test(file.name)){
+    const txt = (await file.text()).replace(/^\uFEFF/, '');
+    const l1 = txt.split(/\r?\n/)[0] || '';
+    const sep = [';', '\t', ','].sort((a, b) => l1.split(b).length - l1.split(a).length)[0];
+    rows = txt.split(/\r?\n/).map(l => l.split(sep).map(c => c.replace(/^"|"$/g, '').trim()));
+  } else rows = await planilhaParaMatriz(file);
+  const hi = rows.findIndex(r => r.some(c => /^unidade$/i.test(String(c).trim())) && r.some(c => /compet/i.test(String(c))));
+  if(hi < 0) throw new Error('não encontrei as colunas da planilha padrão (Unidade, Titular, CPF, Descrição, Competência, Vencimento)');
+  const head = rows[hi].map(c => String(c || '').toLowerCase().trim());
+  const col = re => head.findIndex(h => re.test(h));
+  const c = { u: col(/^unidade$/), t: col(/titular|nome|cond[oô]mino|propriet/), cpf: col(/cpf|documento/), d: col(/descri/), comp: col(/compet/), v: col(/venc/) };
+  const compTxt = v => { if(typeof v === 'number'){ const d = excelData(v); return d ? d.slice(5,7) + '/' + d.slice(0,4) : ''; }
+    const s = String(v || '').trim(); let m = s.match(/^(\d{1,2})\/(\d{4})$/); if(m) return m[1].padStart(2,'0') + '/' + m[2];
+    m = s.match(/^(\d{4})-(\d{2})/); if(m) return m[2] + '/' + m[1]; m = s.match(/^\d{2}\/(\d{2})\/(\d{4})$/); if(m) return m[1] + '/' + m[2]; return ''; };
+  const vencTxt = v => { if(v === '' || v === null || v === undefined) return ''; const d = excelData(v); return d ? d.slice(8,10) + '/' + d.slice(5,7) + '/' + d.slice(0,4) : ''; };
+  const porUnid = new Map(); let n = 0;
+  for(const r of rows.slice(hi + 1)){
+    const unid = String(r[c.u] ?? '').trim(); const comp = compTxt(r[c.comp]); if(!unid || !comp) continue;
+    const g = porUnid.get(unid) || { titular: String(c.t >= 0 ? r[c.t] ?? '' : '').trim(), cpf: String(c.cpf >= 0 ? r[c.cpf] ?? '' : '').trim(), linhas: [] };
+    g.linhas.push(`${String(c.d >= 0 ? r[c.d] ?? '' : '').trim() || 'COBRANÇA'} | ${comp} | ${c.v >= 0 ? vencTxt(r[c.v]) : ''}`); n++;
+    porUnid.set(unid, g);
+  }
+  if(!porUnid.size) throw new Error('a planilha não tem linhas de cobrança (Unidade e Competência preenchidas)');
+  const texto = ['RELATÓRIO ANTERIOR · PLANILHA PADRÃO · ' + file.name]
+    .concat([...porUnid].flatMap(([u, g]) => [`Unidade: ${u} | Titular: ${g.titular}${g.cpf ? ' | ' + g.cpf : ''}`, ...g.linhas])).join('\n');
+  return { texto, unidades: porUnid.size, linhas: n };
+}
 async function lerExtracaoUnidades(file){
   const rows = await planilhaParaMatriz(file);
   let condominio = '', cnpj = '';
@@ -2106,8 +2141,16 @@ $('#docsGrade').addEventListener('change', async e => {
   const origem = inp.dataset.doc;
   if(origem === 'bi'){ await subirBaseBi(f); aplicarBaseBi(); renderFichaPreview(); return; }
   const span = inp.parentElement.querySelector('span'); span.textContent = 'Lendo ' + f.name + '…';
-  try{ const txt = await pdfParaTexto(f); processarTexto(origem, txt, f.name); }
-  catch(err){ span.textContent = 'Não deu para ler o PDF: ' + err.message; inp.parentElement.classList.add('erro'); }
+  try{
+    if(origem === 'ant' && /\.(xlsx|xls|csv)$/i.test(f.name)){
+      const pl = await lerPlanilhaAnterior(f); processarTexto('ant', pl.texto, f.name);
+      const nCob = (S.dev.ant || []).reduce((s, d) => s + d.cobrancas.length, 0);
+      span.innerHTML = `Planilha padrão: <b>${pl.unidades} unidade(s)</b> e <b>${pl.linhas} linha(s)</b> lidas · ${nCob} competência(s) contadas. Confira com o total do relatório original.`;
+      return;
+    }
+    const txt = await pdfParaTexto(f); processarTexto(origem, txt, f.name);
+  }
+  catch(err){ span.textContent = 'Não deu para ler o arquivo: ' + err.message; inp.parentElement.classList.add('erro'); }
 });
 async function subirBaseBi(f){
   const ehPlanilha = /\.(xlsx|xls|csv)$/i.test(f.name);

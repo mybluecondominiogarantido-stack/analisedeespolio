@@ -91,6 +91,15 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
     return { rot: a.map(d => d.unidade + ':' + d.cobrancas.length).join(','), msa: b.map(d => d.unidade + ':' + d.cobrancas.length).join(','), casa: m && m.modo };
   });
   ok(formatos.rot === 'SALA 601:3,LOJA 02:1' && formatos.msa === '0709:2,0805:1' && formatos.casa === 'nome + unidade', `relatório anterior: formatos "Unidade: X - nome" e "Inadimplências consolidadas"; "Espólio de" casa pelo nome (${JSON.stringify(formatos)})`);
+  const padrao = await p.evaluate(async ([csvTxt, xlsxB64]) => {
+    const out = [];
+    for(const f of [new File([csvTxt], 'anterior.csv'), new File([Uint8Array.from(atob(xlsxB64), c => c.charCodeAt(0))], 'modelo.xlsx')]){
+      const pl = await lerPlanilhaAnterior(f); const d = extrairDevedores(pl.texto, false);
+      out.push(d.map(x => x.unidade + ':' + x.cobrancas.length + ':' + (x.cpf ? 'cpf' : '-')).join(','));
+    }
+    return out;
+  }, [fs.readFileSync(path.join(__dirname, 'fixtures', 'relatorio-anterior-padrao.csv'), 'utf8'), fs.readFileSync(path.join(root, 'docs', 'modelos', 'Relatorio_anterior_padrao.xlsx')).toString('base64')]);
+  ok(padrao[0] === 'A - 101:3:cpf,SALA 215:1:-' && padrao[1] === 'A - 101:2:cpf,SALA 215:1:-', `planilha padrão do relatório anterior (CSV e modelo Excel): competências distintas, tarifa não conta (${padrao})`);
   const ficha = await p.evaluate(() => fichaHTML(S.rodada));
   ok(!/f-caixa/.test(ficha), 'ficha sem as caixas de resumo por resultado');
   ok(/3 no Vouch · BI negativo · 4 meses</.test(ficha) && /Sem cobrança no Vouch</.test(ficha) && !/Regra \d/.test(ficha), 'ficha traz justificativa curta, sem número de regra');
