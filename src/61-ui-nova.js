@@ -3,26 +3,7 @@
    ====================================================================== */
 function renderNovaLista(){
   const lista = $('#novaLista'), editor = $('#novaEditor');
-  if(S.rodada){ lista.hidden = true; editor.hidden = false; return; }
-  lista.hidden = false; editor.hidden = true;
-  const rasc = S.rodadas.filter(r => r.status === 'rascunho').sort((a,b) => (b.criadaEm||'').localeCompare(a.criadaEm||''));
-  lista.innerHTML = `
-    <div class="card"><header><h2>Iniciar</h2><span class="dica">as duas alimentam a fila de acompanhamento · a reanálise fica na aba Fila de acompanhamento</span></header>
-      <div class="corpo acoes">
-        <button class="btn" id="btnNovaImplantacao">Implantação</button>
-        <button class="btn sec" id="btnNovaAvulso">Avulso</button>
-        <span class="ajuda" style="margin:0">Implantação: 1ª análise de condomínio novo na carteira. Avulso: condomínio já com tempo de casa, espólio sinalizado pela Cobrança.</span>
-      </div></div>
-    <div class="card"><header><h2>Rascunhos</h2><span class="dica">${rasc.length} em andamento</span></header>
-      ${rasc.length ? `<div class="tabela-wrap"><table><thead><tr><th>Condomínio</th><th>Tipo</th><th>Criado em</th><th>Unidades</th><th></th></tr></thead><tbody>${
-        rasc.map(r => `<tr><td><b>${esc(r.condominio.nome||'(sem condomínio)')}</b></td><td>${tipoRodadaTxt(r)}</td><td>${fmtData((r.criadaEm||'').slice(0,10))}</td><td>${(r.unidades||[]).length}</td>
-          <td class="acoes"><button class="btn sec mini" data-continuar="${r.id}">Continuar</button><button class="btn perigo mini" data-excluir-rasc="${r.id}">Excluir</button></td></tr>`).join('')}</tbody></table></div>`
-      : '<div class="corpo"><div class="vazio">Nenhum rascunho. Comece uma nova análise.</div></div>'}
-    </div>`;
-  $('#btnNovaImplantacao').onclick = () => abrirEditor(novaRodada('implantacao'));
-  $('#btnNovaAvulso').onclick = () => { const r = novaRodada('avulso'); r.semAnterior = true; abrirEditor(r); };
-  lista.querySelectorAll('[data-continuar]').forEach(b => b.onclick = () => { const r = S.rodadas.find(x => x.id === b.dataset.continuar); if(r) abrirEditor(JSON.parse(JSON.stringify(r))); });
-  lista.querySelectorAll('[data-excluir-rasc]').forEach(b => b.onclick = async () => { if(!(await confirmar('Excluir este rascunho? Isso não pode ser desfeito.'))) return; await DB.doc(COLECOES.rodadas + '/' + b.dataset.excluirRasc).delete(); try{ await DB.doc(COLECOES.evidencias + '/' + b.dataset.excluirRasc).delete(); }catch(_){} toast('Rascunho excluído.'); });
+  lista.hidden = true; editor.hidden = !S.rodada;
 }
 async function abrirEditor(r){
   S.rodada = r; S.dev = { vouch: [], ant: [] }; S.textos = { vouch:'', ant:'', email:'' };
@@ -31,7 +12,7 @@ async function abrirEditor(r){
   ['docVouch','docAnt','docEmail'].forEach(id => { const d = $('#'+id); d.classList.remove('ok','erro'); });
   mostrarAba('nova'); renderNovaLista(); renderEditor();
 }
-function fecharEditor(){ S.rodada = null; renderNovaLista(); renderBadges(); }
+function fecharEditor(){ S.rodada = null; renderNovaLista(); renderBadges(); mostrarAba(S.abaAnterior && S.abaAnterior !== 'nova' ? S.abaAnterior : 'sol'); }
 
 function renderEditor(){
   const r = S.rodada; if(!r) return;
@@ -73,6 +54,7 @@ function renderEditorResumo(){
     ${travada ? '' : `<button class="btn sec mini" id="btnSalvarRasc">Salvar rascunho</button><button class="btn mini" id="btnConcluir" ${!CAN_WRITE?'disabled':''}>Concluir análise</button>`}`;
   if($('#btnTicketEditor')) $('#btnTicketEditor').onclick = () => abrirTicketModal(r, r.solicitacaoId ? S.solicitacoes.find(x => x.id === r.solicitacaoId) : null);
   $('#btnFecharEditor').onclick = async () => { if(!travada){ try{ if(r.condominio.nome || r.unidades.length){ await salvarRodada(r); await salvarEvidencias(r.id, { textos: S.textos, dev: S.dev }); } }catch(e){ toast(dbErr(e), 5000); return; } } fecharEditor(); };
+  $('#btnFecharEditor').textContent = travada ? '← Voltar' : '← Salvar e voltar';
   if(!travada){
     $('#btnSalvarRasc').onclick = async () => { try{ await salvarRodada(r); await salvarEvidencias(r.id, { textos: S.textos, dev: S.dev }); toast('Rascunho salvo.'); }catch(e){ toast(dbErr(e), 5000); } };
     $('#btnConcluir').onclick = async () => {

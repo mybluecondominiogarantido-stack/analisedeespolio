@@ -14,16 +14,16 @@ Módulo do portal MyBlue para a Coordenação de Cobrança: solicitações de an
 | `docs/fluxograma-analise-espolio.html` | Fluxograma do processo |
 | `docs/mockup-analise-espolio.html` | Mockup aprovado do layout |
 | `docs/decisoes.md` | Decisões alinhadas com a coordenação |
+| `docs/guia-implantacao-portal.md` | **Guia de implantação no portal** |
+| `docs/sql/carteira-e-modulo.sql` | Cadastro do módulo e carteira espelhada (aplicado em 16/10/2026) |
 | `docs/sql/notificacoes-trigger.sql` | Gatilho de avisos no sino do portal (não aplicado) |
 | `test/fixtures/carteira-exemplo.json` | Carteira fictícia para o teste de ponta a ponta |
 
 ## Como publicar no portal
 
 1. `node build.js` gera `analise-espolio.html`.
-2. No portal MyBlue, cadastrar (ou atualizar) o módulo com:
-   - slug `analise-espolio`, setor **Cobrança**, armazenamento **compartilhado**, adaptador **`claude-db`**, fonte de dados **interno**;
-   - subir `analise-espolio.html` como nova versão em `modulo_versoes`;
-   - liberar a permissão só para a coordenação de Cobrança.
+2. O módulo `analise-espolio` já está cadastrado no portal (setor Cobrança, adaptador `claude-db`). Suba `analise-espolio.html` como nova versão.
+3. Libere o acesso para a gestão e para os solicitantes. Passo a passo completo em `docs/guia-implantacao-portal.md`.
 3. O módulo usa `window.claude.use('db')` e `use('user')`, como o módulo de Síndicos. Fora do portal ele abre em **modo local** (localStorage) com aviso, útil para testes.
 
 Bibliotecas externas (cdnjs): pdf.js 3.11.174, SheetJS 0.18.5 e html2pdf.js 0.10.1.
@@ -39,7 +39,7 @@ Bibliotecas externas (cdnjs): pdf.js 3.11.174, SheetJS 0.18.5 e html2pdf.js 0.10
 | `historico` | Log de ações (conclusão, ficha, carga, base do BI, solicitação, ticket) |
 | `solicitacoes` | Solicitações de análise (condomínio, unidades, solicitante, status, protocolo, resultado) |
 | `verificacoes` | Respostas da verificação da implantação (assumido / sem espólio) |
-| `carteira/atual` | Cópia da carteira do portal (`/api/carteira`) com responsáveis por condomínio |
+| `carteira/atual` | Cópia automática de `public.condominios`, mantida por gatilho no banco (`docs/sql/carteira-e-modulo.sql`) |
 | `meta/acesso` | Lista da gestão, mês inicial da verificação, rota e setor do ticket |
 
 A fila de acompanhamento é derivada: última rodada concluída de cada condomínio, unidades ativas (não excluídas, não encerradas), prazo = data da análise + 90 dias.

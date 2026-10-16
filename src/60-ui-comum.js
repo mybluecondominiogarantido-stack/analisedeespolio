@@ -2,6 +2,7 @@
    UI comum: abas, render geral, cartão de unidade, ficha
    ====================================================================== */
 function mostrarAba(nome){
+  if(nome !== 'nova') S.abaAnterior = nome;
   S.aba = nome;
   $$('.tab').forEach(t => t.classList.toggle('ativa', t.dataset.tab === nome));
   $$('.painel').forEach(p => p.classList.toggle('ativa', p.id === 'p-' + nome));
@@ -15,6 +16,7 @@ $('#tabs').addEventListener('click', e => { const b = e.target.closest('.tab'); 
 function aplicarPerfil(){
   const gestao = ehGestao();
   $$('.tab').forEach(t => { t.hidden = gestao ? t.dataset.tab === 'minhas' : !['sol','minhas'].includes(t.dataset.tab); });
+  if(!gestao && S.rodada) S.rodada = null;
   $('#tabSolRotulo').textContent = gestao ? 'Solicitações' : 'Solicitar análise';
   if(!gestao && !['sol','minhas'].includes(S.aba)) mostrarAba('sol');
 }
@@ -23,7 +25,6 @@ function renderTudo(){
   renderSolicitacoes();
   if(!ehGestao()) return;
   renderDashboard();
-  renderNovaLista();
   renderBadges();
   renderListaCondominios();
   if(S.aba === 'lote') renderLote();
@@ -32,8 +33,6 @@ function renderTudo(){
 function renderBadges(){
   const f = fila(); const venc = f.filter(i => i.vencida).length;
   const nf = $('#nFila'); nf.hidden = !f.length; nf.textContent = venc ? `${venc} vencida${venc>1?'s':''}` : `${f.length}`; nf.classList.toggle('alerta', venc > 0);
-  const rasc = S.rodadas.filter(r => r.status === 'rascunho').length;
-  const nn = $('#nNova'); nn.hidden = !rasc; nn.textContent = `${rasc} rascunho${rasc>1?'s':''}`;
   const novas = solicitacoesNovas().length; const pend = ehGestao() ? pendentesVerificacao().length : 0;
   const ns = $('#nSol'); ns.hidden = !(novas || pend); ns.textContent = novas ? `${novas} nova${novas>1?'s':''}` : `${pend} a verificar`; ns.classList.toggle('alerta', novas > 0);
 }

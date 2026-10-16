@@ -11,18 +11,8 @@ function normalizarCarteira(lista){
              extrajudicial: limpaRamal(c.analista_extrajudicial || c.extrajudicial), executivo: limpaRamal(c.executivo), chave: chaveCond(c.razao_social || nome, c.cnpj || '') };
   }).filter(c => c.nome);
 }
-/* no portal: lê /api/carteira e guarda uma cópia na base do módulo quando mudou */
-async function sincronizarCarteira(){
-  if(!window.claude || DB._local) return;
-  try{
-    const r = await fetch('/api/carteira', { credentials: 'same-origin' }); if(!r.ok) throw new Error('HTTP ' + r.status);
-    const itens = normalizarCarteira((await r.json()).condominios || []);
-    if(!itens.length) return;
-    const assinatura = itens.length + ':' + itens.map(c => c.cnpj + c.inicio + c.assistenteCredito).join('|').length;
-    if(S.carteira.assinatura === assinatura) return;
-    await DB.doc(COLECOES.carteira + '/atual').set({ itens, atualizadoEm: nowISO(), origem: 'portal', assinatura });
-  }catch(e){ console.warn('carteira do portal indisponível:', e.message); }
-}
+/* no portal a carteira chega pelo documento carteira/atual, mantido por uma rotina no banco a partir de public.condominios */
+async function sincronizarCarteira(){ /* mantido por compatibilidade: a carteira vem do banco */ }
 /* fora do portal: importar JSON ou Excel exportado do cadastro */
 async function importarCarteiraArquivo(f){
   let lista;

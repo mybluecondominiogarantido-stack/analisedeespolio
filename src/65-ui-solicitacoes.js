@@ -73,7 +73,7 @@ function htmlSolGestao(){
   if(filtro === 'abertas') lista = lista.filter(x => ['nova','vista','em_analise'].includes(x.status));
   else if(filtro !== 'todas') lista = lista.filter(x => x.status === filtro);
   const novas = solicitacoesNovas().length;
-  return `<div class="filtros"><span class="pill">Novas <b>${novas}</b></span><select id="solFiltro" class="campo"><option value="abertas" ${filtro==='abertas'?'selected':''}>Abertas</option><option value="nova" ${filtro==='nova'?'selected':''}>Novas</option><option value="em_analise" ${filtro==='em_analise'?'selected':''}>Em análise</option><option value="concluida" ${filtro==='concluida'?'selected':''}>Concluídas</option><option value="devolvida" ${filtro==='devolvida'?'selected':''}>Devolvidas</option><option value="todas" ${filtro==='todas'?'selected':''}>Todas</option></select></div>
+  return `<div class="filtros"><span class="pill">Novas <b>${novas}</b></span><select id="solFiltro" class="campo"><option value="abertas" ${filtro==='abertas'?'selected':''}>Abertas</option><option value="nova" ${filtro==='nova'?'selected':''}>Novas</option><option value="em_analise" ${filtro==='em_analise'?'selected':''}>Em análise</option><option value="concluida" ${filtro==='concluida'?'selected':''}>Concluídas</option><option value="devolvida" ${filtro==='devolvida'?'selected':''}>Devolvidas</option><option value="todas" ${filtro==='todas'?'selected':''}>Todas</option></select><span style="flex:1"></span><button class="btn mini" id="btnRegistrarSol" ${!CAN_WRITE?'disabled':''}>Registrar solicitação</button></div>
     ${htmlListaSolicitacoes(lista, 'Solicitações recebidas', 'clique para abrir · "Iniciar análise" cria a rodada já preenchida', 'gestao')}
     ${htmlPendentesVerificacao('gestao')}`;
 }
@@ -83,6 +83,7 @@ function ligarSolicitacoes(){
   const el = $('#p-sol');
   $$('#p-sol [data-sol], #p-minhas [data-sol]').forEach(tr => tr.onclick = () => abrirSolicitacaoModal(S.solicitacoes.find(x => x.id === tr.dataset.sol)));
   const sf = $('#solFiltro'); if(sf) sf.onchange = () => { S.solFiltro = sf.value; renderSolicitacoes(); };
+  const br = $('#btnRegistrarSol'); if(br) br.onclick = abrirRegistrarSolicitacao;
   el.querySelectorAll('[data-assumir]').forEach(b => b.onclick = async () => { const c = S.carteira.itens.find(x => x.chave === b.dataset.assumir); await DB.collection(COLECOES.verificacoes).add({ chave: c.chave, condominio: c.nome, cnpj: c.cnpj, mes: mesDe(c.inicio), resultado: 'assumido', por: ME.name, porId: ME.id, quando: nowISO() }); toast('Você assumiu ' + c.nome + '.'); });
   el.querySelectorAll('[data-semespolio]').forEach(b => b.onclick = async () => { const c = S.carteira.itens.find(x => x.chave === b.dataset.semespolio); if(!(await confirmar(`Registrar ${c.nome} como verificado, sem espólio?`))) return; await DB.collection(COLECOES.verificacoes).add({ chave: c.chave, condominio: c.nome, cnpj: c.cnpj, mes: mesDe(c.inicio), resultado: 'sem_espolio', por: ME.name, porId: ME.id, quando: nowISO() }); registrarHistorico('verificacao', { condominio: c.nome, resultado: 'sem_espolio' }); toast(c.nome + ' registrado sem espólio.'); });
   el.querySelectorAll('[data-solicitar]').forEach(b => b.onclick = () => { const c = S.carteira.itens.find(x => x.chave === b.dataset.solicitar); const card = $('#cardNovaSol'); card.outerHTML = htmlFormSolicitacao({ nome: c.nome, cnpj: c.cnpj }); ligarFormSolicitacao(); $('#cardNovaSol').scrollIntoView({ behavior:'smooth' }); });
@@ -107,6 +108,23 @@ function ligarFormSolicitacao(){
       await criarSolicitacao({ condominio: { nome: c ? c.nome : nome, cnpj: cnpj || (c ? c.cnpj : ''), chave: chaveCond(c ? c.nome : nome, cnpj || (c ? c.cnpj : '')) }, origem: tipo === 'implantacao' ? 'implantacao' : 'cobranca', tipo, unidades, obs: $('#solObs').value.trim() });
       toast('Solicitação enviada.'); renderSolicitacoes();
     }catch(e){ st.innerHTML = `<div class="erro">${esc(dbErr(e))}</div>`; }
+  };
+}
+
+/* gestão registra uma solicitação que chegou por e-mail ou telefone, em nome de quem pediu */
+function abrirRegistrarSolicitacao(pre){
+  abrirModal('Registrar solicitação', `<div class="grade" style="margin-bottom:12px"><div><label>Quem pediu</label><input type="text" id="rsNome" class="campo" placeholder="nome da assistente ou analista"></div><div><label>Como chegou</label><select id="rsCanal" class="campo"><option value="email">E-mail</option><option value="telefone">Telefone / presencial</option><option value="outro">Outro</option></select></div></div>
+    ${htmlFormSolicitacao(pre || {}).replace('id="cardNovaSol"', 'id="cardNovaSol" style="margin:0;border:0;box-shadow:none"')}`);
+  ligarFormSolicitacao();
+  const btn = $('#solEnviar'); btn.textContent = 'Registrar';
+  const original = btn.onclick;
+  btn.onclick = async () => {
+    const quem = $('#rsNome').value.trim(); if(!quem){ $('#solStatus').innerHTML = '<div class="erro">Informe quem pediu.</div>'; return; }
+    const meuNome = ME.name, meuId = ME.id;
+    ME.name = quem; ME.id = 'registrada:' + normNome(quem);
+    try{ await original(); } finally { ME.name = meuNome; ME.id = meuId; }
+    if(S.solicitacoes.length){ const ultima = S.solicitacoes.slice().sort((a,b) => (b.criadaEm||'').localeCompare(a.criadaEm||''))[0]; if(ultima && ultima.solicitanteNome === quem) atualizarSolicitacao(ultima.id, { registradaPor: meuNome, canal: $('#rsCanal') ? $('#rsCanal').value : 'outro' }); }
+    fecharModal();
   };
 }
 

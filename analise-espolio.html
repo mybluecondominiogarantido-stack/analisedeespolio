@@ -252,7 +252,6 @@ tr.clic{cursor:pointer}
     <button class="tab ativa" data-tab="dash">Dashboard</button>
     <button class="tab" data-tab="sol"><span id="tabSolRotulo">Solicitações</span> <span class="n" id="nSol" hidden></span></button>
     <button class="tab" data-tab="minhas" hidden>Minhas solicitações</button>
-    <button class="tab" data-tab="nova">Nova análise <span class="n" id="nNova" hidden></span></button>
     <button class="tab" data-tab="lote">Fila de acompanhamento <span class="n" id="nFila" hidden></span></button>
     <button class="tab" data-tab="conf">Configurações</button>
   </nav>
@@ -289,7 +288,7 @@ tr.clic{cursor:pointer}
 
 <!-- ================= NOVA ANÁLISE (IMPLANTAÇÃO) ================= -->
 <section class="painel" id="p-nova">
-  <div id="novaLista"></div>
+  <div id="novaLista" hidden></div>
   <div id="novaEditor" hidden>
     <div class="resumo" id="novaResumo"></div>
     <div class="stepper">
@@ -388,7 +387,7 @@ tr.clic{cursor:pointer}
 <section class="painel" id="p-lote">
   <div class="nota"><b>Fila de acompanhamento:</b> clique no nome do condomínio para ver as rodadas, as fichas e a evolução das unidades, ou para abrir uma reanálise individual. Para reanalisar vários, selecione-os e clique em “Reanalisar selecionados”: o módulo pede os relatórios do Vouch e identifica cada condomínio pelo cabeçalho. Só o Vouch entra; as unidades vêm da rodada anterior.</div>
   <div class="card">
-    <header><h2>Fila de acompanhamento</h2><div class="acoes"><span class="pill" id="loteContagem"></span><button class="btn sec mini" id="btnSelVencidos">Selecionar vencidos</button><button class="btn sec mini" id="btnSelNenhum">Limpar seleção</button><button class="btn mini" id="btnReanalisarSel" hidden>Reanalisar selecionados</button></div></header>
+    <header><h2>Fila de acompanhamento</h2><div class="acoes"><span class="pill" id="loteContagem"></span><button class="btn sec mini" id="btnSelVencidos">Selecionar vencidos</button><button class="btn sec mini" id="btnSelNenhum">Limpar seleção</button><button class="btn sec mini" id="btnPlanilhaAcomp" title="Exporta a fila em CSV">Planilha (CSV)</button><button class="btn mini" id="btnReanalisarSel" hidden>Reanalisar selecionados</button></div></header>
     <div class="tabela-wrap" id="loteFila"></div>
     <div id="loteFora"></div>
   </div>
@@ -431,12 +430,8 @@ tr.clic{cursor:pointer}
       <div class="corpo" id="confRegras"></div>
     </div>
     <div class="card">
-      <header><h2>Dados</h2><span class="dica">cópia de segurança</span></header>
-      <div class="corpo">
-        <div class="acoes"><button class="btn sec mini" id="btnBackup">Exportar tudo (JSON)</button><button class="btn sec mini" id="btnPlanilhaAcomp">Planilha de acompanhamento (CSV)</button></div>
-        <p class="ajuda">O backup contém rodadas, base do BI e protocolo. Guarde fora do portal.</p>
-        <div id="confLocalAviso"></div>
-      </div>
+      <header><h2>Onde ficam os dados</h2><span class="dica">base compartilhada do portal</span></header>
+      <div class="corpo"><p class="ajuda" style="margin:0">Solicitações, rodadas, fichas, evidências e a base do BI ficam salvas no banco de dados do portal, com histórico de quem fez cada ação. Não é preciso exportar nada.</p><div id="confLocalAviso"></div></div>
     </div>
   </div>
 </section>
@@ -1223,7 +1218,7 @@ function assinarBase(){
   DB.doc(COLECOES.bi + '/atual').onSnapshot(snap => { S.bi = snap.exists ? snap.data() : { base: [], enviadoEm:'', por:'' }; pronto('b'); renderBiInfo(); }, fail);
   DB.doc(COLECOES.meta + '/acesso').onSnapshot(snap => { S.acesso = { gestao: [], verificacaoDesde: '', ticketRota: '/api/tickets', ticketSetor: 'Crédito', ...(snap.exists ? snap.data() : {}) }; const antes = PERFIL; PERFIL = calcularPerfil(S.acesso); atualizarChipPerfil(); if(antes !== PERFIL) aplicarPerfil(); pronto('a'); if(S.pronto.a) renderTudo(); }, fail);
   DB.collection(COLECOES.solicitacoes).onSnapshot(snap => { S.solicitacoes = snap.docs.map(d => ({ id: d.id, ...d.data() })); pronto('s'); if(S.pronto.s) renderTudo(); }, fail);
-  DB.doc(COLECOES.carteira + '/atual').onSnapshot(snap => { S.carteira = snap.exists ? snap.data() : { itens: [], atualizadoEm:'', origem:'' }; pronto('c'); if(S.pronto.c) renderTudo(); }, fail);
+  DB.doc(COLECOES.carteira + '/atual').onSnapshot(snap => { const d = snap.exists ? snap.data() : { itens: [], atualizadoEm:'', origem:'' }; S.carteira = { ...d, itens: normalizarCarteira(d.itens || []) }; pronto('c'); if(S.pronto.c) renderTudo(); }, fail);
 }
 
 /* ---------- solicitações ----------
@@ -1444,6 +1439,7 @@ async function importarPlanilhaControle(linhas){
    UI comum: abas, render geral, cartão de unidade, ficha
    ====================================================================== */
 function mostrarAba(nome){
+  if(nome !== 'nova') S.abaAnterior = nome;
   S.aba = nome;
   $$('.tab').forEach(t => t.classList.toggle('ativa', t.dataset.tab === nome));
   $$('.painel').forEach(p => p.classList.toggle('ativa', p.id === 'p-' + nome));
@@ -1457,6 +1453,7 @@ $('#tabs').addEventListener('click', e => { const b = e.target.closest('.tab'); 
 function aplicarPerfil(){
   const gestao = ehGestao();
   $$('.tab').forEach(t => { t.hidden = gestao ? t.dataset.tab === 'minhas' : !['sol','minhas'].includes(t.dataset.tab); });
+  if(!gestao && S.rodada) S.rodada = null;
   $('#tabSolRotulo').textContent = gestao ? 'Solicitações' : 'Solicitar análise';
   if(!gestao && !['sol','minhas'].includes(S.aba)) mostrarAba('sol');
 }
@@ -1465,7 +1462,6 @@ function renderTudo(){
   renderSolicitacoes();
   if(!ehGestao()) return;
   renderDashboard();
-  renderNovaLista();
   renderBadges();
   renderListaCondominios();
   if(S.aba === 'lote') renderLote();
@@ -1474,8 +1470,6 @@ function renderTudo(){
 function renderBadges(){
   const f = fila(); const venc = f.filter(i => i.vencida).length;
   const nf = $('#nFila'); nf.hidden = !f.length; nf.textContent = venc ? `${venc} vencida${venc>1?'s':''}` : `${f.length}`; nf.classList.toggle('alerta', venc > 0);
-  const rasc = S.rodadas.filter(r => r.status === 'rascunho').length;
-  const nn = $('#nNova'); nn.hidden = !rasc; nn.textContent = `${rasc} rascunho${rasc>1?'s':''}`;
   const novas = solicitacoesNovas().length; const pend = ehGestao() ? pendentesVerificacao().length : 0;
   const ns = $('#nSol'); ns.hidden = !(novas || pend); ns.textContent = novas ? `${novas} nova${novas>1?'s':''}` : `${pend} a verificar`; ns.classList.toggle('alerta', novas > 0);
 }
@@ -1673,26 +1667,7 @@ function atualizarResumoSemRender(rid){ if(rid === 'nova'){ renderEditorResumo()
    ====================================================================== */
 function renderNovaLista(){
   const lista = $('#novaLista'), editor = $('#novaEditor');
-  if(S.rodada){ lista.hidden = true; editor.hidden = false; return; }
-  lista.hidden = false; editor.hidden = true;
-  const rasc = S.rodadas.filter(r => r.status === 'rascunho').sort((a,b) => (b.criadaEm||'').localeCompare(a.criadaEm||''));
-  lista.innerHTML = `
-    <div class="card"><header><h2>Iniciar</h2><span class="dica">as duas alimentam a fila de acompanhamento · a reanálise fica na aba Fila de acompanhamento</span></header>
-      <div class="corpo acoes">
-        <button class="btn" id="btnNovaImplantacao">Implantação</button>
-        <button class="btn sec" id="btnNovaAvulso">Avulso</button>
-        <span class="ajuda" style="margin:0">Implantação: 1ª análise de condomínio novo na carteira. Avulso: condomínio já com tempo de casa, espólio sinalizado pela Cobrança.</span>
-      </div></div>
-    <div class="card"><header><h2>Rascunhos</h2><span class="dica">${rasc.length} em andamento</span></header>
-      ${rasc.length ? `<div class="tabela-wrap"><table><thead><tr><th>Condomínio</th><th>Tipo</th><th>Criado em</th><th>Unidades</th><th></th></tr></thead><tbody>${
-        rasc.map(r => `<tr><td><b>${esc(r.condominio.nome||'(sem condomínio)')}</b></td><td>${tipoRodadaTxt(r)}</td><td>${fmtData((r.criadaEm||'').slice(0,10))}</td><td>${(r.unidades||[]).length}</td>
-          <td class="acoes"><button class="btn sec mini" data-continuar="${r.id}">Continuar</button><button class="btn perigo mini" data-excluir-rasc="${r.id}">Excluir</button></td></tr>`).join('')}</tbody></table></div>`
-      : '<div class="corpo"><div class="vazio">Nenhum rascunho. Comece uma nova análise.</div></div>'}
-    </div>`;
-  $('#btnNovaImplantacao').onclick = () => abrirEditor(novaRodada('implantacao'));
-  $('#btnNovaAvulso').onclick = () => { const r = novaRodada('avulso'); r.semAnterior = true; abrirEditor(r); };
-  lista.querySelectorAll('[data-continuar]').forEach(b => b.onclick = () => { const r = S.rodadas.find(x => x.id === b.dataset.continuar); if(r) abrirEditor(JSON.parse(JSON.stringify(r))); });
-  lista.querySelectorAll('[data-excluir-rasc]').forEach(b => b.onclick = async () => { if(!(await confirmar('Excluir este rascunho? Isso não pode ser desfeito.'))) return; await DB.doc(COLECOES.rodadas + '/' + b.dataset.excluirRasc).delete(); try{ await DB.doc(COLECOES.evidencias + '/' + b.dataset.excluirRasc).delete(); }catch(_){} toast('Rascunho excluído.'); });
+  lista.hidden = true; editor.hidden = !S.rodada;
 }
 async function abrirEditor(r){
   S.rodada = r; S.dev = { vouch: [], ant: [] }; S.textos = { vouch:'', ant:'', email:'' };
@@ -1701,7 +1676,7 @@ async function abrirEditor(r){
   ['docVouch','docAnt','docEmail'].forEach(id => { const d = $('#'+id); d.classList.remove('ok','erro'); });
   mostrarAba('nova'); renderNovaLista(); renderEditor();
 }
-function fecharEditor(){ S.rodada = null; renderNovaLista(); renderBadges(); }
+function fecharEditor(){ S.rodada = null; renderNovaLista(); renderBadges(); mostrarAba(S.abaAnterior && S.abaAnterior !== 'nova' ? S.abaAnterior : 'sol'); }
 
 function renderEditor(){
   const r = S.rodada; if(!r) return;
@@ -1743,6 +1718,7 @@ function renderEditorResumo(){
     ${travada ? '' : `<button class="btn sec mini" id="btnSalvarRasc">Salvar rascunho</button><button class="btn mini" id="btnConcluir" ${!CAN_WRITE?'disabled':''}>Concluir análise</button>`}`;
   if($('#btnTicketEditor')) $('#btnTicketEditor').onclick = () => abrirTicketModal(r, r.solicitacaoId ? S.solicitacoes.find(x => x.id === r.solicitacaoId) : null);
   $('#btnFecharEditor').onclick = async () => { if(!travada){ try{ if(r.condominio.nome || r.unidades.length){ await salvarRodada(r); await salvarEvidencias(r.id, { textos: S.textos, dev: S.dev }); } }catch(e){ toast(dbErr(e), 5000); return; } } fecharEditor(); };
+  $('#btnFecharEditor').textContent = travada ? '← Voltar' : '← Salvar e voltar';
   if(!travada){
     $('#btnSalvarRasc').onclick = async () => { try{ await salvarRodada(r); await salvarEvidencias(r.id, { textos: S.textos, dev: S.dev }); toast('Rascunho salvo.'); }catch(e){ toast(dbErr(e), 5000); } };
     $('#btnConcluir').onclick = async () => {
@@ -2189,13 +2165,11 @@ function renderConfGestao(){
 }
 function renderConfCarteira(){
   const c = S.carteira;
-  $('#confCarteira').innerHTML = `<p class="ajuda" style="margin:0 0 8px">${c.itens && c.itens.length ? `<b>${c.itens.length} condomínios</b> · atualizada em ${fmtData((c.atualizadoEm||'').slice(0,10))} · origem: ${esc(c.origem||'')}` : 'Carteira não carregada. No portal ela é lida automaticamente; fora dele, importe um JSON ou Excel do cadastro.'}</p>
-    <div class="doc"><div class="ico">CAD</div><div><b>Importar carteira (JSON ou Excel)</b><span>colunas: condomínio, CNPJ, comarca, início do contrato, assistente de crédito, analista de cobrança</span></div><input type="file" accept=".json,.xlsx,.xls,.csv" id="confCarteiraArquivo"></div>
-    ${window.claude && !DB._local ? '<div class="acoes" style="margin-top:8px"><button class="btn sec mini" id="confCarteiraSync">Atualizar do portal agora</button></div>' : ''}
+  $('#confCarteira').innerHTML = `<p class="ajuda" style="margin:0 0 8px">${c.itens && c.itens.length ? `<b>${c.itens.length} condomínios</b> · atualizada em ${fmtData((c.atualizadoEm||'').slice(0,10))} · ${c.origem === 'banco' ? 'espelhada do cadastro de condomínios do portal, atualiza sozinha' : 'origem: ' + esc(c.origem||'')}` : (DB._local ? 'Carteira não carregada. Fora do portal, importe um JSON ou Excel do cadastro.' : 'Carteira ainda não espelhada do cadastro do portal.')}</p>
+    ${DB._local ? `<div class="doc"><div class="ico">CAD</div><div><b>Importar carteira (JSON ou Excel)</b><span>só em modo local · no portal a carteira vem do cadastro de condomínios</span></div><input type="file" accept=".json,.xlsx,.xls,.csv" id="confCarteiraArquivo"></div>` : ''}
     <div class="grade" style="margin-top:12px"><div><label>Rota do portal para abrir tickets</label><input type="text" id="confTicketRota" class="campo" value="${esc(S.acesso.ticketRota||'/api/tickets')}"></div><div><label>Setor padrão do ticket</label><input type="text" id="confTicketSetor" class="campo" value="${esc(S.acesso.ticketSetor||'Crédito')}"></div></div>
     <p class="ajuda">O ticket vai para a assistente de crédito do condomínio; sem assistente na carteira, vai para a assistente de implantação que solicitou. A rota precisa ser liberada por quem mantém o portal.</p>`;
-  $('#confCarteiraArquivo').onchange = async e => { const f = e.target.files[0]; e.target.value = ''; if(!f) return; try{ const n = await importarCarteiraArquivo(f); toast(`Carteira importada: ${n} condomínios.`); }catch(err){ toast('Não deu para importar: ' + err.message, 6000); } };
-  if($('#confCarteiraSync')) $('#confCarteiraSync').onclick = async () => { await sincronizarCarteira(); toast('Carteira atualizada.'); };
+  if($('#confCarteiraArquivo')) $('#confCarteiraArquivo').onchange = async e => { const f = e.target.files[0]; e.target.value = ''; if(!f) return; try{ const n = await importarCarteiraArquivo(f); toast(`Carteira importada: ${n} condomínios.`); }catch(err){ toast('Não deu para importar: ' + err.message, 6000); } };
   $('#confTicketRota').onchange = e => gravarDoc(COLECOES.meta + '/acesso', { ticketRota: e.target.value.trim() || '/api/tickets' }, S.acesso);
   $('#confTicketSetor').onchange = e => gravarDoc(COLECOES.meta + '/acesso', { ticketSetor: e.target.value.trim() || 'Crédito' }, S.acesso);
 }
@@ -2222,7 +2196,6 @@ $('#confCargaArquivo').addEventListener('change', async e => {
     st.innerHTML = `<div class="ok">Importado: ${r.rodadas} condomínio(s) com espólio entraram na fila${r.pulados ? ` (${r.pulados} já existiam)` : ''}.</div>`;
   }catch(err){ st.innerHTML = `<div class="erro">Não deu para importar: ${esc(err.message)}</div>`; }
 });
-$('#btnBackup').onclick = () => baixarArquivo(`backup-analise-espolio-${hojeISO()}.json`, JSON.stringify({ geradoEm: nowISO(), rodadas: S.rodadas, verificacoes: S.verificacoes, meta: S.meta, bi: S.bi }, null, 1), 'application/json');
 $('#btnPlanilhaAcomp').onclick = () => { const rods = fila().map(i => ({ ...i.rodada, unidades: i.unidades })); if(!rods.length){ toast('Fila vazia.'); return; } csvAcompanhamento(rods, `Acompanhamento Espolio - fila ${hojeISO()}.csv`); };
 
 /* ===== 65-ui-solicitacoes.js ===== */
@@ -2301,7 +2274,7 @@ function htmlSolGestao(){
   if(filtro === 'abertas') lista = lista.filter(x => ['nova','vista','em_analise'].includes(x.status));
   else if(filtro !== 'todas') lista = lista.filter(x => x.status === filtro);
   const novas = solicitacoesNovas().length;
-  return `<div class="filtros"><span class="pill">Novas <b>${novas}</b></span><select id="solFiltro" class="campo"><option value="abertas" ${filtro==='abertas'?'selected':''}>Abertas</option><option value="nova" ${filtro==='nova'?'selected':''}>Novas</option><option value="em_analise" ${filtro==='em_analise'?'selected':''}>Em análise</option><option value="concluida" ${filtro==='concluida'?'selected':''}>Concluídas</option><option value="devolvida" ${filtro==='devolvida'?'selected':''}>Devolvidas</option><option value="todas" ${filtro==='todas'?'selected':''}>Todas</option></select></div>
+  return `<div class="filtros"><span class="pill">Novas <b>${novas}</b></span><select id="solFiltro" class="campo"><option value="abertas" ${filtro==='abertas'?'selected':''}>Abertas</option><option value="nova" ${filtro==='nova'?'selected':''}>Novas</option><option value="em_analise" ${filtro==='em_analise'?'selected':''}>Em análise</option><option value="concluida" ${filtro==='concluida'?'selected':''}>Concluídas</option><option value="devolvida" ${filtro==='devolvida'?'selected':''}>Devolvidas</option><option value="todas" ${filtro==='todas'?'selected':''}>Todas</option></select><span style="flex:1"></span><button class="btn mini" id="btnRegistrarSol" ${!CAN_WRITE?'disabled':''}>Registrar solicitação</button></div>
     ${htmlListaSolicitacoes(lista, 'Solicitações recebidas', 'clique para abrir · "Iniciar análise" cria a rodada já preenchida', 'gestao')}
     ${htmlPendentesVerificacao('gestao')}`;
 }
@@ -2311,6 +2284,7 @@ function ligarSolicitacoes(){
   const el = $('#p-sol');
   $$('#p-sol [data-sol], #p-minhas [data-sol]').forEach(tr => tr.onclick = () => abrirSolicitacaoModal(S.solicitacoes.find(x => x.id === tr.dataset.sol)));
   const sf = $('#solFiltro'); if(sf) sf.onchange = () => { S.solFiltro = sf.value; renderSolicitacoes(); };
+  const br = $('#btnRegistrarSol'); if(br) br.onclick = abrirRegistrarSolicitacao;
   el.querySelectorAll('[data-assumir]').forEach(b => b.onclick = async () => { const c = S.carteira.itens.find(x => x.chave === b.dataset.assumir); await DB.collection(COLECOES.verificacoes).add({ chave: c.chave, condominio: c.nome, cnpj: c.cnpj, mes: mesDe(c.inicio), resultado: 'assumido', por: ME.name, porId: ME.id, quando: nowISO() }); toast('Você assumiu ' + c.nome + '.'); });
   el.querySelectorAll('[data-semespolio]').forEach(b => b.onclick = async () => { const c = S.carteira.itens.find(x => x.chave === b.dataset.semespolio); if(!(await confirmar(`Registrar ${c.nome} como verificado, sem espólio?`))) return; await DB.collection(COLECOES.verificacoes).add({ chave: c.chave, condominio: c.nome, cnpj: c.cnpj, mes: mesDe(c.inicio), resultado: 'sem_espolio', por: ME.name, porId: ME.id, quando: nowISO() }); registrarHistorico('verificacao', { condominio: c.nome, resultado: 'sem_espolio' }); toast(c.nome + ' registrado sem espólio.'); });
   el.querySelectorAll('[data-solicitar]').forEach(b => b.onclick = () => { const c = S.carteira.itens.find(x => x.chave === b.dataset.solicitar); const card = $('#cardNovaSol'); card.outerHTML = htmlFormSolicitacao({ nome: c.nome, cnpj: c.cnpj }); ligarFormSolicitacao(); $('#cardNovaSol').scrollIntoView({ behavior:'smooth' }); });
@@ -2335,6 +2309,23 @@ function ligarFormSolicitacao(){
       await criarSolicitacao({ condominio: { nome: c ? c.nome : nome, cnpj: cnpj || (c ? c.cnpj : ''), chave: chaveCond(c ? c.nome : nome, cnpj || (c ? c.cnpj : '')) }, origem: tipo === 'implantacao' ? 'implantacao' : 'cobranca', tipo, unidades, obs: $('#solObs').value.trim() });
       toast('Solicitação enviada.'); renderSolicitacoes();
     }catch(e){ st.innerHTML = `<div class="erro">${esc(dbErr(e))}</div>`; }
+  };
+}
+
+/* gestão registra uma solicitação que chegou por e-mail ou telefone, em nome de quem pediu */
+function abrirRegistrarSolicitacao(pre){
+  abrirModal('Registrar solicitação', `<div class="grade" style="margin-bottom:12px"><div><label>Quem pediu</label><input type="text" id="rsNome" class="campo" placeholder="nome da assistente ou analista"></div><div><label>Como chegou</label><select id="rsCanal" class="campo"><option value="email">E-mail</option><option value="telefone">Telefone / presencial</option><option value="outro">Outro</option></select></div></div>
+    ${htmlFormSolicitacao(pre || {}).replace('id="cardNovaSol"', 'id="cardNovaSol" style="margin:0;border:0;box-shadow:none"')}`);
+  ligarFormSolicitacao();
+  const btn = $('#solEnviar'); btn.textContent = 'Registrar';
+  const original = btn.onclick;
+  btn.onclick = async () => {
+    const quem = $('#rsNome').value.trim(); if(!quem){ $('#solStatus').innerHTML = '<div class="erro">Informe quem pediu.</div>'; return; }
+    const meuNome = ME.name, meuId = ME.id;
+    ME.name = quem; ME.id = 'registrada:' + normNome(quem);
+    try{ await original(); } finally { ME.name = meuNome; ME.id = meuId; }
+    if(S.solicitacoes.length){ const ultima = S.solicitacoes.slice().sort((a,b) => (b.criadaEm||'').localeCompare(a.criadaEm||''))[0]; if(ultima && ultima.solicitanteNome === quem) atualizarSolicitacao(ultima.id, { registradaPor: meuNome, canal: $('#rsCanal') ? $('#rsCanal').value : 'outro' }); }
+    fecharModal();
   };
 }
 
@@ -2394,18 +2385,8 @@ function normalizarCarteira(lista){
              extrajudicial: limpaRamal(c.analista_extrajudicial || c.extrajudicial), executivo: limpaRamal(c.executivo), chave: chaveCond(c.razao_social || nome, c.cnpj || '') };
   }).filter(c => c.nome);
 }
-/* no portal: lê /api/carteira e guarda uma cópia na base do módulo quando mudou */
-async function sincronizarCarteira(){
-  if(!window.claude || DB._local) return;
-  try{
-    const r = await fetch('/api/carteira', { credentials: 'same-origin' }); if(!r.ok) throw new Error('HTTP ' + r.status);
-    const itens = normalizarCarteira((await r.json()).condominios || []);
-    if(!itens.length) return;
-    const assinatura = itens.length + ':' + itens.map(c => c.cnpj + c.inicio + c.assistenteCredito).join('|').length;
-    if(S.carteira.assinatura === assinatura) return;
-    await DB.doc(COLECOES.carteira + '/atual').set({ itens, atualizadoEm: nowISO(), origem: 'portal', assinatura });
-  }catch(e){ console.warn('carteira do portal indisponível:', e.message); }
-}
+/* no portal a carteira chega pelo documento carteira/atual, mantido por uma rotina no banco a partir de public.condominios */
+async function sincronizarCarteira(){ /* mantido por compatibilidade: a carteira vem do banco */ }
 /* fora do portal: importar JSON ou Excel exportado do cadastro */
 async function importarCarteiraArquivo(f){
   let lista;
@@ -2499,7 +2480,6 @@ async function fichaPDFBlob(r){
   catch(e){ document.querySelector('main').insertAdjacentHTML('afterbegin', `<div class="erro">${esc(e.message)}</div>`); return; }
   assinarBase();
   renderNovaLista();
-  sincronizarCarteira();
 })();
 
 </script>

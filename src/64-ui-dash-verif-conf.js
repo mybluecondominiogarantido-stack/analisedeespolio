@@ -77,13 +77,11 @@ function renderConfGestao(){
 }
 function renderConfCarteira(){
   const c = S.carteira;
-  $('#confCarteira').innerHTML = `<p class="ajuda" style="margin:0 0 8px">${c.itens && c.itens.length ? `<b>${c.itens.length} condomínios</b> · atualizada em ${fmtData((c.atualizadoEm||'').slice(0,10))} · origem: ${esc(c.origem||'')}` : 'Carteira não carregada. No portal ela é lida automaticamente; fora dele, importe um JSON ou Excel do cadastro.'}</p>
-    <div class="doc"><div class="ico">CAD</div><div><b>Importar carteira (JSON ou Excel)</b><span>colunas: condomínio, CNPJ, comarca, início do contrato, assistente de crédito, analista de cobrança</span></div><input type="file" accept=".json,.xlsx,.xls,.csv" id="confCarteiraArquivo"></div>
-    ${window.claude && !DB._local ? '<div class="acoes" style="margin-top:8px"><button class="btn sec mini" id="confCarteiraSync">Atualizar do portal agora</button></div>' : ''}
+  $('#confCarteira').innerHTML = `<p class="ajuda" style="margin:0 0 8px">${c.itens && c.itens.length ? `<b>${c.itens.length} condomínios</b> · atualizada em ${fmtData((c.atualizadoEm||'').slice(0,10))} · ${c.origem === 'banco' ? 'espelhada do cadastro de condomínios do portal, atualiza sozinha' : 'origem: ' + esc(c.origem||'')}` : (DB._local ? 'Carteira não carregada. Fora do portal, importe um JSON ou Excel do cadastro.' : 'Carteira ainda não espelhada do cadastro do portal.')}</p>
+    ${DB._local ? `<div class="doc"><div class="ico">CAD</div><div><b>Importar carteira (JSON ou Excel)</b><span>só em modo local · no portal a carteira vem do cadastro de condomínios</span></div><input type="file" accept=".json,.xlsx,.xls,.csv" id="confCarteiraArquivo"></div>` : ''}
     <div class="grade" style="margin-top:12px"><div><label>Rota do portal para abrir tickets</label><input type="text" id="confTicketRota" class="campo" value="${esc(S.acesso.ticketRota||'/api/tickets')}"></div><div><label>Setor padrão do ticket</label><input type="text" id="confTicketSetor" class="campo" value="${esc(S.acesso.ticketSetor||'Crédito')}"></div></div>
     <p class="ajuda">O ticket vai para a assistente de crédito do condomínio; sem assistente na carteira, vai para a assistente de implantação que solicitou. A rota precisa ser liberada por quem mantém o portal.</p>`;
-  $('#confCarteiraArquivo').onchange = async e => { const f = e.target.files[0]; e.target.value = ''; if(!f) return; try{ const n = await importarCarteiraArquivo(f); toast(`Carteira importada: ${n} condomínios.`); }catch(err){ toast('Não deu para importar: ' + err.message, 6000); } };
-  if($('#confCarteiraSync')) $('#confCarteiraSync').onclick = async () => { await sincronizarCarteira(); toast('Carteira atualizada.'); };
+  if($('#confCarteiraArquivo')) $('#confCarteiraArquivo').onchange = async e => { const f = e.target.files[0]; e.target.value = ''; if(!f) return; try{ const n = await importarCarteiraArquivo(f); toast(`Carteira importada: ${n} condomínios.`); }catch(err){ toast('Não deu para importar: ' + err.message, 6000); } };
   $('#confTicketRota').onchange = e => gravarDoc(COLECOES.meta + '/acesso', { ticketRota: e.target.value.trim() || '/api/tickets' }, S.acesso);
   $('#confTicketSetor').onchange = e => gravarDoc(COLECOES.meta + '/acesso', { ticketSetor: e.target.value.trim() || 'Crédito' }, S.acesso);
 }
@@ -110,5 +108,4 @@ $('#confCargaArquivo').addEventListener('change', async e => {
     st.innerHTML = `<div class="ok">Importado: ${r.rodadas} condomínio(s) com espólio entraram na fila${r.pulados ? ` (${r.pulados} já existiam)` : ''}.</div>`;
   }catch(err){ st.innerHTML = `<div class="erro">Não deu para importar: ${esc(err.message)}</div>`; }
 });
-$('#btnBackup').onclick = () => baixarArquivo(`backup-analise-espolio-${hojeISO()}.json`, JSON.stringify({ geradoEm: nowISO(), rodadas: S.rodadas, verificacoes: S.verificacoes, meta: S.meta, bi: S.bi }, null, 1), 'application/json');
 $('#btnPlanilhaAcomp').onclick = () => { const rods = fila().map(i => ({ ...i.rodada, unidades: i.unidades })); if(!rods.length){ toast('Fila vazia.'); return; } csvAcompanhamento(rods, `Acompanhamento Espolio - fila ${hojeISO()}.csv`); };

@@ -38,17 +38,24 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   const nFila = await p.evaluate(() => fila().length);
   ok(nFila === 35, `fila após a carga inicial tem 35 condomínios (tem ${nFila})`);
 
-  /* 2 · implantação com PDF real do Vouch (Esmeralda IV) */
-  await p.click('[data-tab="nova"]');
-  await p.click('#btnNovaImplantacao');
+  /* 2 · implantação a partir de uma solicitação registrada pela gestão (Esmeralda IV) */
+  await p.click('[data-tab="sol"]'); await p.waitForTimeout(300);
+  await p.click('#btnRegistrarSol'); await p.waitForTimeout(300);
+  await p.fill('#rsNome', 'Assistente de Implantação Teste');
+  await p.fill('#solCond', 'CONDOMINIO ESMERALDA IV'); await p.fill('#solCnpj', '54.641.400/0001-05');
+  await p.fill('#solUnidades [data-su="unid"]', 'A - 207'); await p.fill('#solUnidades [data-su="titular"]', 'LILIANE LOPES PIRES'); await p.fill('#solUnidades [data-su="cpf"]', '000.603.573-63');
+  await p.click('#solAddUnid'); await p.fill('#solUnidades tr:nth-child(2) [data-su="unid"]', 'A - 407'); await p.fill('#solUnidades tr:nth-child(2) [data-su="titular"]', 'LUANA DE HOLANDA ROLIM VERAS');
+  await p.click('#solAddUnid'); await p.fill('#solUnidades tr:nth-child(3) [data-su="unid"]', 'B - 305'); await p.fill('#solUnidades tr:nth-child(3) [data-su="titular"]', 'FULANO DE TAL QUE NAO EXISTE'); await p.fill('#solUnidades tr:nth-child(3) [data-su="cpf"]', '111.222.333-44');
+  await p.click('#solEnviar'); await p.waitForFunction(() => S.solicitacoes.length === 1, { timeout: 10000 }); await p.waitForTimeout(400);
+  ok((await p.evaluate(() => S.solicitacoes[0].solicitanteNome)) === 'Assistente de Implantação Teste', 'gestão registra solicitação em nome de quem pediu');
+  await p.click('#p-sol [data-sol]'); await p.waitForTimeout(300); await p.click('#mSolIniciar');
+  await p.waitForFunction(() => S.rodada && S.rodada.solicitacaoId, { timeout: 10000 }); await p.waitForTimeout(300);
+  ok((await p.$$eval('.tab', t => t.filter(x => !x.hidden).length)) === 4 && !(await p.$eval('#p-nova', e => e.classList.contains('ativa'))) === false, 'editor abre como tela temporária, sem aba própria');
   await p.setInputFiles('#docVouch input[type=file]', path.join(pdfs, arq('esmeralda')));
   await p.waitForFunction(() => document.querySelector('#docVouch').classList.contains('ok'), { timeout: 30000 });
   ok((await p.inputValue('#razao')) === 'CONDOMINIO ESMERALDA IV', 'razão social preenchida pelo Vouch');
   ok((await p.inputValue('#cnpj')) === '54.641.400/0001-05', 'CNPJ preenchido pelo Vouch');
-  await p.fill('#inicio', '4'); await p.fill('#bi', '2953.10'); await p.check('#semAnterior');
-  await p.fill('#sinal', 'A - 207\tLILIANE LOPES PIRES\t000.603.573-63\nA - 407\tLUANA DE HOLANDA ROLIM VERAS\nB - 305\tFULANO DE TAL QUE NAO EXISTE\t111.222.333-44');
-  await p.click('#btnSinal');
-  await p.waitForTimeout(400);
+  await p.fill('#inicio', '4'); await p.fill('#bi', '2953.10'); await p.check('#semAnterior'); await p.waitForTimeout(400);
   const res = await p.evaluate(() => S.rodada.unidades.map(u => ({ unid: u.unid, vouch: u.vouch, r: u.resultado, regra: u.regra, cas: u.cas.vouch && u.cas.vouch.modo })));
   console.log('    ', JSON.stringify(res));
   ok(res[0].vouch === 3 && res[0].cas === 'CPF', 'Liliane casada por CPF com 3 taxas');
@@ -69,6 +76,7 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   const tam = fs.statSync(destino).size;
   ok(/^AE-2026-0001 - CONDOMINIO ESMERALDA IV\.pdf$/.test(nomeFicha) && tam > 20000, `ficha baixada como "${nomeFicha}" (${(tam/1024).toFixed(0)} KB)`);
   await p.click('#btnFecharEditor'); await p.waitForTimeout(400);
+  ok(await p.evaluate(() => S.rodada === null && S.aba !== 'nova'), 'voltar fecha o editor e retorna à aba de origem');
 
   /* 3 · fila: Esmeralda entrou com 2 unidades ativas */
   const fEsm = await p.evaluate(() => fila().find(i => i.condominio.nome === 'CONDOMINIO ESMERALDA IV'));
@@ -115,7 +123,7 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   await p.click('#modal [data-ver]'); await p.waitForTimeout(300);
   ok(/AE-2026-0002/.test(await p.$eval('#modal h2', e => e.textContent)), 'clique na rodada abre a ficha');
   await p.click('#mVoltar'); await p.waitForTimeout(200); await p.click('#modal [data-fechar]');
-  ok((await p.$$eval('.tab', t => t.filter(x => !x.hidden).length)) === 5, 'gestão vê cinco abas: dashboard, solicitações, nova análise, fila, configurações');
+  ok((await p.$$eval('.tab', t => t.filter(x => !x.hidden).length)) === 4, 'gestão vê quatro abas: dashboard, solicitações, fila, configurações');
   await p.click('[data-tab="dash"]'); await p.click('#btnResumo'); await p.waitForTimeout(300);
   ok(/AE-2026-0001/.test(await p.$eval('#resumoMensal', e => e.textContent)), 'resumo mensal lista a rodada do mês');
   const tiles = await p.$eval('#dashTiles', e => e.textContent);
@@ -136,20 +144,20 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   await p.click(`[data-solicitar="${chaveNaz}"]`); await p.waitForTimeout(300);
   ok((await p.inputValue('#solCond')) === 'CONDOMINIO JARDIM DE NAZARE' && (await p.inputValue('#solCnpj')) === '00.116.267/0001-49', 'formulário vem preenchido com condomínio e CNPJ');
   await p.fill('#solUnidades [data-su="unid"]', 'A - 101'); await p.fill('#solUnidades [data-su="titular"]', 'TITULAR DE TESTE'); await p.fill('#solObs', 'teste automatizado');
-  await p.click('#solEnviar'); await p.waitForFunction(() => S.solicitacoes.length === 1, { timeout: 10000 }); await p.waitForTimeout(300);
+  await p.click('#solEnviar'); await p.waitForFunction(() => S.solicitacoes.length === 2, { timeout: 10000 }); await p.waitForTimeout(300);
   await p.click('[data-tab="minhas"]'); await p.waitForTimeout(200);
-  ok((await p.$$eval('#p-minhas [data-sol]', t => t.length)) === 1, 'Minhas solicitações lista a solicitação enviada');
+  ok((await p.$$eval('#p-minhas [data-sol]', t => t.length)) === 1, 'Minhas solicitações lista só a solicitação de quem está logado');
   await p.click('[data-tab="sol"]'); await p.waitForTimeout(200);
   ok((await p.evaluate(() => pendentesVerificacao().length)) === 1, 'condomínio solicitado sai dos pendentes de verificação');
   await shot('solicitante');
   // gestão
   await p.evaluate(() => { localStorage.setItem('myblue_espolio_perfil', 'gestao'); }); await p.reload();
-  await p.waitForFunction(() => S.pronto.s && S.solicitacoes.length === 1 && S.pronto.r, { timeout: 20000 }); await p.waitForTimeout(400);
+  await p.waitForFunction(() => S.pronto.s && S.solicitacoes.length === 2 && S.pronto.r, { timeout: 20000 }); await p.waitForTimeout(400);
   ok(/1 nova/.test(await p.$eval('#nSol', e => e.textContent)), 'gestão vê o contador de solicitação nova');
   ok(/Pendentes\s*1/.test((await p.$eval('#dashTiles', e => e.textContent)).replace(/\s+/g, ' ')), 'cartão Pendentes mostra 1 solicitação não vista');
   await p.click('[data-tab="sol"]'); await p.waitForTimeout(300);
   await p.click('#p-sol [data-sol]'); await p.waitForTimeout(400);
-  ok((await p.evaluate(() => S.solicitacoes[0].status)) === 'vista', 'abrir a solicitação marca como vista');
+  ok((await p.evaluate(() => S.solicitacoes.find(x => x.status !== 'concluida').status)) === 'vista', 'abrir a solicitação marca como vista');
   await p.click('#mSolIniciar'); await p.waitForFunction(() => S.rodada && S.rodada.solicitacaoId, { timeout: 10000 }); await p.waitForTimeout(300);
   ok((await p.evaluate(() => S.rodada.unidades.length === 1 && S.rodada.unidades[0].unid === 'A - 101' && S.rodada.condominio.cnpj === '00.116.267/0001-49')), 'Iniciar análise abre a rodada com condomínio e unidade da solicitação');
   await p.setInputFiles('#docVouch input[type=file]', path.join(pdfs, arq('nazare')));
@@ -158,7 +166,7 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   const uNaz = await p.evaluate(() => S.rodada.unidades[0]);
   ok(uNaz.vouch === 9 && uNaz.resultado === 'EXCLUIR', `unidade casada pelo número com 9 taxas → Excluir (${uNaz.vouch}, ${uNaz.resultado})`);
   await p.click('#btnConcluir'); await p.waitForFunction(() => S.rodada && S.rodada.status === 'concluida', { timeout: 15000 }); await p.waitForTimeout(500);
-  const solFinal = await p.evaluate(() => S.solicitacoes[0]);
+  const solFinal = await p.evaluate(() => S.solicitacoes.find(x => x.condominio.nome === 'CONDOMINIO JARDIM DE NAZARE'));
   ok(solFinal.status === 'concluida' && /^AE-2026-000\d$/.test(solFinal.protocolo) && solFinal.resultado[0].resultado === 'EXCLUIR', `conclusão atualiza a solicitação (${solFinal.status}, ${solFinal.protocolo})`);
   ok(!!(await p.$('#btnTicketEditor')), 'botão Abrir ticket aparece na rodada concluída');
   await p.click('#btnTicketEditor'); await p.waitForTimeout(300);
@@ -166,7 +174,7 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   await p.click('#modal [data-fechar]'); await p.click('#btnFecharEditor'); await p.waitForTimeout(300);
   // solicitante vê o resultado e baixa a ficha
   await p.evaluate(() => { localStorage.setItem('myblue_espolio_perfil', 'solicitante'); }); await p.reload();
-  await p.waitForFunction(() => S.pronto.s && S.solicitacoes.length === 1, { timeout: 20000 }); await p.waitForTimeout(400);
+  await p.waitForFunction(() => S.pronto.s && S.solicitacoes.length === 2, { timeout: 20000 }); await p.waitForTimeout(400);
   await p.click('[data-tab="minhas"]'); await p.waitForTimeout(200);
   await p.click('#p-minhas [data-sol]'); await p.waitForTimeout(300);
   const [dl3] = await Promise.all([p.waitForEvent('download', { timeout: 60000 }), p.click('#mSolFicha')]);

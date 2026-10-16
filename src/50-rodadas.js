@@ -35,7 +35,7 @@ function assinarBase(){
   DB.doc(COLECOES.bi + '/atual').onSnapshot(snap => { S.bi = snap.exists ? snap.data() : { base: [], enviadoEm:'', por:'' }; pronto('b'); renderBiInfo(); }, fail);
   DB.doc(COLECOES.meta + '/acesso').onSnapshot(snap => { S.acesso = { gestao: [], verificacaoDesde: '', ticketRota: '/api/tickets', ticketSetor: 'Crédito', ...(snap.exists ? snap.data() : {}) }; const antes = PERFIL; PERFIL = calcularPerfil(S.acesso); atualizarChipPerfil(); if(antes !== PERFIL) aplicarPerfil(); pronto('a'); if(S.pronto.a) renderTudo(); }, fail);
   DB.collection(COLECOES.solicitacoes).onSnapshot(snap => { S.solicitacoes = snap.docs.map(d => ({ id: d.id, ...d.data() })); pronto('s'); if(S.pronto.s) renderTudo(); }, fail);
-  DB.doc(COLECOES.carteira + '/atual').onSnapshot(snap => { S.carteira = snap.exists ? snap.data() : { itens: [], atualizadoEm:'', origem:'' }; pronto('c'); if(S.pronto.c) renderTudo(); }, fail);
+  DB.doc(COLECOES.carteira + '/atual').onSnapshot(snap => { const d = snap.exists ? snap.data() : { itens: [], atualizadoEm:'', origem:'' }; S.carteira = { ...d, itens: normalizarCarteira(d.itens || []) }; pronto('c'); if(S.pronto.c) renderTudo(); }, fail);
 }
 
 /* ---------- solicitações ----------
