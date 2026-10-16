@@ -21,7 +21,7 @@ const diasEntre = (a, b) => Math.round((new Date(b + 'T12:00:00') - new Date(a +
 const mesDe = iso => String(iso || '').slice(0,7);
 
 /* ===== nomes ===== */
-const SOBRE = ['DE','DA','DO','DOS','DAS','E'];
+const SOBRE = ['DE','DA','DO','DOS','DAS','E','ESPOLIO'];   // "Espólio de Fulano" casa com "Fulano"
 function normNome(s){
   return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/[^A-Z ]/g,' ').replace(/\s+/g,' ').trim();
 }

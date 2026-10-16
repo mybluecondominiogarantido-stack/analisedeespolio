@@ -81,6 +81,16 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   ok(res[2].vouch === 0 && res[2].cas === null, 'unidade inexistente fica com 0 (relatório lido, sem casamento)');
   ok(res[0].r === 'EXCLUIR' && res[0].regra === '5', 'BI negativo, 4 meses, 3 taxas → Excluir (regra 5)');
   ok(res[2].r === 'PREVENTIVO' && res[2].regra === '3', 'sem Vouch → Preventivo (regra 3)');
+  const formatos = await p.evaluate(() => {
+    const rot = ['CONTAS A RECEBER POR CONDÔMINO - COBRANÇA', 'Unidade: SALA 601 - ESPÓLIO DE FULANO DE TAL | Cobrança: Juridico', 'Descrição | Competencia | Vencimento | Emissão | Vlr. Principal',
+      'TARIFA BANCÁRIA TARIFA | 05/2026 | 04/05/2026 | 17/04/2026 | 1,99', 'TAXA DE CONDOMINIO | 05/2026 | 04/05/2026 | 17/04/2026 | 483,95', 'TAXA DE CONDOMINIO | 06/2026 | 04/06/2026 | 19/05/2026 | 483,95',
+      '1/24 -ACORDO NG | 07/2026 | 08/07/2026 | 01/07/2026 | 100,00', 'Total SALA 601: | 1.457,82', 'Unidade: LOJA 02 - CICRANO | Cobrança: Normal', 'TAXA DE CONDOMINIO | 07/2026 | 04/07/2026 | 17/06/2026 | 483,95'].join('\n');
+    const msa = ['INADIMPLÊNCIAS CONSOLIDADAS', 'Unidade | Competência | Vencimento', '0709 | 2.489,86 | 29,46', 'BELTRANO - NN:1 | 03/2026 | 10/03/2026 | 51 | 1.244,93', 'BELTRANO - NN:2 | 04/2026 | 10/04/2026 | 20 | 1.244,93', '0805 | 207,33', 'FULANO - NN: | 01/2026 | 10/01/2026 | 110 | 207,33'].join('\n');
+    const a = extrairDevedores(rot, false), b = extrairDevedores(msa, false);
+    const u = novaUnidade('SALA 601', 'FULANO DE TAL', ''); const m = melhorDevedor(u, a);
+    return { rot: a.map(d => d.unidade + ':' + d.cobrancas.length).join(','), msa: b.map(d => d.unidade + ':' + d.cobrancas.length).join(','), casa: m && m.modo };
+  });
+  ok(formatos.rot === 'SALA 601:3,LOJA 02:1' && formatos.msa === '0709:2,0805:1' && formatos.casa === 'nome + unidade', `relatório anterior: formatos "Unidade: X - nome" e "Inadimplências consolidadas"; "Espólio de" casa pelo nome (${JSON.stringify(formatos)})`);
   const ficha = await p.evaluate(() => fichaHTML(S.rodada));
   ok(!/f-caixa/.test(ficha), 'ficha sem as caixas de resumo por resultado');
   ok(/3 no Vouch · BI negativo · 4 meses</.test(ficha) && /Sem cobrança no Vouch</.test(ficha) && !/Regra \d/.test(ficha), 'ficha traz justificativa curta, sem número de regra');

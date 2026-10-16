@@ -33,7 +33,7 @@ function renderEditor(){
   $('#dicaDocs').textContent = acomp ? 'Anexe só o PDF do Vouch — as unidades vêm da rodada anterior' : 'Anexe os PDFs — os campos preenchem sozinhos';
   ['docVouch','docAnt','docEmail'].forEach((id, i) => { const t = [S.textos.vouch, S.textos.ant, S.textos.email][i]; $('#'+id).classList.toggle('ok', !!t.trim()); });
   renderDocBi();
-  recalcular(r, S.dev, { vouch: !!S.textos.vouch.trim(), ant: !!S.textos.ant.trim() });
+  recalcular(r, S.dev, relatoriosLidos());
   renderDiagnostico(); renderEditorUnidades(); renderEditorResumo(); renderFichaPreview(); renderSteps();
 }
 function renderSteps(){
@@ -154,7 +154,10 @@ function processarTexto(origem, txt, nomeArquivo){
     aplicarBaseBi();
   } else if(origem === 'ant'){
     S.textos.ant = txt; S.dev.ant = extrairDevedores(txt, $('#soValor').checked);
-    span.textContent = `${S.dev.ant.length} devedor(es) reconhecido(s)`;
+    const suspeito = S.dev.ant.length <= 1 || S.dev.ant.some(d => d.cobrancas.length > 60);
+    span.innerHTML = !S.dev.ant.length ? '<b style="color:var(--red)">Formato não reconhecido: nenhuma unidade encontrada.</b> As unidades ficam com pendência (relatório anterior não lido), sem supor que não havia débito. Informe as taxas à mão ou envie o arquivo para incluirmos o formato.'
+      : suspeito ? `<b style="color:#b57a12">${S.dev.ant.length} devedor(es) reconhecido(s) — leitura suspeita, confira as unidades.</b>` : `${S.dev.ant.length} devedor(es) reconhecido(s)`;
+    if(!S.dev.ant.length) toast('Relatório anterior: formato não reconhecido. As unidades ficam com pendência, sem supor ausência de débito.', 7000);
   } else if(origem === 'email'){
     S.textos.email = txt;
     const e = lerEmail(txt);
@@ -167,7 +170,7 @@ function processarTexto(origem, txt, nomeArquivo){
   }
   st.classList.add('ok');
   $('#relVouch').value = S.textos.vouch; $('#relAdmin').value = S.textos.ant; $('#relEmail').value = S.textos.email;
-  recalcular(r, S.dev, { vouch: !!S.textos.vouch.trim(), ant: !!S.textos.ant.trim() });
+  recalcular(r, S.dev, relatoriosLidos());
   renderDiagnostico(); renderEditorUnidades(true); renderFichaPreview(); renderSteps(); agendarSalvar('nova');
 }
 
@@ -196,7 +199,7 @@ async function subirBaseBi(f){
 }
 
 /* campos do bloco 2 */
-function ligarCampo(id, fn){ $(id).addEventListener('input', e => { if(!S.rodada) return; delete e.target.dataset.auto; fn(e.target.value, S.rodada); recalcular(S.rodada, S.dev, { vouch: !!S.textos.vouch.trim(), ant: !!S.textos.ant.trim() }); renderEditorUnidades(true); renderFichaPreview(); renderSteps(); agendarSalvar('nova'); }); }
+function ligarCampo(id, fn){ $(id).addEventListener('input', e => { if(!S.rodada) return; delete e.target.dataset.auto; fn(e.target.value, S.rodada); recalcular(S.rodada, S.dev, relatoriosLidos()); renderEditorUnidades(true); renderFichaPreview(); renderSteps(); agendarSalvar('nova'); }); }
 ligarCampo('#razao', (v, r) => { r.condominio.nome = v; delete r.condominio.auto; r.condominio.chave = chaveCond(v, r.condominio.cnpj); renderDocBi(); });
 $('#razao').addEventListener('change', () => { if(S.rodada && S.bi.base.length) aplicarBaseBi(); });
 ligarCampo('#cnpj', (v, r) => { r.condominio.cnpj = v; r.condominio.chave = chaveCond(r.condominio.nome, v); });
@@ -205,8 +208,8 @@ ligarCampo('#analista', (v, r) => { r.analista = v; delete r.analistaAuto; });
 ligarCampo('#bi', (v, r) => { r.bi = v === '' ? null : { valor: +String(v).replace(',','.'), sinal: ($('#sinalBi .ativo')||{}).dataset ? $('#sinalBi .ativo').dataset.sinal : '-' }; delete r.biAuto; });
 ligarCampo('#dataAnalise', (v, r) => { r.dataAnalise = v || hojeISO(); });
 ligarCampo('#nota', (v, r) => { r.nota = v; });
-$('#sinalBi').addEventListener('click', e => { const b = e.target.closest('button[data-sinal]'); if(!b || !S.rodada) return; $$('#sinalBi button').forEach(x => x.classList.toggle('ativo', x === b)); const r = S.rodada; if(r.bi) r.bi.sinal = b.dataset.sinal; delete r.biAuto; delete $('#bi').dataset.auto; recalcular(r, S.dev, { vouch: !!S.textos.vouch.trim(), ant: !!S.textos.ant.trim() }); renderEditorUnidades(true); renderFichaPreview(); agendarSalvar('nova'); });
-['#semAnterior','#semBi'].forEach(id => $(id).addEventListener('change', e => { if(!S.rodada) return; S.rodada[id === '#semAnterior' ? 'semAnterior' : 'semBi'] = e.target.checked; recalcular(S.rodada, S.dev, { vouch: !!S.textos.vouch.trim(), ant: !!S.textos.ant.trim() }); renderEditorUnidades(true); renderFichaPreview(); agendarSalvar('nova'); }));
+$('#sinalBi').addEventListener('click', e => { const b = e.target.closest('button[data-sinal]'); if(!b || !S.rodada) return; $$('#sinalBi button').forEach(x => x.classList.toggle('ativo', x === b)); const r = S.rodada; if(r.bi) r.bi.sinal = b.dataset.sinal; delete r.biAuto; delete $('#bi').dataset.auto; recalcular(r, S.dev, relatoriosLidos()); renderEditorUnidades(true); renderFichaPreview(); agendarSalvar('nova'); });
+['#semAnterior','#semBi'].forEach(id => $(id).addEventListener('change', e => { if(!S.rodada) return; S.rodada[id === '#semAnterior' ? 'semAnterior' : 'semBi'] = e.target.checked; recalcular(S.rodada, S.dev, relatoriosLidos()); renderEditorUnidades(true); renderFichaPreview(); agendarSalvar('nova'); }));
 
 /* bloco 3 */
 $('#btnSinal').onclick = () => {
@@ -215,10 +218,10 @@ $('#btnSinal').onclick = () => {
   if(!novas.length){ toast('Nenhum devedor reconhecido. Cada linha precisa ter ao menos nome e sobrenome.'); return; }
   novas.forEach(x => r.unidades.push(novaUnidade(x.unid, x.titular, x.cpf)));
   $('#sinal').value = '';
-  recalcular(r, S.dev, { vouch: !!S.textos.vouch.trim(), ant: !!S.textos.ant.trim() }); renderEditorUnidades(true); renderFichaPreview(); agendarSalvar('nova');
+  recalcular(r, S.dev, relatoriosLidos()); renderEditorUnidades(true); renderFichaPreview(); agendarSalvar('nova');
 };
 $('#btnAddUnid').onclick = () => { const r = S.rodada; if(!r) return; r.unidades.push(novaUnidade()); renderEditorUnidades(true); renderFichaPreview(); };
-$('#btnRecontar').onclick = () => { const r = S.rodada; if(!r) return; recalcular(r, S.dev, { vouch: !!S.textos.vouch.trim(), ant: !!S.textos.ant.trim() }); renderEditorUnidades(true); renderFichaPreview(); toast('Taxas recontadas.'); };
+$('#btnRecontar').onclick = () => { const r = S.rodada; if(!r) return; recalcular(r, S.dev, relatoriosLidos()); renderEditorUnidades(true); renderFichaPreview(); toast('Taxas recontadas.'); };
 $('#btnReprocessar').onclick = () => {
   const r = S.rodada; if(!r) return;
   if($('#relVouch').value.trim()) processarTexto('vouch', $('#relVouch').value, r.vouch && r.vouch.arquivo);

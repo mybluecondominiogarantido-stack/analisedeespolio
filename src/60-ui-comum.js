@@ -111,9 +111,11 @@ function cardUnidade(u, r, dev, rid, opts){
   </details>`;
 }
 
+/* relatório só conta como lido se alguma unidade foi reconhecida nele: um formato desconhecido não pode virar "sem débito" (vale a pendência 5.5) */
+const relatoriosLidos = () => ({ vouch: !!S.textos.vouch.trim() && (S.dev.vouch || []).length > 0, ant: !!S.textos.ant.trim() && (S.dev.ant || []).length > 0 });
 /* localiza a rodada de um cartão pelo rid: 'nova' = editor; 'lote:i' = item do lote */
 function rodadaPorRid(rid){
-  if(rid === 'nova') return { r: S.rodada, dev: S.dev, lidos: { vouch: !!S.textos.vouch.trim(), ant: !!S.textos.ant.trim() }, apos: () => renderEditorUnidades(true) };
+  if(rid === 'nova') return { r: S.rodada, dev: S.dev, lidos: relatoriosLidos(), apos: () => renderEditorUnidades(true) };
   const m = rid.match(/^lote:(\d+)$/);
   if(m){ const it = S.lote.itens[+m[1]]; return { r: it.rodada, dev: it.dev, lidos: { vouch: true, ant: false }, apos: () => renderLote() }; }
   return null;

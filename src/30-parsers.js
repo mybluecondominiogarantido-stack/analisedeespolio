@@ -190,7 +190,7 @@ function extrairDevedoresConsolidado(txt){
   for(const bruta of txt.split(/\r?\n/)){
     const linha = bruta.trim(); if(!linha) continue;
     const cel = linha.split('|').map(c => c.trim());
-    if(/^[A-Za-z0-9][A-Za-z0-9 .\/-]{0,11}$/.test(cel[0]) && /\d/.test(cel[0]) && cel.length >= 3 && cel.slice(1).every(c => /^[\d.,-]+$/.test(c))){
+    if(/^[A-Za-z0-9][A-Za-z0-9 .\/-]{0,11}$/.test(cel[0]) && /\d/.test(cel[0]) && cel.length >= 2 && cel.slice(1).every(c => /^[\d.,-]+$/.test(c)) && cel.slice(1).some(c => /,\d{2}$/.test(c))){
       atual = { unidade: cel[0], unidadeTxt: cel[0], nome: '', cpf: '', cobrancas: [] }; lista.push(atual); continue;
     }
     if(!atual) continue;
@@ -204,10 +204,41 @@ function extrairDevedoresConsolidado(txt){
   const ok = lista.filter(b => b.cobrancas.length);
   return ok.length ? ok : null;
 }
+/* Relatórios com cabeçalho rotulado por unidade (ex.: "CONTAS A RECEBER POR CONDÔMINO"):
+   "Unidade: SALA 601 - NOME DO CONDÔMINO", seguido de uma linha por cobrança com competência (MM/AAAA) e vencimento.
+   Conta competências distintas; tarifa bancária, multa, juros e honorários soltos não contam como cobrança. */
+function extrairDevedoresRotulados(txt){
+  const linhas = txt.split(/\r?\n/);
+  if(linhas.filter(l => /^\s*Unidade\s*:\s*\S/i.test(l)).length < 1) return null;
+  const lista = []; let atual = null;
+  for(const bruta of linhas){
+    const linha = bruta.trim(); if(!linha) continue;
+    const mU = linha.match(/^Unidade\s*:\s*([^|]+?)\s*(?:\||$)/i);
+    if(mU){
+      const partes = mU[1].split(/\s+-\s+/);
+      const unid = partes.shift().trim(), nome = partes.join(' - ').trim();
+      atual = { unidade: unid, unidadeTxt: unid, nome, cpf: (linha.match(RE_CPF) || [''])[0], cobrancas: [], _comps: new Set() };
+      lista.push(atual); continue;
+    }
+    if(!atual || /^total\b/i.test(linha)) continue;
+    const cel = linha.split('|').map(c => c.trim());
+    const iComp = cel.findIndex(c => /^\d{2}\/\d{4}$/.test(c));
+    if(iComp < 0 || !cel.slice(iComp + 1).some(c => /^\d{2}\/\d{2}\/\d{4}$/.test(c))) continue;
+    if(/^(tarifa|multa|juros|honor|custas|corre[çc])/i.test(cel[0] || '')) continue;
+    if(atual._comps.has(cel[iComp])) continue;
+    atual._comps.add(cel[iComp]);
+    atual.cobrancas.push({ texto: linha.slice(0, 170), comp: cel[iComp], venc: cel.slice(iComp + 1).find(c => /^\d{2}\/\d{2}\/\d{4}$/.test(c)), incluir: true });
+  }
+  lista.forEach(b => delete b._comps);
+  const ok = lista.filter(b => b.cobrancas.length);
+  return ok.length ? ok : null;
+}
 function extrairDevedores(txt, soValor){
   if(ehRelatorioVouch(txt)) return lerVouch(txt).devedores;
   const cons = extrairDevedoresConsolidado(txt);
   if(cons) return cons;
+  const rot = extrairDevedoresRotulados(txt);
+  if(rot) return rot;
   const trans = extrairDevedoresTransposto(txt);
   if(trans) return trans.filter(b => b.cobrancas.length);
   const lista = [];
