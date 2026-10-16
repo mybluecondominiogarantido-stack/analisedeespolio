@@ -16,7 +16,7 @@ Módulo do portal MyBlue para a Coordenação de Cobrança: solicitações de an
 | `docs/decisoes.md` | Decisões alinhadas com a coordenação |
 | `docs/guia-implantacao-portal.md` | **Guia de implantação no portal** |
 | `docs/sql/carteira-e-modulo.sql` | Cadastro do módulo e carteira espelhada (aplicado em 16/10/2026) |
-| `docs/sql/notificacoes-trigger.sql` | Gatilho de avisos no sino do portal (não aplicado) |
+| `docs/sql/notificacoes-trigger.sql` | Gatilho de avisos no sino do portal (aplicado em 16/10/2026) |
 | `test/fixtures/carteira-exemplo.json` | Carteira fictícia para o teste de ponta a ponta |
 
 ## Como publicar no portal

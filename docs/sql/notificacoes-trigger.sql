@@ -1,11 +1,11 @@
 -- Gatilho de avisos no sino do portal para o módulo analise-de-espolio.
--- NÃO APLICADO: depende do aval da coordenação e de quem mantém o portal.
+-- APLICADO em 16/10/2026 com aval da coordenação de Cobrança; testado em transação desfeita (gestão e solicitante avisados).
 -- Reverter: drop trigger if exists espolio_notificar on public.documentos; drop function if exists public.espolio_notificar();
 -- Efeito: ao entrar uma solicitação nova em documentos (modulo_slug = 'analise-de-espolio', colecao = 'solicitacoes'),
 -- grava um aviso para cada usuário da gestão; ao mudar o status para concluida/devolvida, avisa o solicitante.
 create or replace function public.espolio_notificar() returns trigger language plpgsql as $$
 declare
-  st_antigo text := coalesce(old.dados->>'status', '');
+  st_antigo text := case when tg_op = 'UPDATE' then coalesce(old.dados->>'status', '') else '' end;
   st_novo   text := coalesce(new.dados->>'status', '');
   cond      text := coalesce(new.dados->'condominio'->>'nome', '');
   solic     text := coalesce(new.dados->>'solicitanteNome', '');

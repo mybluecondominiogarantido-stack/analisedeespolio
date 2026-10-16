@@ -12,7 +12,7 @@ Feito em 16/10/2026, com aval da coordenação de Cobrança. O SQL está em `doc
 | Carteira de condomínios | Espelhada do cadastro do portal: 335 condomínios, 332 com assistente de crédito |
 | Atualização da carteira | Automática: um gatilho no cadastro de condomínios refaz a cópia a cada inclusão, alteração ou exclusão |
 
-Nada além disso foi alterado no banco. Usuários, tickets, notificações e os demais módulos não foram tocados.
+Em 16/10/2026 também foi ligado o aviso no sino (seção 6). Nada além disso foi alterado no banco. Usuários, tickets, notificações e os demais módulos não foram tocados.
 
 ## 2. Publicar o arquivo do módulo
 
@@ -82,9 +82,8 @@ O módulo funciona sem estes itens. Eles só completam a automação.
 | Item | O que é preciso | Enquanto não existir |
 |---|---|---|
 | **Ticket da ficha** | Uma rota do portal que crie ticket pelo módulo, recebendo título, descrição, setor, responsável e condomínio, mais uma rota para anexar o PDF. O módulo chama `/api/tickets` e `/api/tickets/{id}/anexos`, e o caminho pode ser trocado em Configurações. | O botão "Copiar texto" deixa o ticket pronto para abrir à mão no portal. |
-| **Aviso no sino** | Aplicar `docs/sql/notificacoes-trigger.sql`. Avisa a gestão a cada solicitação nova e avisa quem pediu quando a análise é concluída ou devolvida. | A Beatriz acompanha pelo contador da aba Solicitações e pelo cartão Pendentes. |
 
-O aviso no sino é uma alteração no banco e **ainda não foi aplicado**: depende de aval.
+**Aviso no sino: aplicado em 16/10/2026.** O gatilho de `docs/sql/notificacoes-trigger.sql` avisa no sino quem tem o papel Gestão a cada solicitação nova, e avisa quem pediu quando a análise é concluída ou devolvida. Para desfazer, use o comando de reversão no topo do arquivo.
 
 ## 7. Onde ficam os dados
 

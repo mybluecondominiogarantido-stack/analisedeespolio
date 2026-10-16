@@ -41,7 +41,7 @@ Registro do que foi decidido com a Coordenação de Cobrança (out/2026) para a 
 - **Ciclo**: nova → vista (gestão abriu) → em análise (rodada criada já preenchida) → concluída (protocolo e resultado por unidade; o solicitante baixa a ficha para ciência) ou devolvida (com motivo).
 - **Ticket por solicitação**: ao concluir, "Abrir ticket" para quem guarda a ficha na pasta do CPD: a assistente de crédito definida no condomínio; se não houver, a assistente de implantação que solicitou; se nenhuma, a gestão escolhe. Depende de rota do portal (configurável, padrão `/api/tickets`); sem rota, o texto fica pronto para copiar.
 - **Dashboard**: "Pendentes" passa a ser solicitações ainda não vistas. Quinto cartão, **Implantação atrasada**: número de condomínios do quadro de meses anteriores sem verificação, com os do mês aguardando.
-- **Avisos no sino**: gatilho no banco do portal escrito em `docs/sql/notificacoes-trigger.sql`, **não aplicado** até aval.
+- **Avisos no sino**: gatilho no banco do portal (`docs/sql/notificacoes-trigger.sql`), **aplicado em 16/10/2026** com aval. Solicitação nova avisa quem tem papel Gestão; concluída ou devolvida avisa quem pediu.
 
 ## Saída do acompanhamento
 - Exclusão da garantia (3+ taxas no Vouch em acompanhamento) ou **troca de titularidade concluída** (encerramento manual com motivo).
