@@ -11,10 +11,10 @@ function renderDashboard(){
   const pan = panoramaUnidades();
   const unidVenc = venc.reduce((s,i) => s + i.unidades.length, 0);
   $('#dashTiles').innerHTML = `
-    <div class="tile"><small>Total de espólios</small><strong>${pan.total}</strong><em>unidades sinalizadas desde o início</em></div>
+    <div class="tile"><small>Total de espólios sinalizados</small><strong>${pan.total}</strong><em>unidades desde o início</em></div>
+    <div class="tile"><small>Análises do mês</small><strong>${doMes.length}</strong><em>${doMes.filter(r=>r.tipo!=='acompanhamento').length} implantação · ${doMes.filter(r=>r.tipo==='acompanhamento').length} acompanhamento</em></div>
     <div class="tile ${venc.length?'alerta':''}"><small>Pendentes</small><strong>${unidVenc}</strong><em>reanálise vencida · ${venc.length} condomínio(s) há mais de ${PRAZO_REANALISE_DIAS} dias</em></div>
-    <div class="tile"><small>Excluídas da garantia</small><strong>${pan.excluidas}</strong><em>acumulado</em></div>
-    <div class="tile"><small>Análises do mês</small><strong>${doMes.length}</strong><em>${doMes.filter(r=>r.tipo!=='acompanhamento').length} implantação · ${doMes.filter(r=>r.tipo==='acompanhamento').length} acompanhamento</em></div>`;
+    <div class="tile"><small>Excluídas</small><strong>${pan.excluidas}</strong><em>da garantia · acumulado</em></div>`;
   renderGraficoMensal(conc);
   const top = f.slice(0, 8);
   $('#dashFila').innerHTML = top.length ? `<table><thead><tr><th>Condomínio</th><th>Unid.</th><th>Última rodada</th><th>Prazo</th></tr></thead><tbody>${top.map(i => `<tr class="clic" data-lote="${esc(i.chave)}"><td>${esc(i.condominio.nome)}</td><td>${i.unidades.length}</td><td>${fmtData(i.rodada.dataAnalise)}</td><td class="${i.vencida?'venc':''}">${i.vencida ? `vencida há ${-i.dias} dia(s)` : `em ${i.dias} dia(s)`}</td></tr>`).join('')}</tbody></table>` : '<div class="corpo"><div class="vazio">Fila vazia.</div></div>';
