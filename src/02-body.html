@@ -10,15 +10,17 @@
   </div>
   <nav class="tabs" id="tabs">
     <button class="tab ativa" data-tab="dash">Dashboard</button>
-    <button class="tab" data-tab="sol"><span id="tabSolRotulo">Solicitações</span> <span class="n" id="nSol" hidden></span></button>
-    <button class="tab" data-tab="minhas" hidden>Minhas solicitações</button>
+    <button class="tab" data-tab="sol">Solicitações <span class="n" id="nSol" hidden></span></button>
+    <button class="tab" data-tab="pedir">Solicitar análise</button>
+    <button class="tab" data-tab="minhas">Minhas solicitações</button>
     <button class="tab" data-tab="lote">Fila de acompanhamento <span class="n" id="nFila" hidden></span></button>
-    <button class="tab" data-tab="acessos">Acessos <span class="n" id="nAcessos" hidden></span></button>
+    <button class="tab" data-tab="acessos">Acessos</button>
     <button class="tab" data-tab="conf">Configurações</button>
   </nav>
 </div></header>
 
 <main>
+<div id="banners"></div>
 
 <!-- ================= DASHBOARD ================= -->
 <section class="painel ativa" id="p-dash">
@@ -45,6 +47,7 @@
 
 <!-- ================= SOLICITAÇÕES ================= -->
 <section class="painel" id="p-sol"></section>
+<section class="painel" id="p-pedir"></section>
 <section class="painel" id="p-minhas"></section>
 
 <!-- ================= NOVA ANÁLISE (IMPLANTAÇÃO) ================= -->
@@ -160,12 +163,7 @@
 <section class="painel" id="p-acessos"></section>
 
 <!-- ================= SEM PAPEL ================= -->
-<section class="painel" id="p-sem">
-  <div class="card"><div class="corpo" style="padding:28px 24px">
-    <h2 style="font-size:18px;margin-bottom:6px">Acesso registrado</h2>
-    <p class="ajuda" style="margin:0;font-size:13.5px">Seu acesso a este módulo foi registrado agora. A coordenação precisa definir o seu papel na aba Acessos: <b>Solicitante</b> (assistentes de implantação e analistas de Cobrança) ou <b>Gestão</b>. Assim que o papel for marcado, esta tela muda sozinha.</p>
-  </div></div>
-</section>
+<section class="painel" id="p-sem"></section>
 
 <!-- ================= CONFIGURAÇÕES ================= -->
 <section class="painel" id="p-conf">

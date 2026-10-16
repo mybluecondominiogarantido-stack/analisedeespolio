@@ -26,17 +26,22 @@ Nada além disso foi alterado no banco. Usuários, tickets, notificações e os 
 
 ## 3. Liberar o acesso e definir os papéis
 
-O acesso funciona em duas camadas, como no módulo Comissões de Novos Condomínios.
+O acesso funciona em duas camadas, com a mesma funcionalidade do módulo Comissões de Novos Condomínios.
 
 1. **Portal libera a entrada.** O administrador libera o módulo, em Usuários e acessos, para quem vai usar: coordenação, assistentes de implantação e analistas de Cobrança.
-2. **Gestão define o papel.** Cada pessoa aparece na aba **Acessos** do módulo depois de abri-lo uma vez. Ali a gestão marca o papel de cada uma. Quem abre e ainda não tem papel vê a tela "Acesso registrado" até ser marcada.
+2. **Gestão define o papel.** Cada pessoa aparece na aba **Acessos** do módulo depois de abri-lo uma vez. Ali a gestão marca os papéis de cada uma. Quem abre e ainda não tem papel vê o aviso "Você ainda não tem um papel neste módulo" até ser marcada.
 
 | Papel | Quem | O que vê |
 |---|---|---|
-| Gestão | Coordenação (Beatriz Teixeira, Mariana Nascimento) | Dashboard, Solicitações, Fila de acompanhamento, Acessos, Configurações |
-| Solicitante | Assistentes de implantação e analistas de Cobrança | Solicitar análise e Minhas solicitações |
+| Gestão | Coordenação | Dashboard, Solicitações, Fila de acompanhamento, Acessos, Configurações |
+| Implantação | Assistentes de implantação | Solicitar análise, com o quadro de condomínios em implantação, e Minhas solicitações |
+| Solicitante avulso | Analistas de Cobrança e demais | Solicitar análise, sem o quadro, e Minhas solicitações |
 
-**Primeira configuração.** Enquanto ninguém tiver o papel de Gestão marcado, a Beatriz e a Mariana entram como gestão automaticamente. A primeira delas a abrir a aba Acessos e marcar qualquer pessoa fica fixada como Gestão. Depois disso, só vale o que estiver marcado na aba.
+Quem tem mais de um papel vê a soma das abas. Uma solicitação da Implantação para um condomínio do quadro sai como implantação; qualquer outra sai como avulsa.
+
+**Sem gestor definido.** Enquanto ninguém tiver o papel de Gestão marcado, todos que abrem o módulo veem todas as abas, com um aviso no topo. Quem tirar o próprio papel de Gestão recebe um pedido de confirmação.
+
+**Situação em 16/10/2026.** No módulo publicado, a Beatriz Teixeira está como Gestão e a Mariana Nascimento aparece sem papel. Para a Mariana ter acesso de gestão, marque Gestão na linha dela.
 
 **Nome na carteira.** Na mesma aba, ligue o login de cada assistente de crédito e analista ao nome que aparece no cadastro de condomínios. É isso que faz o ticket da ficha chegar à pessoa certa.
 
@@ -46,16 +51,17 @@ O acesso funciona em duas camadas, como no módulo Comissões de Novos Condomín
 - **Assistentes de crédito** (recebem o ticket da ficha): Evelyne Bezerra, Grazielly Soares, Jaiani Nogueira, Naiara Sousa, Sofia Matos. A Chayanne Freitas já tem.
 - **Assistentes de implantação:** informar os nomes ao administrador.
 
-**Como conferir:** cada pessoa liberada abre o módulo uma vez e aparece na aba Acessos com a data do último acesso. Depois de marcada, uma analista vê só "Solicitar análise" e "Minhas solicitações".
+**Como conferir:** cada pessoa liberada abre o módulo uma vez e aparece na aba Acessos com a data do último acesso. Depois de marcada, uma analista vê só "Solicitar análise" e "Minhas solicitações", e só a Implantação vê o quadro de condomínios em implantação.
 
 ## 4. Configurar o módulo
 
 **Quem faz:** Beatriz, na aba Configurações.
 
-1. **Verificar implantações a partir de** (cartão Carteira do portal e tickets). Escolha **agosto de 2026**. A planilha de controle já cobre janeiro a julho, e sem esse corte esses meses voltariam como pendentes.
-2. **Carga inicial.** Em "Carga inicial · planilha de controle", envie `Controle_de_Verificacao_de_Espolios.xlsx` uma única vez. Os 35 condomínios com espólio entram na Fila de acompanhamento. Repetir a importação não duplica nada.
-3. **Base do Power BI.** Envie o Excel do dia. Ela vale para toda a equipe até a próxima troca.
-4. **Carteira.** Só conferir: deve mostrar 335 condomínios, "espelhada do cadastro de condomínios do portal".
+1. **Carga inicial.** Em "Carga inicial · planilha de controle", envie `Controle_de_Verificacao_de_Espolios.xlsx` uma única vez. Os 35 condomínios com espólio entram na Fila de acompanhamento. Repetir a importação não duplica nada.
+2. **Base do Power BI.** Envie o Excel do dia. Ela vale para toda a equipe até a próxima troca.
+3. **Carteira.** Só conferir: deve mostrar 335 condomínios, "espelhada do cadastro de condomínios do portal".
+
+O quadro de condomínios em implantação já começa em **agosto de 2026**: entram os de vigência no mês e os atrasados desde agosto. Janeiro a julho ficam de fora, pois já estão na planilha de controle.
 
 **Como conferir:** a Fila de acompanhamento mostra 35 condomínios, quase todos vencidos, com o selo "completar". É esperado: a planilha não tinha titular nem CPF, e eles se completam na primeira reanálise.
 
@@ -63,7 +69,7 @@ O acesso funciona em duas camadas, como no módulo Comissões de Novos Condomín
 
 Fazer uma vez, com dados reais, antes de anunciar para a equipe.
 
-1. **Solicitação.** Uma analista envia uma solicitação de um condomínio real. Na conta da Beatriz, a aba Solicitações mostra "1 nova" e o Dashboard mostra "Pendentes 1".
+1. **Solicitação.** Uma analista envia uma solicitação de um condomínio real. Uma assistente de implantação confere se o quadro mostra os condomínios com vigência no mês e os atrasados. Na conta da Beatriz, a aba Solicitações mostra "1 nova" e o Dashboard mostra "Pendentes 1".
 2. **Análise.** A Beatriz abre a solicitação, clica em "Iniciar análise", anexa o PDF do Vouch e conclui. A ficha baixa com o nome `AE-2026-0001 - Condomínio.pdf`.
 3. **Retorno.** A analista vê a solicitação como "Concluída" em "Minhas solicitações" e baixa a mesma ficha.
 4. **Fila.** O condomínio aparece na Fila de acompanhamento com prazo de 90 dias.

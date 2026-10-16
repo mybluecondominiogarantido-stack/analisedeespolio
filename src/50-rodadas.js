@@ -13,7 +13,7 @@ const S = {
   rodadas: [],          // todas as rodadas (snapshot)
   verificacoes: [],
   meta: { seq: {} },
-  acesso: { gestao: [], verificacaoDesde: '', ticketRota: '/api/tickets', ticketSetor: 'Crédito' },
+  acesso: { ticketRota: '/api/tickets', ticketSetor: 'Crédito' },
   bi: { base: [], enviadoEm: '', por: '' },
   solicitacoes: [],
   carteira: { itens: [], atualizadoEm: '', origem: '' },
@@ -34,15 +34,15 @@ function assinarBase(){
   DB.collection(COLECOES.verificacoes).onSnapshot(snap => { S.verificacoes = snap.docs.map(d => ({ id: d.id, ...d.data() })); pronto('v'); if(S.pronto.v) renderTudo(); }, fail);
   DB.doc(COLECOES.meta + '/estado').onSnapshot(snap => { S.meta = snap.exists ? snap.data() : { seq: {} }; pronto('m'); }, fail);
   DB.doc(COLECOES.bi + '/atual').onSnapshot(snap => { S.bi = snap.exists ? snap.data() : { base: [], enviadoEm:'', por:'' }; pronto('b'); renderBiInfo(); }, fail);
-  DB.doc(COLECOES.meta + '/acesso').onSnapshot(snap => { S.acesso = { verificacaoDesde: '', ticketRota: '/api/tickets', ticketSetor: 'Crédito', ...(snap.exists ? snap.data() : {}) }; pronto('a'); if(S.pronto.a) renderTudo(); }, fail);
-  DB.collection(COLECOES.perfis).onSnapshot(snap => { const m = {}; snap.docs.forEach(d => { m[d.id] = { id: d.id, ...d.data() }; }); S.perfis = m; recalcularPerfil(); pronto('p'); if(S.pronto.p) renderTudo(); }, fail);
+  DB.doc(COLECOES.meta + '/acesso').onSnapshot(snap => { S.acesso = { ticketRota: '/api/tickets', ticketSetor: 'Crédito', ...(snap.exists ? snap.data() : {}) }; pronto('a'); if(S.pronto.a) renderTudo(); }, fail);
+  DB.collection(COLECOES.perfis).onSnapshot(snap => { const m = {}; snap.docs.forEach(d => { m[d.id] = { id: d.id, ...d.data() }; }); S.perfis = m; pronto('p'); if(S.pronto.p) renderTudo(); }, fail);
   DB.collection(COLECOES.vistos).onSnapshot(snap => { const m = {}; snap.docs.forEach(d => { m[d.id] = { id: d.id, ...d.data() }; }); S.vistos = m; const primeira = !S.pronto.w; pronto('w'); if(primeira) registrarVisto(); if(S.pronto.w) renderTudo(); }, fail);
   DB.collection(COLECOES.solicitacoes).onSnapshot(snap => { S.solicitacoes = snap.docs.map(d => ({ id: d.id, ...d.data() })); pronto('s'); if(S.pronto.s) renderTudo(); }, fail);
   DB.doc(COLECOES.carteira + '/atual').onSnapshot(snap => { const d = snap.exists ? snap.data() : { itens: [], atualizadoEm:'', origem:'' }; S.carteira = { ...d, itens: normalizarCarteira(d.itens || []) }; pronto('c'); if(S.pronto.c) renderTudo(); }, fail);
 }
 
 /* ---------- solicitações ----------
-   { condominio:{nome,cnpj,chave}, origem:'implantacao'|'cobranca', tipo:'implantacao'|'avulso', unidades:[{unid,titular,cpf}], obs,
+   { condominio:{nome,cnpj,chave}, origem: papel de quem pediu ('implantacao'|'avulso'|'gestao'), tipo:'implantacao'|'avulso', unidades:[{unid,titular,cpf}], obs,
      solicitanteId, solicitanteNome, criadaEm, status:'nova'|'vista'|'em_analise'|'concluida'|'devolvida', vistaEm, rodadaId, protocolo,
      resultado:[{unid,titular,resultado,regra}], motivoDevolucao, concluidaEm } */
 const solicitacoesNovas = () => S.solicitacoes.filter(x => x.status === 'nova');
@@ -55,17 +55,21 @@ async function criarSolicitacao(dados){
 }
 const atualizarSolicitacao = (id, patch) => gravarDoc(COLECOES.solicitacoes + '/' + id, patch);
 
-/* ---------- verificação da implantação: condomínios da carteira com início de contrato, ainda sem resposta ---------- */
+/* ---------- verificação da implantação (quadro do papel Implantação) ----------
+   Entram os condomínios da carteira com vigência (início do contrato) no mês atual e os de meses anteriores,
+   a partir de VERIFICACAO_DESDE, que ainda não foram verificados: sem "sem espólio" registrado, sem solicitação e sem rodada.
+   Os de meses anteriores acumulam como atrasados. */
+const VERIFICACAO_DESDE = '2026-08';
 function pendentesVerificacao(){
-  const desde = S.acesso.verificacaoDesde || '';
+  const mesAtual = mesDe(hojeISO());
   const respondidos = new Set(S.verificacoes.filter(v => v.resultado === 'sem_espolio').map(v => v.chave).filter(Boolean));
   const comRodada = new Set(S.rodadas.map(r => r.condominio.chave));
   const comSolic = new Set(S.solicitacoes.map(x => x.condominio.chave));
   const hoje = hojeISO();
-  return (S.carteira.itens || []).filter(c => c.inicio && (!desde || c.inicio >= desde) && c.situacao !== 'DISTRATADO')
+  return (S.carteira.itens || []).filter(c => c.inicio && c.situacao !== 'DISTRATADO' && mesDe(c.inicio) >= VERIFICACAO_DESDE && mesDe(c.inicio) <= mesAtual)
     .filter(c => !respondidos.has(c.chave) && !comRodada.has(c.chave) && !comSolic.has(c.chave) && !respondidos.has('nome:' + normCond(c.nome)))
-    .map(c => ({ ...c, dias: diasEntre(c.inicio, hoje), assumido: (S.verificacoes.find(v => v.chave === c.chave && v.resultado === 'assumido') || null) }))
-    .sort((a,b) => a.inicio.localeCompare(b.inicio));
+    .map(c => ({ ...c, atrasado: mesDe(c.inicio) < mesAtual, dias: diasEntre(c.inicio, hoje), assumido: (S.verificacoes.find(v => v.chave === c.chave && v.resultado === 'assumido') || null) }))
+    .sort((a,b) => a.inicio.localeCompare(b.inicio) || a.nome.localeCompare(b.nome, 'pt-BR'));
 }
 /* responsável pelo aviso/ticket: assistente de crédito da carteira; senão a assistente de implantação que solicitou */
 function responsavelDoCondominio(chave, solicitacao){

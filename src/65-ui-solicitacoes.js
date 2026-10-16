@@ -1,32 +1,46 @@
 /* ======================================================================
    Solicitações de análise
-   - Solicitante (implantação e analistas de Cobrança): pendentes de verificação, nova solicitação, minhas solicitações
-   - Gestão: caixa de entrada, iniciar análise, devolver, verificação da implantação (SLA)
+   - Implantação: nova solicitação e o quadro de condomínios em implantação a verificar; Minhas solicitações
+   - Solicitante avulso: nova solicitação (sem o quadro); Minhas solicitações
+   - Gestão: caixa de entrada, registrar solicitação, iniciar análise, devolver
+   O tipo da solicitação segue o papel de quem pede: Implantação pedindo um condomínio do quadro = implantação;
+   qualquer outro caso = avulso. Na solicitação registrada pela gestão, a gestão escolhe o tipo.
    ====================================================================== */
 const STATUS_SOL = { nova:'Nova', vista:'Vista', em_analise:'Em análise', concluida:'Concluída', devolvida:'Devolvida' };
 const seloSol = st => `<span class="selo ${st==='nova'?'s-exc':st==='concluida'?'s-ok':st==='devolvida'?'s-rean':st==='em_analise'?'s-prev':'s-rasc'}">${esc(STATUS_SOL[st]||st)}</span>`;
 const diasDesde = iso => iso ? diasEntre(String(iso).slice(0,10), hojeISO()) : 0;
 
 function renderSolicitacoes(){
-  const el = $('#p-sol'); if(!el) return;
-  el.innerHTML = ehGestao() ? htmlSolGestao() : htmlSolSolicitante();
-  $('#p-minhas').innerHTML = ehGestao() ? '' : htmlListaSolicitacoes(minhasSolicitacoes(), 'Minhas solicitações', 'clique para ver o andamento e, quando concluída, a ficha', 'solicitante');
+  const p = papeis();
+  $('#p-sol').innerHTML = p.gestao ? htmlSolGestao() : '';
+  $('#p-pedir').innerHTML = (p.implantacao || p.avulso) ? htmlSolSolicitante() : '';
+  $('#p-minhas').innerHTML = (p.implantacao || p.avulso) ? htmlListaSolicitacoes(minhasSolicitacoes(), 'Minhas solicitações', 'clique para ver o andamento e, quando concluída, a ficha', 'solicitante') : '';
   ligarSolicitacoes();
 }
 
 /* ---------- blocos comuns ---------- */
-function htmlPendentesVerificacao(modo){
+function htmlPendentesVerificacao(){
   const pend = pendentesVerificacao();
   const temCarteira = (S.carteira.itens || []).length > 0;
-  const linhas = pend.map(c => `<tr><td><b>${esc(c.nome)}</b>${c.cnpj?`<div class="ajuda" style="margin:0">${esc(c.cnpj)}</div>`:''}</td><td>${esc(c.comarca||'')}</td><td>${fmtData(c.inicio)}</td>
-      <td class="${c.dias > 30 ? 'venc' : ''}">${c.dias} dia(s)</td><td>${c.assumido ? esc(c.assumido.por || '') : '<span class="ajuda" style="margin:0">ninguém</span>'}</td>
-      <td class="acoes">${modo === 'solicitante' && !c.assumido ? `<button class="btn sec mini" data-assumir="${esc(c.chave)}">Assumir</button>` : ''}
+  const mesAtual = mesDe(hojeISO());
+  const doMes = pend.filter(c => !c.atrasado), atrasados = pend.filter(c => c.atrasado);
+  const tabela = (lista, titulo) => `<h3 class="sub-quadro">${titulo} <span class="pill">${lista.length}</span></h3>` + (lista.length ? `<div class="tabela-wrap"><table><thead><tr><th>Condomínio</th><th>Comarca</th><th>Vigência</th><th>Aguardando</th><th>Assumido por</th><th></th></tr></thead><tbody>${lista.map(c => `<tr><td><b>${esc(c.nome)}</b>${c.cnpj?`<div class="ajuda" style="margin:0">${esc(c.cnpj)}</div>`:''}</td><td>${esc(c.comarca||'')}</td><td>${fmtData(c.inicio)}</td>
+      <td class="${c.atrasado ? 'venc' : ''}">${c.dias} dia(s)</td><td>${c.assumido ? esc(c.assumido.por || '') : '<span class="ajuda" style="margin:0">ninguém</span>'}</td>
+      <td class="acoes">${!c.assumido ? `<button class="btn sec mini" data-assumir="${esc(c.chave)}">Assumir</button>` : ''}
         <button class="btn sec mini" data-semespolio="${esc(c.chave)}">Sem espólio</button>
-        ${modo === 'solicitante' ? `<button class="btn mini" data-solicitar="${esc(c.chave)}">Solicitar análise</button>` : ''}</td></tr>`).join('');
-  return `<div class="card"><header><h2>Verificação da implantação</h2><span class="dica">${pend.length} condomínio(s) implantado(s) aguardando verificação${S.acesso.verificacaoDesde ? ' · desde ' + fmtMesAno(S.acesso.verificacaoDesde) : ''}</span></header>
-    ${!temCarteira ? '<div class="corpo"><div class="vazio">A carteira do portal ainda não foi carregada. A gestão carrega em Configurações.</div></div>'
-      : pend.length ? `<div class="tabela-wrap"><table><thead><tr><th>Condomínio</th><th>Comarca</th><th>Início do contrato</th><th>Aguardando</th><th>Assumido por</th><th></th></tr></thead><tbody>${linhas}</tbody></table></div>`
-      : '<div class="corpo"><div class="vazio">Nenhum condomínio implantado aguardando verificação.</div></div>'}</div>`;
+        <button class="btn mini" data-solicitar="${esc(c.chave)}">Solicitar análise</button></td></tr>`).join('')}</tbody></table></div>` : '<div class="corpo"><div class="vazio">Nenhum.</div></div>');
+  return `<div class="card"><header><h2>Condomínios em implantação</h2><span class="dica">vigência no mês e atrasados desde ${fmtMesAno(VERIFICACAO_DESDE)} · saem do quadro com “Sem espólio” ou com a solicitação enviada</span></header>
+    ${!temCarteira ? '<div class="corpo"><div class="vazio">A carteira de condomínios do portal não foi carregada. Recarregue o módulo; se persistir, avise a gestão.</div></div>'
+      : tabela(doMes, 'Vigência em ' + fmtMesAno(mesAtual)) + tabela(atrasados, 'Atrasados')}</div>`;
+}
+/* tipo pela regra do papel: Implantação pedindo condomínio do quadro = implantação; senão avulso */
+function tipoPeloPapel(nome, cnpj){
+  const p = papeis();
+  if(!p.implantacao) return { tipo: 'avulso', texto: 'Solicitação avulsa.' };
+  const d = soDigitos(cnpj);
+  const c = pendentesVerificacao().find(x => (d.length === 14 && soDigitos(x.cnpj) === d) || (nome && normCond(x.nome) === normCond(nome)));
+  return c ? { tipo: 'implantacao', texto: `Condomínio no quadro de implantação (vigência ${fmtData(c.inicio)}): solicitação de implantação.` }
+           : { tipo: 'avulso', texto: nome ? 'Condomínio fora do quadro de implantação: solicitação avulsa.' : 'Condomínio do quadro de implantação vira solicitação de implantação; os demais, avulsa.' };
 }
 function htmlFormSolicitacao(pre){
   pre = pre || {};
@@ -36,7 +50,7 @@ function htmlFormSolicitacao(pre){
         <div><label>Condomínio</label><input type="text" id="solCond" class="campo" list="listaCarteira" value="${esc(pre.nome||'')}" placeholder="Comece a digitar"><datalist id="listaCarteira">${(S.carteira.itens||[]).filter(c => c.situacao !== 'DISTRATADO').map(c => `<option value="${esc(c.nome)}">${esc([c.cnpj, c.comarca].filter(Boolean).join(' · '))}</option>`).join('')}</datalist>${(S.carteira.itens||[]).length ? '' : '<p class="ajuda" style="color:var(--red)">Carteira de condomínios não carregada. Recarregue o módulo; se persistir, avise a gestão.</p>'}</div>
         <div><label>CNPJ</label><input type="text" id="solCnpj" class="campo" value="${esc(pre.cnpj||'')}" placeholder="preenchido pela carteira, ou digite para buscar"></div>
       </div>
-      <p class="ajuda" id="solTipoInfo">${pre.nome ? esc(tipoPelaCarteira(pre.nome).texto) : 'O tipo da análise (implantação ou avulso) vem da data de início do contrato na carteira.'}</p>
+      ${pre.semTipo ? '' : `<p class="ajuda" id="solTipoInfo">${esc(tipoPeloPapel(pre.nome, pre.cnpj).texto)}</p>`}
       <label style="margin-top:12px">Unidades sinalizadas</label>
       <div class="tabela-wrap"><table id="solUnidades"><thead><tr><th style="width:140px">Bloco - unidade</th><th>Titular (falecido)</th><th style="width:170px">CPF</th><th></th></tr></thead><tbody></tbody></table></div>
       <div class="acoes" style="margin-top:8px"><button class="btn sec mini" id="solAddUnid">Adicionar unidade</button></div>
@@ -44,15 +58,6 @@ function htmlFormSolicitacao(pre){
       <div class="acoes" style="margin-top:12px"><button class="btn" id="solEnviar" ${!CAN_WRITE?'disabled':''}>Enviar solicitação</button><button class="btn sec" id="solLimpar">Limpar</button></div>
       <div id="solStatus"></div>
     </div></div>`;
-}
-/* implantação = contrato iniciado há até 120 dias (ou condomínio ainda na verificação da implantação); senão avulso */
-const DIAS_IMPLANTACAO = 120;
-function tipoPelaCarteira(nome){
-  const c = (S.carteira.itens||[]).find(x => normCond(x.nome) === normCond(nome));
-  if(!c || !c.inicio) return { tipo: 'avulso', texto: 'Condomínio fora da carteira ou sem data de início: será tratado como avulso.' };
-  const dias = diasEntre(c.inicio, hojeISO());
-  return dias <= DIAS_IMPLANTACAO ? { tipo: 'implantacao', texto: `Contrato iniciado em ${fmtData(c.inicio)} (${dias} dias): 1ª análise, implantação.` }
-                                  : { tipo: 'avulso', texto: `Contrato iniciado em ${fmtData(c.inicio)} (${dias} dias): condomínio já em carteira, avulso.` };
 }
 function linhaUnidadeSol(u){ u = u || {}; return `<tr><td><input type="text" data-su="unid" value="${esc(u.unid||'')}" placeholder="A - 101"></td><td><input type="text" data-su="titular" value="${esc(u.titular||'')}" placeholder="nome completo"></td><td><input type="text" data-su="cpf" value="${esc(u.cpf||'')}" placeholder="000.000.000-00"></td><td><button class="btn perigo mini" data-su-rm>×</button></td></tr>`; }
 
@@ -63,8 +68,9 @@ function htmlListaSolicitacoes(lista, titulo, dica, modo){
 
 /* ---------- visão do solicitante ---------- */
 function htmlSolSolicitante(){
-  return `<div class="nota"><b>Solicitação de análise de espólio.</b> Envie a solicitação com as unidades de titular falecido. Abaixo, os condomínios implantados que ainda precisam ser verificados. O andamento fica em “Minhas solicitações”.</div>
-    ${htmlFormSolicitacao()}${htmlPendentesVerificacao('solicitante')}`;
+  const quadro = papeis().implantacao;
+  return `<div class="nota"><b>Solicitação de análise de espólio.</b> Envie a solicitação com as unidades de titular falecido.${quadro ? ' Abaixo, os condomínios em implantação que ainda precisam ser verificados.' : ''} O andamento fica em “Minhas solicitações”.</div>
+    ${htmlFormSolicitacao()}${quadro ? htmlPendentesVerificacao() : ''}`;
 }
 /* ---------- visão da gestão ---------- */
 function htmlSolGestao(){
@@ -74,61 +80,73 @@ function htmlSolGestao(){
   else if(filtro !== 'todas') lista = lista.filter(x => x.status === filtro);
   const novas = solicitacoesNovas().length;
   return `<div class="filtros"><span class="pill">Novas <b>${novas}</b></span><select id="solFiltro" class="campo"><option value="abertas" ${filtro==='abertas'?'selected':''}>Abertas</option><option value="nova" ${filtro==='nova'?'selected':''}>Novas</option><option value="em_analise" ${filtro==='em_analise'?'selected':''}>Em análise</option><option value="concluida" ${filtro==='concluida'?'selected':''}>Concluídas</option><option value="devolvida" ${filtro==='devolvida'?'selected':''}>Devolvidas</option><option value="todas" ${filtro==='todas'?'selected':''}>Todas</option></select><span style="flex:1"></span><button class="btn mini" id="btnRegistrarSol" ${!CAN_WRITE?'disabled':''}>Registrar solicitação</button></div>
-    ${htmlListaSolicitacoes(lista, 'Solicitações recebidas', 'clique para abrir · "Iniciar análise" cria a rodada já preenchida', 'gestao')}
-    ${htmlPendentesVerificacao('gestao')}`;
+    ${htmlListaSolicitacoes(lista, 'Solicitações recebidas', 'clique para abrir · "Iniciar análise" cria a rodada já preenchida', 'gestao')}`;
 }
 
 /* ---------- eventos ---------- */
 function ligarSolicitacoes(){
-  const el = $('#p-sol');
+  const el = $('#p-pedir');
   $$('#p-sol [data-sol], #p-minhas [data-sol]').forEach(tr => tr.onclick = () => abrirSolicitacaoModal(S.solicitacoes.find(x => x.id === tr.dataset.sol)));
   const sf = $('#solFiltro'); if(sf) sf.onchange = () => { S.solFiltro = sf.value; renderSolicitacoes(); };
   const br = $('#btnRegistrarSol'); if(br) br.onclick = abrirRegistrarSolicitacao;
   el.querySelectorAll('[data-assumir]').forEach(b => b.onclick = async () => { const c = S.carteira.itens.find(x => x.chave === b.dataset.assumir); await DB.collection(COLECOES.verificacoes).add({ chave: c.chave, condominio: c.nome, cnpj: c.cnpj, mes: mesDe(c.inicio), resultado: 'assumido', por: ME.name, porId: ME.id, quando: nowISO() }); toast('Você assumiu ' + c.nome + '.'); });
   el.querySelectorAll('[data-semespolio]').forEach(b => b.onclick = async () => { const c = S.carteira.itens.find(x => x.chave === b.dataset.semespolio); if(!(await confirmar(`Registrar ${c.nome} como verificado, sem espólio?`))) return; await DB.collection(COLECOES.verificacoes).add({ chave: c.chave, condominio: c.nome, cnpj: c.cnpj, mes: mesDe(c.inicio), resultado: 'sem_espolio', por: ME.name, porId: ME.id, quando: nowISO() }); registrarHistorico('verificacao', { condominio: c.nome, resultado: 'sem_espolio' }); toast(c.nome + ' registrado sem espólio.'); });
-  el.querySelectorAll('[data-solicitar]').forEach(b => b.onclick = () => { const c = S.carteira.itens.find(x => x.chave === b.dataset.solicitar); const card = $('#cardNovaSol'); card.outerHTML = htmlFormSolicitacao({ nome: c.nome, cnpj: c.cnpj }); ligarFormSolicitacao(); $('#cardNovaSol').scrollIntoView({ behavior:'smooth' }); });
-  ligarFormSolicitacao();
+  el.querySelectorAll('[data-solicitar]').forEach(b => b.onclick = () => { const c = S.carteira.itens.find(x => x.chave === b.dataset.solicitar); const card = el.querySelector('#cardNovaSol'); card.outerHTML = htmlFormSolicitacao({ nome: c.nome, cnpj: c.cnpj }); ligarFormSolicitacao(el.querySelector('#cardNovaSol')); el.querySelector('#cardNovaSol').scrollIntoView({ behavior:'smooth' }); });
+  ligarFormSolicitacao(el.querySelector('#cardNovaSol'));
 }
-function ligarFormSolicitacao(){
-  const card = $('#cardNovaSol'); if(!card) return;
-  const tb = card.querySelector('#solUnidades tbody'); if(!tb.children.length) tb.innerHTML = linhaUnidadeSol();
-  $('#solAddUnid').onclick = () => tb.insertAdjacentHTML('beforeend', linhaUnidadeSol());
+/* liga um formulário de solicitação (aba Solicitar análise ou modal Registrar solicitação); devolve a função de envio */
+function ligarFormSolicitacao(card){
+  if(!card) return null;
+  const q = sel => card.querySelector(sel);
+  const tb = q('#solUnidades tbody'); if(!tb.children.length) tb.innerHTML = linhaUnidadeSol();
+  q('#solAddUnid').onclick = () => tb.insertAdjacentHTML('beforeend', linhaUnidadeSol());
   tb.addEventListener('click', e => { if(e.target.closest('[data-su-rm]')){ const tr = e.target.closest('tr'); if(tb.children.length > 1) tr.remove(); else tr.querySelectorAll('input').forEach(i => i.value = ''); } });
+  const cond = q('#solCond'), cnpjEl = q('#solCnpj');
   const acharPorNome = v => (S.carteira.itens||[]).find(x => normCond(x.nome) === normCond(v) || normCond(x.razao) === normCond(v));
   const acharPorCnpj = v => { const d = soDigitos(v); return d.length === 14 ? (S.carteira.itens||[]).find(x => soDigitos(x.cnpj) === d) : null; };
-  const aplicarCond = c => { $('#solCond').value = c.nome; $('#solCnpj').value = c.cnpj || ''; $('#solCnpj').dataset.auto = '1'; $('#solTipoInfo').textContent = tipoPelaCarteira(c.nome).texto; };
-  ['input','change'].forEach(ev => $('#solCond').addEventListener(ev, () => { const c = acharPorNome($('#solCond').value); if(c && (!$('#solCnpj').value.trim() || $('#solCnpj').dataset.auto)) aplicarCond(c); else if(!c){ if($('#solCnpj').dataset.auto){ $('#solCnpj').value = ''; delete $('#solCnpj').dataset.auto; } $('#solTipoInfo').textContent = tipoPelaCarteira($('#solCond').value).texto; } }));
-  ['input','change'].forEach(ev => $('#solCnpj').addEventListener(ev, () => { delete $('#solCnpj').dataset.auto; const c = acharPorCnpj($('#solCnpj').value); if(c) aplicarCond(c); }));
-  $('#solLimpar').onclick = () => { card.outerHTML = htmlFormSolicitacao(); ligarFormSolicitacao(); };
-  $('#solEnviar').onclick = async () => {
-    const nome = $('#solCond').value.trim(); const cnpj = $('#solCnpj').value.trim();
+  const tipoInfo = () => { const el = q('#solTipoInfo'); if(el) el.textContent = tipoPeloPapel(cond.value.trim(), cnpjEl.value).texto; };
+  const aplicarCond = c => { cond.value = c.nome; cnpjEl.value = c.cnpj || ''; cnpjEl.dataset.auto = '1'; tipoInfo(); };
+  ['input','change'].forEach(ev => cond.addEventListener(ev, () => { const c = acharPorNome(cond.value); if(c && (!cnpjEl.value.trim() || cnpjEl.dataset.auto)) aplicarCond(c); else if(!c){ if(cnpjEl.dataset.auto){ cnpjEl.value = ''; delete cnpjEl.dataset.auto; } tipoInfo(); } }));
+  ['input','change'].forEach(ev => cnpjEl.addEventListener(ev, () => { delete cnpjEl.dataset.auto; const c = acharPorCnpj(cnpjEl.value); if(c) aplicarCond(c); else tipoInfo(); }));
+  q('#solLimpar').onclick = () => { const pai = card.parentNode; card.outerHTML = htmlFormSolicitacao(); ligarFormSolicitacao(pai.querySelector('#cardNovaSol')); };
+  /* extra (registro pela gestão): { tipo, dados } */
+  const enviar = async (extra) => {
+    extra = extra && extra.tipo ? extra : null;
+    const nome = cond.value.trim(); const cnpj = cnpjEl.value.trim();
     const unidades = [...tb.querySelectorAll('tr')].map(tr => ({ unid: tr.querySelector('[data-su="unid"]').value.trim(), titular: tr.querySelector('[data-su="titular"]').value.trim(), cpf: tr.querySelector('[data-su="cpf"]').value.trim() })).filter(u => u.unid || u.titular || u.cpf);
-    const st = $('#solStatus');
-    if(!nome){ st.innerHTML = '<div class="erro">Informe o condomínio.</div>'; return; }
-    if(!unidades.length || unidades.some(u => !u.titular && !u.unid)){ st.innerHTML = '<div class="erro">Informe ao menos uma unidade com titular.</div>'; return; }
-    const tipo = tipoPelaCarteira(nome).tipo;
+    const st = q('#solStatus');
+    if(!nome){ st.innerHTML = '<div class="erro">Informe o condomínio.</div>'; return false; }
+    if(!unidades.length || unidades.some(u => !u.titular && !u.unid)){ st.innerHTML = '<div class="erro">Informe ao menos uma unidade com titular.</div>'; return false; }
+    const tipo = extra ? extra.tipo : tipoPeloPapel(nome, cnpj).tipo;
+    const origem = extra ? 'gestao' : (papeis().implantacao ? 'implantacao' : 'avulso');
     try{
       const c = (S.carteira.itens||[]).find(x => normCond(x.nome) === normCond(nome));
-      await criarSolicitacao({ condominio: { nome: c ? c.nome : nome, cnpj: cnpj || (c ? c.cnpj : ''), chave: chaveCond(c ? c.nome : nome, cnpj || (c ? c.cnpj : '')) }, origem: tipo === 'implantacao' ? 'implantacao' : 'cobranca', tipo, unidades, obs: $('#solObs').value.trim() });
+      await criarSolicitacao({ condominio: { nome: c ? c.nome : nome, cnpj: cnpj || (c ? c.cnpj : ''), chave: chaveCond(c ? c.nome : nome, cnpj || (c ? c.cnpj : '')) }, origem, tipo, unidades, obs: q('#solObs').value.trim(), ...(extra ? extra.dados : {}) });
       toast('Solicitação enviada.'); renderSolicitacoes();
-    }catch(e){ st.innerHTML = `<div class="erro">${esc(dbErr(e))}</div>`; }
+      return true;
+    }catch(e){ st.innerHTML = `<div class="erro">${esc(dbErr(e))}</div>`; return false; }
   };
+  q('#solEnviar').onclick = () => enviar();
+  return enviar;
 }
 
-/* gestão registra uma solicitação que chegou por e-mail ou telefone, em nome de quem pediu */
+/* gestão registra uma solicitação que chegou por e-mail ou telefone, em nome de quem pediu; o tipo é a gestão que escolhe */
 function abrirRegistrarSolicitacao(pre){
-  abrirModal('Registrar solicitação', `<div class="grade" style="margin-bottom:12px"><div><label>Quem pediu</label><input type="text" id="rsNome" class="campo" placeholder="nome da assistente ou analista"></div><div><label>Como chegou</label><select id="rsCanal" class="campo"><option value="email">E-mail</option><option value="telefone">Telefone / presencial</option><option value="outro">Outro</option></select></div></div>
-    ${htmlFormSolicitacao(pre || {}).replace('id="cardNovaSol"', 'id="cardNovaSol" style="margin:0;border:0;box-shadow:none"')}`);
-  ligarFormSolicitacao();
-  const btn = $('#solEnviar'); btn.textContent = 'Registrar';
-  const original = btn.onclick;
+  abrirModal('Registrar solicitação', `<div class="grade" style="margin-bottom:12px"><div><label>Quem pediu</label><input type="text" id="rsNome" class="campo" placeholder="nome da assistente ou analista"></div><div><label>Como chegou</label><select id="rsCanal" class="campo"><option value="email">E-mail</option><option value="telefone">Telefone / presencial</option><option value="outro">Outro</option></select></div>
+      <div><label>Tipo</label><select id="rsTipo" class="campo"><option value="">Selecione…</option><option value="implantacao">Implantação · 1ª análise</option><option value="avulso">Avulso · já em carteira</option></select></div></div>
+    ${htmlFormSolicitacao({ ...(pre || {}), semTipo: true }).replace('id="cardNovaSol"', 'id="cardNovaSol" style="margin:0;border:0;box-shadow:none"')}`);
+  const card = $('#modal #cardNovaSol');
+  const enviar = ligarFormSolicitacao(card);
+  const btn = card.querySelector('#solEnviar'); btn.textContent = 'Registrar';
+  const st = card.querySelector('#solStatus');
   btn.onclick = async () => {
-    const quem = $('#rsNome').value.trim(); if(!quem){ $('#solStatus').innerHTML = '<div class="erro">Informe quem pediu.</div>'; return; }
+    const quem = $('#rsNome').value.trim(); if(!quem){ st.innerHTML = '<div class="erro">Informe quem pediu.</div>'; return; }
+    const tipo = $('#rsTipo').value; if(!tipo){ st.innerHTML = '<div class="erro">Escolha o tipo: implantação ou avulso.</div>'; return; }
     const meuNome = ME.name, meuId = ME.id;
     ME.name = quem; ME.id = 'registrada:' + normNome(quem);
-    try{ await original(); } finally { ME.name = meuNome; ME.id = meuId; }
-    if(S.solicitacoes.length){ const ultima = S.solicitacoes.slice().sort((a,b) => (b.criadaEm||'').localeCompare(a.criadaEm||''))[0]; if(ultima && ultima.solicitanteNome === quem) atualizarSolicitacao(ultima.id, { registradaPor: meuNome, canal: $('#rsCanal') ? $('#rsCanal').value : 'outro' }); }
-    fecharModal();
+    let ok = false;
+    try{ ok = await enviar({ tipo, dados: { registradaPor: meuNome, canal: $('#rsCanal').value } }); } finally { ME.name = meuNome; ME.id = meuId; }
+    if(ok) fecharModal();
   };
 }
 
@@ -164,7 +182,7 @@ function abrirSolicitacaoModal(x){
   if($('#mSolDevolver')) $('#mSolDevolver').onclick = async () => { const motivo = window.prompt('Motivo da devolução (o solicitante vai ver):'); if(motivo === null || !motivo.trim()) return; await atualizarSolicitacao(x.id, { status: 'devolvida', motivoDevolucao: motivo.trim(), devolvidaEm: nowISO() }); fecharModal(); toast('Solicitação devolvida.'); };
   if($('#mSolIniciar')) $('#mSolIniciar').onclick = async () => {
     const tipoEsc = $('#mSolTipo') ? $('#mSolTipo').value : (x.tipo === 'avulso' ? 'avulso' : 'implantacao');
-    if(tipoEsc !== x.tipo) await atualizarSolicitacao(x.id, { tipo: tipoEsc, origem: tipoEsc === 'implantacao' ? 'implantacao' : 'cobranca' });
+    if(tipoEsc !== x.tipo) await atualizarSolicitacao(x.id, { tipo: tipoEsc });
     const r = novaRodada(tipoEsc, { ...x.condominio });
     if(r.tipo === 'avulso') r.semAnterior = true;
     r.analista = x.solicitanteNome || ''; r.solicitacaoId = x.id; r.nota = x.obs ? 'Solicitação: ' + x.obs : '';

@@ -94,7 +94,7 @@ input[type=checkbox]{width:auto}
 .filtros .campo,.filtros select,.filtros input{width:auto;min-width:150px}
 
 /* ===== tiles / dashboard ===== */
-.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:16px}
+.tiles{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;margin-bottom:16px}
 @media(max-width:1020px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:640px){.tiles{grid-template-columns:1fr}}
 .tile{background:var(--surface);border:1px solid var(--linha);border-radius:var(--r);padding:16px 18px;box-shadow:var(--shadow-sm)}
@@ -125,6 +125,7 @@ tr.clic{cursor:pointer}
 .s-prev{background:var(--prev-bg);color:var(--petrol)}.s-rean{background:var(--amber-bg);color:#b57a12}.s-exc{background:var(--red-bg);color:var(--red)}
 .s-ok{background:var(--green-bg);color:#16744f}.s-rasc{background:var(--surface-2);color:var(--muted);border:1px solid var(--linha)}.s-enc{background:#e9eef0;color:#4a6670}
 .venc{color:var(--red);font-weight:800}
+.sub-quadro{font-size:13px;color:var(--ink-2);padding:12px 18px 6px;display:flex;align-items:center;gap:8px}
 .pill{background:var(--surface);border:1px solid var(--borda);border-radius:999px;padding:5px 12px;font-size:12px;font-weight:700;color:var(--muted);box-shadow:var(--shadow-sm)}
 .pill b{color:var(--petrol);font-family:var(--display);font-size:13.5px}
 .resumo{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
@@ -250,15 +251,17 @@ tr.clic{cursor:pointer}
   </div>
   <nav class="tabs" id="tabs">
     <button class="tab ativa" data-tab="dash">Dashboard</button>
-    <button class="tab" data-tab="sol"><span id="tabSolRotulo">Solicitações</span> <span class="n" id="nSol" hidden></span></button>
-    <button class="tab" data-tab="minhas" hidden>Minhas solicitações</button>
+    <button class="tab" data-tab="sol">Solicitações <span class="n" id="nSol" hidden></span></button>
+    <button class="tab" data-tab="pedir">Solicitar análise</button>
+    <button class="tab" data-tab="minhas">Minhas solicitações</button>
     <button class="tab" data-tab="lote">Fila de acompanhamento <span class="n" id="nFila" hidden></span></button>
-    <button class="tab" data-tab="acessos">Acessos <span class="n" id="nAcessos" hidden></span></button>
+    <button class="tab" data-tab="acessos">Acessos</button>
     <button class="tab" data-tab="conf">Configurações</button>
   </nav>
 </div></header>
 
 <main>
+<div id="banners"></div>
 
 <!-- ================= DASHBOARD ================= -->
 <section class="painel ativa" id="p-dash">
@@ -285,6 +288,7 @@ tr.clic{cursor:pointer}
 
 <!-- ================= SOLICITAÇÕES ================= -->
 <section class="painel" id="p-sol"></section>
+<section class="painel" id="p-pedir"></section>
 <section class="painel" id="p-minhas"></section>
 
 <!-- ================= NOVA ANÁLISE (IMPLANTAÇÃO) ================= -->
@@ -400,12 +404,7 @@ tr.clic{cursor:pointer}
 <section class="painel" id="p-acessos"></section>
 
 <!-- ================= SEM PAPEL ================= -->
-<section class="painel" id="p-sem">
-  <div class="card"><div class="corpo" style="padding:28px 24px">
-    <h2 style="font-size:18px;margin-bottom:6px">Acesso registrado</h2>
-    <p class="ajuda" style="margin:0;font-size:13.5px">Seu acesso a este módulo foi registrado agora. A coordenação precisa definir o seu papel na aba Acessos: <b>Solicitante</b> (assistentes de implantação e analistas de Cobrança) ou <b>Gestão</b>. Assim que o papel for marcado, esta tela muda sozinha.</p>
-  </div></div>
-</section>
+<section class="painel" id="p-sem"></section>
 
 <!-- ================= CONFIGURAÇÕES ================= -->
 <section class="painel" id="p-conf">
@@ -598,26 +597,32 @@ function dbErr(e){
 }
 
 let DB = null, NS_USER = null, ME = { id:null, name:'' }, CAN_WRITE = true;
-/* Perfis e papéis (mesmo modelo do módulo Comissões de Novos Condomínios)
+/* Papéis (mesma funcionalidade do módulo Comissões de Novos Condomínios)
    - cada pessoa que abre o módulo é registrada em vistos/{id} (nome e último acesso);
-   - a gestão marca os papéis de cada uma na aba Acessos: perfis/{id} = { papeis: ['gestao'|'solicitante'], nomeCarteira };
-   - enquanto ninguém tiver o papel de gestão, valem como gestão os nomes de GESTAO_PADRAO (para a primeira configuração);
-   - quem não tem papel vê a tela "Acesso registrado" até a gestão definir. */
-let PERFIL = 'gestao';
-const GESTAO_PADRAO = ['BEATRIZ TEIXEIRA', 'MARIANA NASCIMENTO'];
-const PAPEIS = { gestao: 'Gestão', solicitante: 'Solicitante' };
-const temAlgumaGestao = () => Object.values(S.perfis || {}).some(p => (p.papeis || []).includes('gestao'));
-function calcularPerfil(){
-  if(DB && DB._local){ const v = localStorage.getItem('myblue_espolio_perfil'); return v === 'solicitante' || v === 'sem' ? v : 'gestao'; }
-  const meu = (S.perfis || {})[String(ME.id)] || {};
-  const pp = meu.papeis || [];
-  if(pp.includes('gestao')) return 'gestao';
-  if(!temAlgumaGestao() && GESTAO_PADRAO.includes(normNome(ME.name))) return 'gestao';
-  if(pp.includes('solicitante')) return 'solicitante';
-  return 'sem';
+   - a gestão marca os papéis de cada uma na aba Acessos: perfis/{id} = { papeis: ['gestao'|'implantacao'|'avulso'], nomeCarteira };
+   - enquanto ninguém tiver o papel de gestão, todos que abrem o módulo veem todas as abas;
+   - fora do portal não há usuários: todas as abas ficam liberadas neste navegador;
+   - quem não tem papel vê o aviso para pedir acesso à gestão. */
+const PAPEIS = { gestao: 'Gestão', implantacao: 'Implantação', avulso: 'Solicitante avulso' };
+function papeis(){
+  if(DB && DB._local){
+    const v = localStorage.getItem('myblue_espolio_papeis');   // só para testes locais: lista separada por vírgula
+    if(v !== null){ const pp = v.split(',').filter(Boolean); return { gestao: pp.includes('gestao'), implantacao: pp.includes('implantacao'), avulso: pp.includes('avulso') }; }
+    return { gestao: true, implantacao: true, avulso: true, livre: true };
+  }
+  const temGestor = Object.values(S.perfis || {}).some(p => (p.papeis || []).includes('gestao'));
+  if(!temGestor) return { gestao: true, implantacao: true, avulso: true, livre: true, semGestor: true };
+  const pp = ((S.perfis || {})[String(ME.id)] || {}).papeis || [];
+  return { gestao: pp.includes('gestao'), implantacao: pp.includes('implantacao'), avulso: pp.includes('avulso') };
 }
-const ehGestao = () => PERFIL === 'gestao';
-function recalcularPerfil(){ const antes = PERFIL; PERFIL = calcularPerfil(); atualizarChipPerfil(); if(antes !== PERFIL) aplicarPerfil(); }
+const ehGestao = () => papeis().gestao;
+function abasPermitidas(){
+  const p = papeis(), a = [];
+  if(p.gestao) a.push('dash', 'sol');
+  if(p.implantacao || p.avulso) a.push('pedir', 'minhas');
+  if(p.gestao) a.push('lote', 'acessos', 'conf');
+  return a;
+}
 /* registra o acesso (uma vez por dia por pessoa) */
 async function registrarVisto(){
   if(!DB || DB._local || ME.id === null || ME.id === undefined) return;
@@ -644,13 +649,10 @@ async function conectarBase(){
   if(ME.name){ chip.textContent = ME.name + (CAN_WRITE ? '' : ' · somente leitura'); chip.hidden = false; }
 }
 function atualizarChipPerfil(){
-  const chip = $('#chipUsuario');
-  const local = DB && DB._local;
-  const rot = PERFIL === 'gestao' ? 'gestão' : PERFIL === 'solicitante' ? 'solicitante' : 'sem papel';
-  chip.innerHTML = esc(ME.name || 'Usuário') + ' · ' + rot + (CAN_WRITE ? '' : ' · somente leitura')
-    + (local ? ` <button class="link" id="chipTrocar" style="margin-left:6px">ver como ${ehGestao() ? 'solicitante' : 'gestão'}</button>` : '');
+  const chip = $('#chipUsuario'), p = papeis();
+  const rot = p.livre ? '' : (Object.keys(PAPEIS).filter(k => p[k]).map(k => PAPEIS[k].toLowerCase()).join(' · ') || 'sem papel');
+  chip.textContent = (ME.name || 'Usuário') + (rot ? ' · ' + rot : '') + (CAN_WRITE ? '' : ' · somente leitura');
   chip.hidden = false;
-  if(local) $('#chipTrocar').onclick = () => { localStorage.setItem('myblue_espolio_perfil', ehGestao() ? 'solicitante' : 'gestao'); recalcularPerfil(); renderTudo(); };
 }
 
 /* grava com update; se o doc não existe, set */
@@ -1218,7 +1220,7 @@ const S = {
   rodadas: [],          // todas as rodadas (snapshot)
   verificacoes: [],
   meta: { seq: {} },
-  acesso: { gestao: [], verificacaoDesde: '', ticketRota: '/api/tickets', ticketSetor: 'Crédito' },
+  acesso: { ticketRota: '/api/tickets', ticketSetor: 'Crédito' },
   bi: { base: [], enviadoEm: '', por: '' },
   solicitacoes: [],
   carteira: { itens: [], atualizadoEm: '', origem: '' },
@@ -1239,15 +1241,15 @@ function assinarBase(){
   DB.collection(COLECOES.verificacoes).onSnapshot(snap => { S.verificacoes = snap.docs.map(d => ({ id: d.id, ...d.data() })); pronto('v'); if(S.pronto.v) renderTudo(); }, fail);
   DB.doc(COLECOES.meta + '/estado').onSnapshot(snap => { S.meta = snap.exists ? snap.data() : { seq: {} }; pronto('m'); }, fail);
   DB.doc(COLECOES.bi + '/atual').onSnapshot(snap => { S.bi = snap.exists ? snap.data() : { base: [], enviadoEm:'', por:'' }; pronto('b'); renderBiInfo(); }, fail);
-  DB.doc(COLECOES.meta + '/acesso').onSnapshot(snap => { S.acesso = { verificacaoDesde: '', ticketRota: '/api/tickets', ticketSetor: 'Crédito', ...(snap.exists ? snap.data() : {}) }; pronto('a'); if(S.pronto.a) renderTudo(); }, fail);
-  DB.collection(COLECOES.perfis).onSnapshot(snap => { const m = {}; snap.docs.forEach(d => { m[d.id] = { id: d.id, ...d.data() }; }); S.perfis = m; recalcularPerfil(); pronto('p'); if(S.pronto.p) renderTudo(); }, fail);
+  DB.doc(COLECOES.meta + '/acesso').onSnapshot(snap => { S.acesso = { ticketRota: '/api/tickets', ticketSetor: 'Crédito', ...(snap.exists ? snap.data() : {}) }; pronto('a'); if(S.pronto.a) renderTudo(); }, fail);
+  DB.collection(COLECOES.perfis).onSnapshot(snap => { const m = {}; snap.docs.forEach(d => { m[d.id] = { id: d.id, ...d.data() }; }); S.perfis = m; pronto('p'); if(S.pronto.p) renderTudo(); }, fail);
   DB.collection(COLECOES.vistos).onSnapshot(snap => { const m = {}; snap.docs.forEach(d => { m[d.id] = { id: d.id, ...d.data() }; }); S.vistos = m; const primeira = !S.pronto.w; pronto('w'); if(primeira) registrarVisto(); if(S.pronto.w) renderTudo(); }, fail);
   DB.collection(COLECOES.solicitacoes).onSnapshot(snap => { S.solicitacoes = snap.docs.map(d => ({ id: d.id, ...d.data() })); pronto('s'); if(S.pronto.s) renderTudo(); }, fail);
   DB.doc(COLECOES.carteira + '/atual').onSnapshot(snap => { const d = snap.exists ? snap.data() : { itens: [], atualizadoEm:'', origem:'' }; S.carteira = { ...d, itens: normalizarCarteira(d.itens || []) }; pronto('c'); if(S.pronto.c) renderTudo(); }, fail);
 }
 
 /* ---------- solicitações ----------
-   { condominio:{nome,cnpj,chave}, origem:'implantacao'|'cobranca', tipo:'implantacao'|'avulso', unidades:[{unid,titular,cpf}], obs,
+   { condominio:{nome,cnpj,chave}, origem: papel de quem pediu ('implantacao'|'avulso'|'gestao'), tipo:'implantacao'|'avulso', unidades:[{unid,titular,cpf}], obs,
      solicitanteId, solicitanteNome, criadaEm, status:'nova'|'vista'|'em_analise'|'concluida'|'devolvida', vistaEm, rodadaId, protocolo,
      resultado:[{unid,titular,resultado,regra}], motivoDevolucao, concluidaEm } */
 const solicitacoesNovas = () => S.solicitacoes.filter(x => x.status === 'nova');
@@ -1260,17 +1262,21 @@ async function criarSolicitacao(dados){
 }
 const atualizarSolicitacao = (id, patch) => gravarDoc(COLECOES.solicitacoes + '/' + id, patch);
 
-/* ---------- verificação da implantação: condomínios da carteira com início de contrato, ainda sem resposta ---------- */
+/* ---------- verificação da implantação (quadro do papel Implantação) ----------
+   Entram os condomínios da carteira com vigência (início do contrato) no mês atual e os de meses anteriores,
+   a partir de VERIFICACAO_DESDE, que ainda não foram verificados: sem "sem espólio" registrado, sem solicitação e sem rodada.
+   Os de meses anteriores acumulam como atrasados. */
+const VERIFICACAO_DESDE = '2026-08';
 function pendentesVerificacao(){
-  const desde = S.acesso.verificacaoDesde || '';
+  const mesAtual = mesDe(hojeISO());
   const respondidos = new Set(S.verificacoes.filter(v => v.resultado === 'sem_espolio').map(v => v.chave).filter(Boolean));
   const comRodada = new Set(S.rodadas.map(r => r.condominio.chave));
   const comSolic = new Set(S.solicitacoes.map(x => x.condominio.chave));
   const hoje = hojeISO();
-  return (S.carteira.itens || []).filter(c => c.inicio && (!desde || c.inicio >= desde) && c.situacao !== 'DISTRATADO')
+  return (S.carteira.itens || []).filter(c => c.inicio && c.situacao !== 'DISTRATADO' && mesDe(c.inicio) >= VERIFICACAO_DESDE && mesDe(c.inicio) <= mesAtual)
     .filter(c => !respondidos.has(c.chave) && !comRodada.has(c.chave) && !comSolic.has(c.chave) && !respondidos.has('nome:' + normCond(c.nome)))
-    .map(c => ({ ...c, dias: diasEntre(c.inicio, hoje), assumido: (S.verificacoes.find(v => v.chave === c.chave && v.resultado === 'assumido') || null) }))
-    .sort((a,b) => a.inicio.localeCompare(b.inicio));
+    .map(c => ({ ...c, atrasado: mesDe(c.inicio) < mesAtual, dias: diasEntre(c.inicio, hoje), assumido: (S.verificacoes.find(v => v.chave === c.chave && v.resultado === 'assumido') || null) }))
+    .sort((a,b) => a.inicio.localeCompare(b.inicio) || a.nome.localeCompare(b.nome, 'pt-BR'));
 }
 /* responsável pelo aviso/ticket: assistente de crédito da carteira; senão a assistente de implantação que solicitou */
 function responsavelDoCondominio(chave, solicitacao){
@@ -1471,27 +1477,38 @@ function mostrarAba(nome){
   $$('.painel').forEach(p => p.classList.toggle('ativa', p.id === 'p-' + nome));
   window.scrollTo({ top: 0 });
   if(nome === 'lote') renderLote();
-  if(nome === 'sol' || nome === 'minhas') renderSolicitacoes();
+  if(['sol','pedir','minhas'].includes(nome)) renderSolicitacoes();
   if(nome === 'acessos') renderAcessos();
   if(nome === 'conf') renderConf();
 }
 $('#tabs').addEventListener('click', e => { const b = e.target.closest('.tab'); if(b) mostrarAba(b.dataset.tab); });
 
+/* abas por papel, como no Comissões de Novos Condomínios: sem papel nenhum, só o aviso para pedir acesso */
 function aplicarPerfil(){
-  const gestao = ehGestao(), sem = PERFIL === 'sem';
-  $$('.tab').forEach(t => { t.hidden = sem ? true : gestao ? t.dataset.tab === 'minhas' : !['sol','minhas'].includes(t.dataset.tab); });
-  if(!gestao && S.rodada) S.rodada = null;
-  $('#tabSolRotulo').textContent = gestao ? 'Solicitações' : 'Solicitar análise';
-  if(sem){ $$('.painel').forEach(p => p.classList.toggle('ativa', p.id === 'p-sem')); S.aba = 'sem'; return; }
-  if(S.aba === 'sem') mostrarAba(gestao ? 'dash' : 'sol');
-  else if(!gestao && !['sol','minhas'].includes(S.aba)) mostrarAba('sol');
+  const abas = abasPermitidas();
+  $$('.tab').forEach(t => { t.hidden = !abas.includes(t.dataset.tab); });
+  $('#tabs').hidden = !abas.length;
+  atualizarChipPerfil();
+  renderBanners();
+  if(!abas.length){
+    S.rodada = null;
+    $('#p-sem').innerHTML = `<div class="card"><div class="corpo"><div class="vazio">Olá, ${esc(ME.name || 'usuário')}. Você ainda não tem um papel neste módulo.<br>Peça à gestão para liberar seu acesso na aba <b>Acessos</b> (gestão, implantação ou solicitante avulso).</div></div></div>`;
+    $$('.painel').forEach(p => p.classList.toggle('ativa', p.id === 'p-sem')); S.aba = 'sem'; return;
+  }
+  if(!papeis().gestao && S.rodada) S.rodada = null;
+  if(S.aba === 'nova' && S.rodada) return;
+  if(!abas.includes(S.aba)) mostrarAba(abas[0]);
+}
+function renderBanners(){
+  const p = papeis();
+  $('#banners').innerHTML = p.semGestor ? '<div class="nota"><b>Nenhum gestor definido ainda.</b> Enquanto isso, todos que abrem o módulo veem todas as abas. Defina os papéis na aba <b>Acessos</b>.</div>' : '';
 }
 function renderTudo(){
   aplicarPerfil();
-  if(PERFIL === 'sem') return;
+  const abas = abasPermitidas();
+  if(!abas.length) return;
   renderSolicitacoes();
-  if(!ehGestao()) return;
-  renderAcessosBadge();
+  if(!papeis().gestao) return;
   if(S.aba === 'acessos') renderAcessos();
   renderDashboard();
   renderBadges();
@@ -1502,8 +1519,8 @@ function renderTudo(){
 function renderBadges(){
   const f = fila(); const venc = f.filter(i => i.vencida).length;
   const nf = $('#nFila'); nf.hidden = !f.length; nf.textContent = venc ? `${venc} vencida${venc>1?'s':''}` : `${f.length}`; nf.classList.toggle('alerta', venc > 0);
-  const novas = solicitacoesNovas().length; const pend = ehGestao() ? pendentesVerificacao().length : 0;
-  const ns = $('#nSol'); ns.hidden = !(novas || pend); ns.textContent = novas ? `${novas} nova${novas>1?'s':''}` : `${pend} a verificar`; ns.classList.toggle('alerta', novas > 0);
+  const novas = solicitacoesNovas().length;
+  const ns = $('#nSol'); ns.hidden = !novas; ns.textContent = `${novas} nova${novas>1?'s':''}`; ns.classList.add('alerta');
 }
 function renderListaCondominios(){
   const nomes = new Set();
@@ -2129,12 +2146,13 @@ function renderDashboard(){
   const f = fila(); const venc = f.filter(i => i.vencida);
   const n = (arr, x) => arr.filter(u => u.resultado === x).length;
   const pan = panoramaUnidades();
-  const unidVenc = venc.reduce((s,i) => s + i.unidades.length, 0);
+  const pv = pendentesVerificacao(); const impl = { atrasados: pv.filter(c => c.atrasado).length, doMes: pv.filter(c => !c.atrasado).length };
   $('#dashTiles').innerHTML = `
     <div class="tile hero"><small>Espólios sinalizados</small><strong>${pan.total}</strong><em>total de unidades desde o início</em></div>
     <div class="tile"><small>Análises do mês</small><strong>${doMes.length}</strong><em>${doMes.filter(r=>r.tipo==='implantacao').length} implantação · ${doMes.filter(r=>r.tipo==='avulso').length} avulso · ${doMes.filter(r=>r.tipo==='acompanhamento').length} acompanhamento</em></div>
     <div class="tile ${solicitacoesNovas().length?'alerta':''}"><small>Pendentes</small><strong>${solicitacoesNovas().length}</strong><em>solicitações ainda não vistas · ${venc.length} reanálise(s) vencida(s) na fila</em></div>
-    <div class="tile"><small>Excluídas</small><strong>${pan.excluidas}</strong><em>da garantia · acumulado</em></div>`;
+    <div class="tile"><small>Excluídas</small><strong>${pan.excluidas}</strong><em>da garantia · acumulado</em></div>
+    <div class="tile ${impl.atrasados?'alerta':''}"><small>Implantação atrasada</small><strong>${impl.atrasados}</strong><em>de meses anteriores, sem verificação · ${impl.doMes} do mês aguardando</em></div>`;
   renderGraficoMensal(conc);
   const top = f.slice(0, 8);
   $('#dashFila').innerHTML = top.length ? `<table><thead><tr><th>Condomínio</th><th>Unid.</th><th>Última rodada</th><th>Prazo</th></tr></thead><tbody>${top.map(i => `<tr class="clic" data-lote="${esc(i.chave)}"><td>${esc(i.condominio.nome)}</td><td>${i.unidades.length}</td><td>${fmtData(i.rodada.dataAnalise)}</td><td class="${i.vencida?'venc':''}">${i.vencida ? `vencida há ${-i.dias} dia(s)` : `em ${i.dias} dia(s)`}</td></tr>`).join('')}</tbody></table>` : '<div class="corpo"><div class="vazio">Fila vazia.</div></div>';
@@ -2186,12 +2204,10 @@ function renderConfCarteira(){
   $('#confCarteira').innerHTML = `<p class="ajuda" style="margin:0 0 8px">${c.itens && c.itens.length ? `<b>${c.itens.length} condomínios</b> · atualizada em ${fmtData((c.atualizadoEm||'').slice(0,10))} · ${c.origem === 'banco' ? 'espelhada do cadastro de condomínios do portal, atualiza sozinha' : 'origem: ' + esc(c.origem||'')}` : (DB._local ? 'Carteira não carregada. Fora do portal, importe um JSON ou Excel do cadastro.' : 'Carteira ainda não espelhada do cadastro do portal.')}</p>
     ${DB._local ? `<div class="doc"><div class="ico">CAD</div><div><b>Importar carteira (JSON ou Excel)</b><span>só em modo local · no portal a carteira vem do cadastro de condomínios</span></div><input type="file" accept=".json,.xlsx,.xls,.csv" id="confCarteiraArquivo"></div>` : ''}
     <div class="grade" style="margin-top:12px"><div><label>Rota do portal para abrir tickets</label><input type="text" id="confTicketRota" class="campo" value="${esc(S.acesso.ticketRota||'/api/tickets')}"></div><div><label>Setor padrão do ticket</label><input type="text" id="confTicketSetor" class="campo" value="${esc(S.acesso.ticketSetor||'Crédito')}"></div></div>
-    <p class="ajuda">O ticket vai para a assistente de crédito do condomínio; sem assistente na carteira, vai para a assistente de implantação que solicitou. A rota precisa ser liberada por quem mantém o portal.</p>
-    <div style="margin-top:12px"><label>Verificar implantações a partir de</label><input type="month" id="confVerifDesde" class="campo" style="width:auto" value="${esc(S.acesso.verificacaoDesde||'')}"><p class="ajuda">Condomínios com início de contrato antes desse mês não entram nos pendentes de verificação (já cobertos pela planilha de controle).</p></div>`;
+    <p class="ajuda">O ticket vai para a assistente de crédito do condomínio; sem assistente na carteira, vai para a assistente de implantação que solicitou. A rota precisa ser liberada por quem mantém o portal.</p>`;
   if($('#confCarteiraArquivo')) $('#confCarteiraArquivo').onchange = async e => { const f = e.target.files[0]; e.target.value = ''; if(!f) return; try{ const n = await importarCarteiraArquivo(f); toast(`Carteira importada: ${n} condomínios.`); }catch(err){ toast('Não deu para importar: ' + err.message, 6000); } };
   $('#confTicketRota').onchange = e => gravarDoc(COLECOES.meta + '/acesso', { ticketRota: e.target.value.trim() || '/api/tickets' }, S.acesso);
   $('#confTicketSetor').onchange = e => gravarDoc(COLECOES.meta + '/acesso', { ticketSetor: e.target.value.trim() || 'Crédito' }, S.acesso);
-  $('#confVerifDesde').onchange = e => gravarDoc(COLECOES.meta + '/acesso', { verificacaoDesde: e.target.value }, S.acesso);
 }
 function renderConf(){
   renderConfCarteira();
@@ -2221,33 +2237,47 @@ $('#btnPlanilhaAcomp').onclick = () => { const rods = fila().map(i => ({ ...i.ro
 /* ===== 65-ui-solicitacoes.js ===== */
 /* ======================================================================
    Solicitações de análise
-   - Solicitante (implantação e analistas de Cobrança): pendentes de verificação, nova solicitação, minhas solicitações
-   - Gestão: caixa de entrada, iniciar análise, devolver, verificação da implantação (SLA)
+   - Implantação: nova solicitação e o quadro de condomínios em implantação a verificar; Minhas solicitações
+   - Solicitante avulso: nova solicitação (sem o quadro); Minhas solicitações
+   - Gestão: caixa de entrada, registrar solicitação, iniciar análise, devolver
+   O tipo da solicitação segue o papel de quem pede: Implantação pedindo um condomínio do quadro = implantação;
+   qualquer outro caso = avulso. Na solicitação registrada pela gestão, a gestão escolhe o tipo.
    ====================================================================== */
 const STATUS_SOL = { nova:'Nova', vista:'Vista', em_analise:'Em análise', concluida:'Concluída', devolvida:'Devolvida' };
 const seloSol = st => `<span class="selo ${st==='nova'?'s-exc':st==='concluida'?'s-ok':st==='devolvida'?'s-rean':st==='em_analise'?'s-prev':'s-rasc'}">${esc(STATUS_SOL[st]||st)}</span>`;
 const diasDesde = iso => iso ? diasEntre(String(iso).slice(0,10), hojeISO()) : 0;
 
 function renderSolicitacoes(){
-  const el = $('#p-sol'); if(!el) return;
-  el.innerHTML = ehGestao() ? htmlSolGestao() : htmlSolSolicitante();
-  $('#p-minhas').innerHTML = ehGestao() ? '' : htmlListaSolicitacoes(minhasSolicitacoes(), 'Minhas solicitações', 'clique para ver o andamento e, quando concluída, a ficha', 'solicitante');
+  const p = papeis();
+  $('#p-sol').innerHTML = p.gestao ? htmlSolGestao() : '';
+  $('#p-pedir').innerHTML = (p.implantacao || p.avulso) ? htmlSolSolicitante() : '';
+  $('#p-minhas').innerHTML = (p.implantacao || p.avulso) ? htmlListaSolicitacoes(minhasSolicitacoes(), 'Minhas solicitações', 'clique para ver o andamento e, quando concluída, a ficha', 'solicitante') : '';
   ligarSolicitacoes();
 }
 
 /* ---------- blocos comuns ---------- */
-function htmlPendentesVerificacao(modo){
+function htmlPendentesVerificacao(){
   const pend = pendentesVerificacao();
   const temCarteira = (S.carteira.itens || []).length > 0;
-  const linhas = pend.map(c => `<tr><td><b>${esc(c.nome)}</b>${c.cnpj?`<div class="ajuda" style="margin:0">${esc(c.cnpj)}</div>`:''}</td><td>${esc(c.comarca||'')}</td><td>${fmtData(c.inicio)}</td>
-      <td class="${c.dias > 30 ? 'venc' : ''}">${c.dias} dia(s)</td><td>${c.assumido ? esc(c.assumido.por || '') : '<span class="ajuda" style="margin:0">ninguém</span>'}</td>
-      <td class="acoes">${modo === 'solicitante' && !c.assumido ? `<button class="btn sec mini" data-assumir="${esc(c.chave)}">Assumir</button>` : ''}
+  const mesAtual = mesDe(hojeISO());
+  const doMes = pend.filter(c => !c.atrasado), atrasados = pend.filter(c => c.atrasado);
+  const tabela = (lista, titulo) => `<h3 class="sub-quadro">${titulo} <span class="pill">${lista.length}</span></h3>` + (lista.length ? `<div class="tabela-wrap"><table><thead><tr><th>Condomínio</th><th>Comarca</th><th>Vigência</th><th>Aguardando</th><th>Assumido por</th><th></th></tr></thead><tbody>${lista.map(c => `<tr><td><b>${esc(c.nome)}</b>${c.cnpj?`<div class="ajuda" style="margin:0">${esc(c.cnpj)}</div>`:''}</td><td>${esc(c.comarca||'')}</td><td>${fmtData(c.inicio)}</td>
+      <td class="${c.atrasado ? 'venc' : ''}">${c.dias} dia(s)</td><td>${c.assumido ? esc(c.assumido.por || '') : '<span class="ajuda" style="margin:0">ninguém</span>'}</td>
+      <td class="acoes">${!c.assumido ? `<button class="btn sec mini" data-assumir="${esc(c.chave)}">Assumir</button>` : ''}
         <button class="btn sec mini" data-semespolio="${esc(c.chave)}">Sem espólio</button>
-        ${modo === 'solicitante' ? `<button class="btn mini" data-solicitar="${esc(c.chave)}">Solicitar análise</button>` : ''}</td></tr>`).join('');
-  return `<div class="card"><header><h2>Verificação da implantação</h2><span class="dica">${pend.length} condomínio(s) implantado(s) aguardando verificação${S.acesso.verificacaoDesde ? ' · desde ' + fmtMesAno(S.acesso.verificacaoDesde) : ''}</span></header>
-    ${!temCarteira ? '<div class="corpo"><div class="vazio">A carteira do portal ainda não foi carregada. A gestão carrega em Configurações.</div></div>'
-      : pend.length ? `<div class="tabela-wrap"><table><thead><tr><th>Condomínio</th><th>Comarca</th><th>Início do contrato</th><th>Aguardando</th><th>Assumido por</th><th></th></tr></thead><tbody>${linhas}</tbody></table></div>`
-      : '<div class="corpo"><div class="vazio">Nenhum condomínio implantado aguardando verificação.</div></div>'}</div>`;
+        <button class="btn mini" data-solicitar="${esc(c.chave)}">Solicitar análise</button></td></tr>`).join('')}</tbody></table></div>` : '<div class="corpo"><div class="vazio">Nenhum.</div></div>');
+  return `<div class="card"><header><h2>Condomínios em implantação</h2><span class="dica">vigência no mês e atrasados desde ${fmtMesAno(VERIFICACAO_DESDE)} · saem do quadro com “Sem espólio” ou com a solicitação enviada</span></header>
+    ${!temCarteira ? '<div class="corpo"><div class="vazio">A carteira de condomínios do portal não foi carregada. Recarregue o módulo; se persistir, avise a gestão.</div></div>'
+      : tabela(doMes, 'Vigência em ' + fmtMesAno(mesAtual)) + tabela(atrasados, 'Atrasados')}</div>`;
+}
+/* tipo pela regra do papel: Implantação pedindo condomínio do quadro = implantação; senão avulso */
+function tipoPeloPapel(nome, cnpj){
+  const p = papeis();
+  if(!p.implantacao) return { tipo: 'avulso', texto: 'Solicitação avulsa.' };
+  const d = soDigitos(cnpj);
+  const c = pendentesVerificacao().find(x => (d.length === 14 && soDigitos(x.cnpj) === d) || (nome && normCond(x.nome) === normCond(nome)));
+  return c ? { tipo: 'implantacao', texto: `Condomínio no quadro de implantação (vigência ${fmtData(c.inicio)}): solicitação de implantação.` }
+           : { tipo: 'avulso', texto: nome ? 'Condomínio fora do quadro de implantação: solicitação avulsa.' : 'Condomínio do quadro de implantação vira solicitação de implantação; os demais, avulsa.' };
 }
 function htmlFormSolicitacao(pre){
   pre = pre || {};
@@ -2257,7 +2287,7 @@ function htmlFormSolicitacao(pre){
         <div><label>Condomínio</label><input type="text" id="solCond" class="campo" list="listaCarteira" value="${esc(pre.nome||'')}" placeholder="Comece a digitar"><datalist id="listaCarteira">${(S.carteira.itens||[]).filter(c => c.situacao !== 'DISTRATADO').map(c => `<option value="${esc(c.nome)}">${esc([c.cnpj, c.comarca].filter(Boolean).join(' · '))}</option>`).join('')}</datalist>${(S.carteira.itens||[]).length ? '' : '<p class="ajuda" style="color:var(--red)">Carteira de condomínios não carregada. Recarregue o módulo; se persistir, avise a gestão.</p>'}</div>
         <div><label>CNPJ</label><input type="text" id="solCnpj" class="campo" value="${esc(pre.cnpj||'')}" placeholder="preenchido pela carteira, ou digite para buscar"></div>
       </div>
-      <p class="ajuda" id="solTipoInfo">${pre.nome ? esc(tipoPelaCarteira(pre.nome).texto) : 'O tipo da análise (implantação ou avulso) vem da data de início do contrato na carteira.'}</p>
+      ${pre.semTipo ? '' : `<p class="ajuda" id="solTipoInfo">${esc(tipoPeloPapel(pre.nome, pre.cnpj).texto)}</p>`}
       <label style="margin-top:12px">Unidades sinalizadas</label>
       <div class="tabela-wrap"><table id="solUnidades"><thead><tr><th style="width:140px">Bloco - unidade</th><th>Titular (falecido)</th><th style="width:170px">CPF</th><th></th></tr></thead><tbody></tbody></table></div>
       <div class="acoes" style="margin-top:8px"><button class="btn sec mini" id="solAddUnid">Adicionar unidade</button></div>
@@ -2265,15 +2295,6 @@ function htmlFormSolicitacao(pre){
       <div class="acoes" style="margin-top:12px"><button class="btn" id="solEnviar" ${!CAN_WRITE?'disabled':''}>Enviar solicitação</button><button class="btn sec" id="solLimpar">Limpar</button></div>
       <div id="solStatus"></div>
     </div></div>`;
-}
-/* implantação = contrato iniciado há até 120 dias (ou condomínio ainda na verificação da implantação); senão avulso */
-const DIAS_IMPLANTACAO = 120;
-function tipoPelaCarteira(nome){
-  const c = (S.carteira.itens||[]).find(x => normCond(x.nome) === normCond(nome));
-  if(!c || !c.inicio) return { tipo: 'avulso', texto: 'Condomínio fora da carteira ou sem data de início: será tratado como avulso.' };
-  const dias = diasEntre(c.inicio, hojeISO());
-  return dias <= DIAS_IMPLANTACAO ? { tipo: 'implantacao', texto: `Contrato iniciado em ${fmtData(c.inicio)} (${dias} dias): 1ª análise, implantação.` }
-                                  : { tipo: 'avulso', texto: `Contrato iniciado em ${fmtData(c.inicio)} (${dias} dias): condomínio já em carteira, avulso.` };
 }
 function linhaUnidadeSol(u){ u = u || {}; return `<tr><td><input type="text" data-su="unid" value="${esc(u.unid||'')}" placeholder="A - 101"></td><td><input type="text" data-su="titular" value="${esc(u.titular||'')}" placeholder="nome completo"></td><td><input type="text" data-su="cpf" value="${esc(u.cpf||'')}" placeholder="000.000.000-00"></td><td><button class="btn perigo mini" data-su-rm>×</button></td></tr>`; }
 
@@ -2284,8 +2305,9 @@ function htmlListaSolicitacoes(lista, titulo, dica, modo){
 
 /* ---------- visão do solicitante ---------- */
 function htmlSolSolicitante(){
-  return `<div class="nota"><b>Solicitação de análise de espólio.</b> Envie a solicitação com as unidades de titular falecido. Abaixo, os condomínios implantados que ainda precisam ser verificados. O andamento fica em “Minhas solicitações”.</div>
-    ${htmlFormSolicitacao()}${htmlPendentesVerificacao('solicitante')}`;
+  const quadro = papeis().implantacao;
+  return `<div class="nota"><b>Solicitação de análise de espólio.</b> Envie a solicitação com as unidades de titular falecido.${quadro ? ' Abaixo, os condomínios em implantação que ainda precisam ser verificados.' : ''} O andamento fica em “Minhas solicitações”.</div>
+    ${htmlFormSolicitacao()}${quadro ? htmlPendentesVerificacao() : ''}`;
 }
 /* ---------- visão da gestão ---------- */
 function htmlSolGestao(){
@@ -2295,61 +2317,73 @@ function htmlSolGestao(){
   else if(filtro !== 'todas') lista = lista.filter(x => x.status === filtro);
   const novas = solicitacoesNovas().length;
   return `<div class="filtros"><span class="pill">Novas <b>${novas}</b></span><select id="solFiltro" class="campo"><option value="abertas" ${filtro==='abertas'?'selected':''}>Abertas</option><option value="nova" ${filtro==='nova'?'selected':''}>Novas</option><option value="em_analise" ${filtro==='em_analise'?'selected':''}>Em análise</option><option value="concluida" ${filtro==='concluida'?'selected':''}>Concluídas</option><option value="devolvida" ${filtro==='devolvida'?'selected':''}>Devolvidas</option><option value="todas" ${filtro==='todas'?'selected':''}>Todas</option></select><span style="flex:1"></span><button class="btn mini" id="btnRegistrarSol" ${!CAN_WRITE?'disabled':''}>Registrar solicitação</button></div>
-    ${htmlListaSolicitacoes(lista, 'Solicitações recebidas', 'clique para abrir · "Iniciar análise" cria a rodada já preenchida', 'gestao')}
-    ${htmlPendentesVerificacao('gestao')}`;
+    ${htmlListaSolicitacoes(lista, 'Solicitações recebidas', 'clique para abrir · "Iniciar análise" cria a rodada já preenchida', 'gestao')}`;
 }
 
 /* ---------- eventos ---------- */
 function ligarSolicitacoes(){
-  const el = $('#p-sol');
+  const el = $('#p-pedir');
   $$('#p-sol [data-sol], #p-minhas [data-sol]').forEach(tr => tr.onclick = () => abrirSolicitacaoModal(S.solicitacoes.find(x => x.id === tr.dataset.sol)));
   const sf = $('#solFiltro'); if(sf) sf.onchange = () => { S.solFiltro = sf.value; renderSolicitacoes(); };
   const br = $('#btnRegistrarSol'); if(br) br.onclick = abrirRegistrarSolicitacao;
   el.querySelectorAll('[data-assumir]').forEach(b => b.onclick = async () => { const c = S.carteira.itens.find(x => x.chave === b.dataset.assumir); await DB.collection(COLECOES.verificacoes).add({ chave: c.chave, condominio: c.nome, cnpj: c.cnpj, mes: mesDe(c.inicio), resultado: 'assumido', por: ME.name, porId: ME.id, quando: nowISO() }); toast('Você assumiu ' + c.nome + '.'); });
   el.querySelectorAll('[data-semespolio]').forEach(b => b.onclick = async () => { const c = S.carteira.itens.find(x => x.chave === b.dataset.semespolio); if(!(await confirmar(`Registrar ${c.nome} como verificado, sem espólio?`))) return; await DB.collection(COLECOES.verificacoes).add({ chave: c.chave, condominio: c.nome, cnpj: c.cnpj, mes: mesDe(c.inicio), resultado: 'sem_espolio', por: ME.name, porId: ME.id, quando: nowISO() }); registrarHistorico('verificacao', { condominio: c.nome, resultado: 'sem_espolio' }); toast(c.nome + ' registrado sem espólio.'); });
-  el.querySelectorAll('[data-solicitar]').forEach(b => b.onclick = () => { const c = S.carteira.itens.find(x => x.chave === b.dataset.solicitar); const card = $('#cardNovaSol'); card.outerHTML = htmlFormSolicitacao({ nome: c.nome, cnpj: c.cnpj }); ligarFormSolicitacao(); $('#cardNovaSol').scrollIntoView({ behavior:'smooth' }); });
-  ligarFormSolicitacao();
+  el.querySelectorAll('[data-solicitar]').forEach(b => b.onclick = () => { const c = S.carteira.itens.find(x => x.chave === b.dataset.solicitar); const card = el.querySelector('#cardNovaSol'); card.outerHTML = htmlFormSolicitacao({ nome: c.nome, cnpj: c.cnpj }); ligarFormSolicitacao(el.querySelector('#cardNovaSol')); el.querySelector('#cardNovaSol').scrollIntoView({ behavior:'smooth' }); });
+  ligarFormSolicitacao(el.querySelector('#cardNovaSol'));
 }
-function ligarFormSolicitacao(){
-  const card = $('#cardNovaSol'); if(!card) return;
-  const tb = card.querySelector('#solUnidades tbody'); if(!tb.children.length) tb.innerHTML = linhaUnidadeSol();
-  $('#solAddUnid').onclick = () => tb.insertAdjacentHTML('beforeend', linhaUnidadeSol());
+/* liga um formulário de solicitação (aba Solicitar análise ou modal Registrar solicitação); devolve a função de envio */
+function ligarFormSolicitacao(card){
+  if(!card) return null;
+  const q = sel => card.querySelector(sel);
+  const tb = q('#solUnidades tbody'); if(!tb.children.length) tb.innerHTML = linhaUnidadeSol();
+  q('#solAddUnid').onclick = () => tb.insertAdjacentHTML('beforeend', linhaUnidadeSol());
   tb.addEventListener('click', e => { if(e.target.closest('[data-su-rm]')){ const tr = e.target.closest('tr'); if(tb.children.length > 1) tr.remove(); else tr.querySelectorAll('input').forEach(i => i.value = ''); } });
+  const cond = q('#solCond'), cnpjEl = q('#solCnpj');
   const acharPorNome = v => (S.carteira.itens||[]).find(x => normCond(x.nome) === normCond(v) || normCond(x.razao) === normCond(v));
   const acharPorCnpj = v => { const d = soDigitos(v); return d.length === 14 ? (S.carteira.itens||[]).find(x => soDigitos(x.cnpj) === d) : null; };
-  const aplicarCond = c => { $('#solCond').value = c.nome; $('#solCnpj').value = c.cnpj || ''; $('#solCnpj').dataset.auto = '1'; $('#solTipoInfo').textContent = tipoPelaCarteira(c.nome).texto; };
-  ['input','change'].forEach(ev => $('#solCond').addEventListener(ev, () => { const c = acharPorNome($('#solCond').value); if(c && (!$('#solCnpj').value.trim() || $('#solCnpj').dataset.auto)) aplicarCond(c); else if(!c){ if($('#solCnpj').dataset.auto){ $('#solCnpj').value = ''; delete $('#solCnpj').dataset.auto; } $('#solTipoInfo').textContent = tipoPelaCarteira($('#solCond').value).texto; } }));
-  ['input','change'].forEach(ev => $('#solCnpj').addEventListener(ev, () => { delete $('#solCnpj').dataset.auto; const c = acharPorCnpj($('#solCnpj').value); if(c) aplicarCond(c); }));
-  $('#solLimpar').onclick = () => { card.outerHTML = htmlFormSolicitacao(); ligarFormSolicitacao(); };
-  $('#solEnviar').onclick = async () => {
-    const nome = $('#solCond').value.trim(); const cnpj = $('#solCnpj').value.trim();
+  const tipoInfo = () => { const el = q('#solTipoInfo'); if(el) el.textContent = tipoPeloPapel(cond.value.trim(), cnpjEl.value).texto; };
+  const aplicarCond = c => { cond.value = c.nome; cnpjEl.value = c.cnpj || ''; cnpjEl.dataset.auto = '1'; tipoInfo(); };
+  ['input','change'].forEach(ev => cond.addEventListener(ev, () => { const c = acharPorNome(cond.value); if(c && (!cnpjEl.value.trim() || cnpjEl.dataset.auto)) aplicarCond(c); else if(!c){ if(cnpjEl.dataset.auto){ cnpjEl.value = ''; delete cnpjEl.dataset.auto; } tipoInfo(); } }));
+  ['input','change'].forEach(ev => cnpjEl.addEventListener(ev, () => { delete cnpjEl.dataset.auto; const c = acharPorCnpj(cnpjEl.value); if(c) aplicarCond(c); else tipoInfo(); }));
+  q('#solLimpar').onclick = () => { const pai = card.parentNode; card.outerHTML = htmlFormSolicitacao(); ligarFormSolicitacao(pai.querySelector('#cardNovaSol')); };
+  /* extra (registro pela gestão): { tipo, dados } */
+  const enviar = async (extra) => {
+    extra = extra && extra.tipo ? extra : null;
+    const nome = cond.value.trim(); const cnpj = cnpjEl.value.trim();
     const unidades = [...tb.querySelectorAll('tr')].map(tr => ({ unid: tr.querySelector('[data-su="unid"]').value.trim(), titular: tr.querySelector('[data-su="titular"]').value.trim(), cpf: tr.querySelector('[data-su="cpf"]').value.trim() })).filter(u => u.unid || u.titular || u.cpf);
-    const st = $('#solStatus');
-    if(!nome){ st.innerHTML = '<div class="erro">Informe o condomínio.</div>'; return; }
-    if(!unidades.length || unidades.some(u => !u.titular && !u.unid)){ st.innerHTML = '<div class="erro">Informe ao menos uma unidade com titular.</div>'; return; }
-    const tipo = tipoPelaCarteira(nome).tipo;
+    const st = q('#solStatus');
+    if(!nome){ st.innerHTML = '<div class="erro">Informe o condomínio.</div>'; return false; }
+    if(!unidades.length || unidades.some(u => !u.titular && !u.unid)){ st.innerHTML = '<div class="erro">Informe ao menos uma unidade com titular.</div>'; return false; }
+    const tipo = extra ? extra.tipo : tipoPeloPapel(nome, cnpj).tipo;
+    const origem = extra ? 'gestao' : (papeis().implantacao ? 'implantacao' : 'avulso');
     try{
       const c = (S.carteira.itens||[]).find(x => normCond(x.nome) === normCond(nome));
-      await criarSolicitacao({ condominio: { nome: c ? c.nome : nome, cnpj: cnpj || (c ? c.cnpj : ''), chave: chaveCond(c ? c.nome : nome, cnpj || (c ? c.cnpj : '')) }, origem: tipo === 'implantacao' ? 'implantacao' : 'cobranca', tipo, unidades, obs: $('#solObs').value.trim() });
+      await criarSolicitacao({ condominio: { nome: c ? c.nome : nome, cnpj: cnpj || (c ? c.cnpj : ''), chave: chaveCond(c ? c.nome : nome, cnpj || (c ? c.cnpj : '')) }, origem, tipo, unidades, obs: q('#solObs').value.trim(), ...(extra ? extra.dados : {}) });
       toast('Solicitação enviada.'); renderSolicitacoes();
-    }catch(e){ st.innerHTML = `<div class="erro">${esc(dbErr(e))}</div>`; }
+      return true;
+    }catch(e){ st.innerHTML = `<div class="erro">${esc(dbErr(e))}</div>`; return false; }
   };
+  q('#solEnviar').onclick = () => enviar();
+  return enviar;
 }
 
-/* gestão registra uma solicitação que chegou por e-mail ou telefone, em nome de quem pediu */
+/* gestão registra uma solicitação que chegou por e-mail ou telefone, em nome de quem pediu; o tipo é a gestão que escolhe */
 function abrirRegistrarSolicitacao(pre){
-  abrirModal('Registrar solicitação', `<div class="grade" style="margin-bottom:12px"><div><label>Quem pediu</label><input type="text" id="rsNome" class="campo" placeholder="nome da assistente ou analista"></div><div><label>Como chegou</label><select id="rsCanal" class="campo"><option value="email">E-mail</option><option value="telefone">Telefone / presencial</option><option value="outro">Outro</option></select></div></div>
-    ${htmlFormSolicitacao(pre || {}).replace('id="cardNovaSol"', 'id="cardNovaSol" style="margin:0;border:0;box-shadow:none"')}`);
-  ligarFormSolicitacao();
-  const btn = $('#solEnviar'); btn.textContent = 'Registrar';
-  const original = btn.onclick;
+  abrirModal('Registrar solicitação', `<div class="grade" style="margin-bottom:12px"><div><label>Quem pediu</label><input type="text" id="rsNome" class="campo" placeholder="nome da assistente ou analista"></div><div><label>Como chegou</label><select id="rsCanal" class="campo"><option value="email">E-mail</option><option value="telefone">Telefone / presencial</option><option value="outro">Outro</option></select></div>
+      <div><label>Tipo</label><select id="rsTipo" class="campo"><option value="">Selecione…</option><option value="implantacao">Implantação · 1ª análise</option><option value="avulso">Avulso · já em carteira</option></select></div></div>
+    ${htmlFormSolicitacao({ ...(pre || {}), semTipo: true }).replace('id="cardNovaSol"', 'id="cardNovaSol" style="margin:0;border:0;box-shadow:none"')}`);
+  const card = $('#modal #cardNovaSol');
+  const enviar = ligarFormSolicitacao(card);
+  const btn = card.querySelector('#solEnviar'); btn.textContent = 'Registrar';
+  const st = card.querySelector('#solStatus');
   btn.onclick = async () => {
-    const quem = $('#rsNome').value.trim(); if(!quem){ $('#solStatus').innerHTML = '<div class="erro">Informe quem pediu.</div>'; return; }
+    const quem = $('#rsNome').value.trim(); if(!quem){ st.innerHTML = '<div class="erro">Informe quem pediu.</div>'; return; }
+    const tipo = $('#rsTipo').value; if(!tipo){ st.innerHTML = '<div class="erro">Escolha o tipo: implantação ou avulso.</div>'; return; }
     const meuNome = ME.name, meuId = ME.id;
     ME.name = quem; ME.id = 'registrada:' + normNome(quem);
-    try{ await original(); } finally { ME.name = meuNome; ME.id = meuId; }
-    if(S.solicitacoes.length){ const ultima = S.solicitacoes.slice().sort((a,b) => (b.criadaEm||'').localeCompare(a.criadaEm||''))[0]; if(ultima && ultima.solicitanteNome === quem) atualizarSolicitacao(ultima.id, { registradaPor: meuNome, canal: $('#rsCanal') ? $('#rsCanal').value : 'outro' }); }
-    fecharModal();
+    let ok = false;
+    try{ ok = await enviar({ tipo, dados: { registradaPor: meuNome, canal: $('#rsCanal').value } }); } finally { ME.name = meuNome; ME.id = meuId; }
+    if(ok) fecharModal();
   };
 }
 
@@ -2385,7 +2419,7 @@ function abrirSolicitacaoModal(x){
   if($('#mSolDevolver')) $('#mSolDevolver').onclick = async () => { const motivo = window.prompt('Motivo da devolução (o solicitante vai ver):'); if(motivo === null || !motivo.trim()) return; await atualizarSolicitacao(x.id, { status: 'devolvida', motivoDevolucao: motivo.trim(), devolvidaEm: nowISO() }); fecharModal(); toast('Solicitação devolvida.'); };
   if($('#mSolIniciar')) $('#mSolIniciar').onclick = async () => {
     const tipoEsc = $('#mSolTipo') ? $('#mSolTipo').value : (x.tipo === 'avulso' ? 'avulso' : 'implantacao');
-    if(tipoEsc !== x.tipo) await atualizarSolicitacao(x.id, { tipo: tipoEsc, origem: tipoEsc === 'implantacao' ? 'implantacao' : 'cobranca' });
+    if(tipoEsc !== x.tipo) await atualizarSolicitacao(x.id, { tipo: tipoEsc });
     const r = novaRodada(tipoEsc, { ...x.condominio });
     if(r.tipo === 'avulso') r.semAnterior = true;
     r.analista = x.solicitanteNome || ''; r.solicitacaoId = x.id; r.nota = x.obs ? 'Solicitação: ' + x.obs : '';
@@ -2495,25 +2529,9 @@ async function fichaPDFBlob(r){
 
 /* ===== 67-ui-acessos.js ===== */
 /* ======================================================================
-   Acessos — quem faz o quê (mesmo modelo do módulo Comissões de Novos Condomínios)
+   Acessos — quem faz o quê (mesma funcionalidade do módulo Comissões de Novos Condomínios)
    Cada pessoa aparece aqui depois de abrir o módulo no portal uma vez. A gestão marca os papéis.
    ====================================================================== */
-function linhasAcessos(){
-  const ids = {};
-  Object.keys(S.vistos || {}).forEach(k => ids[k] = 1);
-  Object.keys(S.perfis || {}).forEach(k => ids[k] = 1);
-  if(ME.id !== null && ME.id !== undefined) ids[String(ME.id)] = 1;
-  return Object.keys(ids).map(id => {
-    const v = (S.vistos || {})[id] || {}, p = (S.perfis || {})[id] || {};
-    return { id, nome: p.nome || v.nome || (id === String(ME.id) ? ME.name : 'Usuário ' + id), visto: v.em || '', papeis: p.papeis || [], nomeCarteira: p.nomeCarteira || '' };
-  }).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
-}
-const semPapel = () => linhasAcessos().filter(l => !l.papeis.length && l.id !== String(ME.id));
-function renderAcessosBadge(){
-  const n = semPapel().length, el = $('#nAcessos');
-  if(!el) return;
-  el.hidden = !n; el.textContent = `${n} sem papel`; el.classList.toggle('alerta', n > 0);
-}
 function nomesDaCarteira(){
   const set = new Map();
   (S.carteira.itens || []).forEach(c => [c.assistenteCredito, c.analistaCobranca].forEach(n => { if(n) set.set(normNome(n), n); }));
@@ -2523,59 +2541,55 @@ const fmtDataHora = iso => { if(!iso) return '—'; const d = new Date(iso); if(
 
 function renderAcessos(){
   const root = $('#p-acessos'); if(!root) return;
-  const linhas = linhasAcessos();
-  const nomes = nomesDaCarteira();
-  const provisoria = !temAlgumaGestao();
   const local = DB && DB._local;
-  root.innerHTML = `
-    <div class="card"><header><h2>Quem faz o quê</h2><span class="dica">${linhas.length} pessoa(s)</span></header>
-      <div class="corpo">
-        <p class="ajuda" style="margin:0 0 10px">Cada pessoa aparece aqui depois de abrir este módulo no portal uma vez. O acesso ao módulo em si é liberado pela administração do portal (Usuários e acessos). Quem ainda não tem papel vê a tela “Acesso registrado” até a gestão marcar.</p>
-        ${provisoria ? `<div class="aviso" style="margin:0 0 10px">Ninguém tem o papel de Gestão ainda. Até alguém ser marcado, valem como gestão: ${GESTAO_PADRAO.map(n => esc(n.toLowerCase().replace(/\b\w/g, c => c.toUpperCase()))).join(' e ')}. Marque a gestão abaixo para fixar.</div>` : ''}
-        ${local ? '<div class="aviso" style="margin:0 0 10px">Modo local: fora do portal não há usuários; a tabela mostra só este navegador. Para testar os perfis use “ver como…” no chip do usuário.</div>' : ''}
-        <div class="tabela-wrap"><table style="min-width:760px"><thead><tr><th>Pessoa</th><th>Papéis</th><th>Nome na carteira</th><th>Último acesso</th></tr></thead><tbody>${
-          linhas.map(l => {
-            const cb = (pp, rot) => `<label class="check" style="display:inline-flex;margin:0 16px 0 0;text-transform:none;letter-spacing:0;font-size:13px;font-weight:700;color:var(--ink-2)"><input type="checkbox" data-u="${esc(l.id)}" data-pp="${pp}" ${l.papeis.includes(pp) ? 'checked' : ''} ${!CAN_WRITE ? 'disabled' : ''}> ${rot}</label>`;
-            const opts = '<option value="">—</option>' + nomes.map(n => `<option ${normNome(n) === normNome(l.nomeCarteira) ? 'selected' : ''}>${esc(n)}</option>`).join('')
-              + (l.nomeCarteira && !nomes.some(n => normNome(n) === normNome(l.nomeCarteira)) ? `<option selected>${esc(l.nomeCarteira)}</option>` : '');
-            return `<tr><td><b>${esc(l.nome)}</b>${l.id === String(ME.id) ? ' <span class="ajuda" style="display:inline;margin:0">(você)</span>' : ''}${!l.papeis.length && l.id !== String(ME.id) ? ' <span class="selo s-rean">sem papel</span>' : ''}</td>
-              <td>${cb('gestao', 'Gestão')}${cb('solicitante', 'Solicitante')}</td>
-              <td><select class="campo" data-nc="${esc(l.id)}" style="width:auto;min-width:220px" ${!CAN_WRITE ? 'disabled' : ''}>${opts}</select></td>
-              <td>${fmtDataHora(l.visto)}</td></tr>`;
-          }).join('')}</tbody></table></div>
-      </div></div>
-    <div class="card"><header><h2>Papéis</h2></header><div class="corpo">
-      <p class="ajuda" style="margin:0 0 6px"><b>Gestão</b>: coordenação. Vê tudo, recebe e registra solicitações, conduz e conclui as análises, cuida da fila de acompanhamento, das configurações e define os papéis nesta aba.</p>
-      <p class="ajuda" style="margin:0 0 6px"><b>Solicitante</b>: assistentes de implantação e analistas de Cobrança. Envia solicitações, verifica os condomínios implantados e acompanha as próprias solicitações, baixando a ficha quando concluída.</p>
-      <p class="ajuda" style="margin:0"><b>Nome na carteira</b>: liga o login ao nome que aparece no cadastro de condomínios (assistente de crédito ou analista de cobrança). É assim que o ticket da ficha chega à pessoa certa.</p>
-    </div></div>`;
+  const ids = {};
+  Object.keys(S.vistos || {}).forEach(k => ids[k] = 1);
+  Object.keys(S.perfis || {}).forEach(k => ids[k] = 1);
+  if(!local && ME.id !== null && ME.id !== undefined) ids[String(ME.id)] = 1;
+  const nomes = nomesDaCarteira();
+  const linhas = Object.keys(ids).map(id => {
+    const v = (S.vistos || {})[id] || {}, p = (S.perfis || {})[id] || {};
+    return { id, nome: p.nome || v.nome || (id === String(ME.id) ? ME.name : 'Usuário ' + id), visto: v.em || '', papeis: p.papeis || [], nomeCarteira: p.nomeCarteira || '' };
+  }).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+
+  let h = `<div class="card"><header><h2>Quem faz o quê</h2></header><div class="corpo">
+    <p class="ajuda" style="margin:0 0 10px">Cada pessoa aparece aqui depois de abrir este módulo no portal uma vez. O acesso ao módulo em si é liberado pela administração do portal (Usuários e acessos).</p>`;
+  if(local) h += '<div class="vazio">Fora do portal não há usuários: todas as abas ficam liberadas neste navegador.</div>';
+  else h += `<div class="tabela-wrap"><table style="min-width:820px"><thead><tr><th>Pessoa</th><th>Papéis</th><th>Nome na carteira</th><th>Último acesso</th></tr></thead><tbody>${
+      linhas.map(l => {
+        const cb = (pp, rot) => `<label class="check" style="display:inline-flex;margin:0 16px 0 0;text-transform:none;letter-spacing:0;font-size:13px;font-weight:700;color:var(--ink-2)"><input type="checkbox" data-u="${esc(l.id)}" data-pp="${pp}" ${l.papeis.includes(pp) ? 'checked' : ''} ${!CAN_WRITE ? 'disabled' : ''}> ${rot}</label>`;
+        const opts = '<option value="">—</option>' + nomes.map(n => `<option ${normNome(n) === normNome(l.nomeCarteira) ? 'selected' : ''}>${esc(n)}</option>`).join('')
+          + (l.nomeCarteira && !nomes.some(n => normNome(n) === normNome(l.nomeCarteira)) ? `<option selected>${esc(l.nomeCarteira)}</option>` : '');
+        return `<tr><td><b>${esc(l.nome)}</b>${l.id === String(ME.id) ? ' <span class="ajuda" style="display:inline;margin:0">(você)</span>' : ''}</td>
+          <td>${cb('gestao', PAPEIS.gestao)}${cb('implantacao', PAPEIS.implantacao)}${cb('avulso', PAPEIS.avulso)}</td>
+          <td><select class="campo" data-nc="${esc(l.id)}" style="width:auto;min-width:220px" ${!CAN_WRITE ? 'disabled' : ''}>${opts}</select></td>
+          <td>${fmtDataHora(l.visto)}</td></tr>`;
+      }).join('')}</tbody></table></div>`;
+  h += `</div></div>
+    <div class="card"><header><h2>Papéis</h2></header><div class="corpo"><p class="ajuda" style="margin:0">
+      <b>Gestão</b>: coordenação. Vê tudo, recebe e registra solicitações, conduz e conclui as análises, cuida da fila de acompanhamento e das configurações e define os papéis.
+      <b>Implantação</b>: assistentes de implantação. Solicitam a análise dos condomínios em implantação, com o quadro dos condomínios com vigência no mês e dos atrasados, e também podem enviar solicitações avulsas.
+      <b>Solicitante avulso</b>: analistas de Cobrança e demais. Enviam solicitações avulsas, sem o quadro de implantação.
+      <b>Nome na carteira</b>: liga o login ao nome que aparece no cadastro de condomínios (assistente de crédito ou analista de cobrança). É assim que o ticket da ficha chega à pessoa certa.</p></div></div>`;
+  root.innerHTML = h;
 
   const salvarPerfil = async (uid, fn) => {
-    const lin = linhas.find(l => l.id === uid);
     const atual = JSON.parse(JSON.stringify((S.perfis || {})[uid] || { id: uid, papeis: [], nomeCarteira: '' }));
+    const lin = linhas.find(l => l.id === uid);
     atual.nome = lin ? lin.nome : atual.nome;
     fn(atual);
-    atual.atualizadoEm = nowISO(); atual.atualizadoPor = ME.name;
-    try{
-      // primeira configuração: quem está na gestão provisória (nomes padrão) fica fixado como Gestão antes de marcar outra pessoa
-      const eu = String(ME.id);
-      if(!temAlgumaGestao() && ehGestao() && uid !== eu && !(DB && DB._local)){
-        const meu = JSON.parse(JSON.stringify((S.perfis || {})[eu] || { id: eu, papeis: [], nomeCarteira: '' }));
-        meu.nome = ME.name; if(!meu.papeis.includes('gestao')) meu.papeis.push('gestao'); meu.atualizadoEm = nowISO(); meu.atualizadoPor = ME.name;
-        await DB.doc(COLECOES.perfis + '/' + eu).set(meu);
-      }
-      await DB.doc(COLECOES.perfis + '/' + uid).set(atual); registrarHistorico('papel', { usuario: uid, nome: atual.nome, papeis: atual.papeis }); toast('Papéis de ' + atual.nome + ' atualizados.'); }
+    const eraGestor = ((((S.perfis || {})[String(ME.id)] || {}).papeis) || []).includes('gestao');
+    const restantes = Object.keys(S.perfis || {}).filter(k => k !== uid && (S.perfis[k].papeis || []).includes('gestao')).length + (atual.papeis.includes('gestao') ? 1 : 0);
+    if(eraGestor && uid === String(ME.id) && !atual.papeis.includes('gestao') && !(await confirmar('Você vai tirar seu próprio papel de gestão' + (restantes ? '' : ' e não sobra nenhum gestor (todas as abas voltam a ficar liberadas para todos)') + '. Continuar?'))){ renderAcessos(); return; }
+    atual.atualizadoPor = ME.name; atual.atualizadoEm = nowISO();
+    try{ await DB.doc(COLECOES.perfis + '/' + uid).set(atual); registrarHistorico('papel', { usuario: uid, nome: atual.nome, papeis: atual.papeis, nomeCarteira: atual.nomeCarteira }); toast('Acesso atualizado.'); }
     catch(e){ toast(dbErr(e), 5000); renderAcessos(); }
   };
-  root.querySelectorAll('[data-pp]').forEach(el => el.onchange = async () => {
-    const uid = el.dataset.u, pp = el.dataset.pp, on = el.checked;
-    if(pp === 'gestao' && !on && uid === String(ME.id)){
-      const outras = Object.values(S.perfis || {}).filter(p => p.id !== uid && (p.papeis || []).includes('gestao')).length;
-      if(!(await confirmar('Você vai tirar o seu próprio papel de Gestão' + (outras ? '.' : ' e não sobra ninguém na gestão: valem de novo os nomes padrão.') + ' Continuar?'))){ el.checked = true; return; }
-    }
-    salvarPerfil(uid, p => { p.papeis = (p.papeis || []).filter(x => x !== pp); if(on) p.papeis.push(pp); });
+  root.querySelectorAll('input[data-pp]').forEach(el => el.onchange = () => {
+    const pp = el.dataset.pp, on = el.checked;
+    salvarPerfil(el.dataset.u, p => { p.papeis = (p.papeis || []).filter(x => x !== pp); if(on) p.papeis.push(pp); });
   });
-  root.querySelectorAll('[data-nc]').forEach(el => el.onchange = () => salvarPerfil(el.dataset.nc, p => { p.nomeCarteira = el.value; }));
+  root.querySelectorAll('select[data-nc]').forEach(el => el.onchange = () => salvarPerfil(el.dataset.nc, p => { p.nomeCarteira = el.value; }));
 }
 
 /* ===== 90-init.js ===== */

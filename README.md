@@ -24,7 +24,7 @@ Módulo do portal MyBlue para a Coordenação de Cobrança: solicitações de an
 1. `node build.js` gera `analise-espolio.html`.
 2. O módulo `analise-de-espolio` já está cadastrado no portal (setor Cobrança, adaptador `claude-db`). Suba `analise-espolio.html` como nova versão.
 3. Libere o acesso para a gestão e para os solicitantes. Passo a passo completo em `docs/guia-implantacao-portal.md`.
-3. O módulo usa `window.claude.use('db')` e `use('user')`, como o módulo de Síndicos. Fora do portal ele abre em **modo local** (localStorage) com aviso, útil para testes.
+4. O módulo usa `window.claude.use('db')` e `use('user')`, como o módulo de Síndicos. Fora do portal ele abre em **modo local** (localStorage) com aviso, útil para testes.
 
 Bibliotecas externas (cdnjs): pdf.js 3.11.174, SheetJS 0.18.5 e html2pdf.js 0.10.1.
 
@@ -38,11 +38,11 @@ Bibliotecas externas (cdnjs): pdf.js 3.11.174, SheetJS 0.18.5 e html2pdf.js 0.10
 | `meta/estado` | Sequência do protocolo por ano (`AE-AAAA-NNNN`) |
 | `historico` | Log de ações (conclusão, ficha, carga, base do BI, solicitação, ticket) |
 | `solicitacoes` | Solicitações de análise (condomínio, unidades, solicitante, status, protocolo, resultado) |
-| `verificacoes` | Respostas da verificação da implantação (assumido / sem espólio) |
+| `verificacoes` | Respostas do quadro de implantação (assumido / sem espólio) |
 | `carteira/atual` | Cópia automática de `public.condominios`, mantida por gatilho no banco (`docs/sql/carteira-e-modulo.sql`) |
-| `perfis/{id}` | Papéis de cada pessoa (gestão, solicitante) e nome na carteira |
+| `perfis/{id}` | Papéis de cada pessoa (gestão, implantação, solicitante avulso) e nome na carteira |
 | `vistos/{id}` | Último acesso de cada pessoa ao módulo |
-| `meta/acesso` | Mês inicial da verificação, rota e setor do ticket |
+| `meta/acesso` | Rota e setor do ticket |
 
 A fila de acompanhamento é derivada: última rodada concluída de cada condomínio, unidades ativas (não excluídas, não encerradas), prazo = data da análise + 90 dias.
 

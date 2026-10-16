@@ -52,26 +52,32 @@ function dbErr(e){
 }
 
 let DB = null, NS_USER = null, ME = { id:null, name:'' }, CAN_WRITE = true;
-/* Perfis e papéis (mesmo modelo do módulo Comissões de Novos Condomínios)
+/* Papéis (mesma funcionalidade do módulo Comissões de Novos Condomínios)
    - cada pessoa que abre o módulo é registrada em vistos/{id} (nome e último acesso);
-   - a gestão marca os papéis de cada uma na aba Acessos: perfis/{id} = { papeis: ['gestao'|'solicitante'], nomeCarteira };
-   - enquanto ninguém tiver o papel de gestão, valem como gestão os nomes de GESTAO_PADRAO (para a primeira configuração);
-   - quem não tem papel vê a tela "Acesso registrado" até a gestão definir. */
-let PERFIL = 'gestao';
-const GESTAO_PADRAO = ['BEATRIZ TEIXEIRA', 'MARIANA NASCIMENTO'];
-const PAPEIS = { gestao: 'Gestão', solicitante: 'Solicitante' };
-const temAlgumaGestao = () => Object.values(S.perfis || {}).some(p => (p.papeis || []).includes('gestao'));
-function calcularPerfil(){
-  if(DB && DB._local){ const v = localStorage.getItem('myblue_espolio_perfil'); return v === 'solicitante' || v === 'sem' ? v : 'gestao'; }
-  const meu = (S.perfis || {})[String(ME.id)] || {};
-  const pp = meu.papeis || [];
-  if(pp.includes('gestao')) return 'gestao';
-  if(!temAlgumaGestao() && GESTAO_PADRAO.includes(normNome(ME.name))) return 'gestao';
-  if(pp.includes('solicitante')) return 'solicitante';
-  return 'sem';
+   - a gestão marca os papéis de cada uma na aba Acessos: perfis/{id} = { papeis: ['gestao'|'implantacao'|'avulso'], nomeCarteira };
+   - enquanto ninguém tiver o papel de gestão, todos que abrem o módulo veem todas as abas;
+   - fora do portal não há usuários: todas as abas ficam liberadas neste navegador;
+   - quem não tem papel vê o aviso para pedir acesso à gestão. */
+const PAPEIS = { gestao: 'Gestão', implantacao: 'Implantação', avulso: 'Solicitante avulso' };
+function papeis(){
+  if(DB && DB._local){
+    const v = localStorage.getItem('myblue_espolio_papeis');   // só para testes locais: lista separada por vírgula
+    if(v !== null){ const pp = v.split(',').filter(Boolean); return { gestao: pp.includes('gestao'), implantacao: pp.includes('implantacao'), avulso: pp.includes('avulso') }; }
+    return { gestao: true, implantacao: true, avulso: true, livre: true };
+  }
+  const temGestor = Object.values(S.perfis || {}).some(p => (p.papeis || []).includes('gestao'));
+  if(!temGestor) return { gestao: true, implantacao: true, avulso: true, livre: true, semGestor: true };
+  const pp = ((S.perfis || {})[String(ME.id)] || {}).papeis || [];
+  return { gestao: pp.includes('gestao'), implantacao: pp.includes('implantacao'), avulso: pp.includes('avulso') };
 }
-const ehGestao = () => PERFIL === 'gestao';
-function recalcularPerfil(){ const antes = PERFIL; PERFIL = calcularPerfil(); atualizarChipPerfil(); if(antes !== PERFIL) aplicarPerfil(); }
+const ehGestao = () => papeis().gestao;
+function abasPermitidas(){
+  const p = papeis(), a = [];
+  if(p.gestao) a.push('dash', 'sol');
+  if(p.implantacao || p.avulso) a.push('pedir', 'minhas');
+  if(p.gestao) a.push('lote', 'acessos', 'conf');
+  return a;
+}
 /* registra o acesso (uma vez por dia por pessoa) */
 async function registrarVisto(){
   if(!DB || DB._local || ME.id === null || ME.id === undefined) return;
@@ -98,13 +104,10 @@ async function conectarBase(){
   if(ME.name){ chip.textContent = ME.name + (CAN_WRITE ? '' : ' · somente leitura'); chip.hidden = false; }
 }
 function atualizarChipPerfil(){
-  const chip = $('#chipUsuario');
-  const local = DB && DB._local;
-  const rot = PERFIL === 'gestao' ? 'gestão' : PERFIL === 'solicitante' ? 'solicitante' : 'sem papel';
-  chip.innerHTML = esc(ME.name || 'Usuário') + ' · ' + rot + (CAN_WRITE ? '' : ' · somente leitura')
-    + (local ? ` <button class="link" id="chipTrocar" style="margin-left:6px">ver como ${ehGestao() ? 'solicitante' : 'gestão'}</button>` : '');
+  const chip = $('#chipUsuario'), p = papeis();
+  const rot = p.livre ? '' : (Object.keys(PAPEIS).filter(k => p[k]).map(k => PAPEIS[k].toLowerCase()).join(' · ') || 'sem papel');
+  chip.textContent = (ME.name || 'Usuário') + (rot ? ' · ' + rot : '') + (CAN_WRITE ? '' : ' · somente leitura');
   chip.hidden = false;
-  if(local) $('#chipTrocar').onclick = () => { localStorage.setItem('myblue_espolio_perfil', ehGestao() ? 'solicitante' : 'gestao'); recalcularPerfil(); renderTudo(); };
 }
 
 /* grava com update; se o doc não existe, set */

@@ -8,7 +8,7 @@ Registro do que foi decidido com a Coordenação de Cobrança (out/2026) para a 
 
 ## Armazenamento
 - Não publicar pelo Claude. O módulo roda no portal MyBlue com o adaptador `claude-db` (Supabase, projeto `myblue-portal`), como os módulos de Síndicos e Gestão de Viagens.
-- Fora do portal, o módulo abre em modo local (só o navegador), com aviso.
+- Fora do portal, o módulo abre em modo local (só o navegador), com aviso e todas as abas liberadas.
 
 ## Entradas
 - **PDF do Vouch é o único padrão** para inadimplência MyBlue. O Excel do Vouch é mais fácil de ler, mas não traz condomínio, CNPJ nem data de corte; o PDF traz, e é o arquivo que já vai para a pasta do condomínio. Leitor dedicado com conferência contra o total impresso.
@@ -18,7 +18,7 @@ Registro do que foi decidido com a Coordenação de Cobrança (out/2026) para a 
 ## Fluxo
 - **Só espólio entra no acompanhamento.** Condomínios verificados sem espólio não são registrados no módulo; a planilha de controle serve apenas como carga inicial da fila.
 - **Implantação**: um condomínio por vez, regras 1 a 5, base Preventivo.
-- **Avulso**: condomínio já com tempo de casa cujo espólio foi sinalizado pelos analistas de Cobrança. Mesmas regras 1 a 5 e base Preventivo, com "sem relatório anterior" marcado por padrão. Entra na fila como qualquer rodada.
+- **Avulso**: condomínio fora do quadro de implantação cujo espólio foi sinalizado. Mesmas regras 1 a 5 e base Preventivo, com "sem relatório anterior" marcado por padrão (a confirmar com a coordenação). Entra na fila como qualquer rodada.
 - **Sem aba Nova análise**: toda análise nasce de uma solicitação ("Iniciar análise"). O que chega por e-mail ou telefone a gestão lança com "Registrar solicitação", em nome de quem pediu. O editor das quatro etapas abre como tela temporária e volta para a aba de origem.
 - **Reanálise só dentro da Fila de acompanhamento**: em lote (vários PDFs) ou pelo botão "Nova reanálise" no histórico do condomínio. O tipo da rodada é fixo, definido pelo ponto de entrada.
 - **Fila de acompanhamento**: prazo de **90 dias** a partir da data da análise, por condomínio; vencidos em vermelho no dashboard.
@@ -28,16 +28,18 @@ Registro do que foi decidido com a Coordenação de Cobrança (out/2026) para a 
 - **Rodada concluída trava**; correção gera nova rodada.
 - **Carga inicial** a partir da planilha "Controle de Verificação de Espólios": só os 35 condomínios com espólio (jan–jul/2026) entram na fila; unidades em "VÁRIAS" ficam marcadas para completar.
 - **Resumo mensal** gerado no dashboard.
-- **Sem aba de histórico**: o histórico de cada condomínio (rodadas, fichas e evolução das unidades) abre pelo nome na Fila de acompanhamento; os que saíram do acompanhamento ficam numa seção recolhida no fim da fila. Abas da gestão: Dashboard, Solicitações, Fila de acompanhamento, Configurações. Solicitante: Solicitar análise e Minhas solicitações.
-- **Dashboard** com quatro cartões, nesta ordem: espólios sinalizados (acumulado), análises do mês, pendentes (unidades com reanálise vencida), excluídas (acumulado).
+- **Sem aba de histórico**: o histórico de cada condomínio (rodadas, fichas e evolução das unidades) abre pelo nome na Fila de acompanhamento; os que saíram do acompanhamento ficam numa seção recolhida no fim da fila. Abas: ver "Abas por papel" abaixo.
+- **Dashboard** com cinco cartões, nesta ordem: espólios sinalizados (acumulado), análises do mês, pendentes (solicitações não vistas), excluídas (acumulado), implantação atrasada.
 
 ## Solicitações de análise (out/2026)
-- **Acessos, no modelo do Comissões de Novos Condomínios**: o portal libera a entrada; cada pessoa aparece na aba Acessos ao abrir o módulo (último acesso registrado) e a gestão marca os papéis Gestão ou Solicitante, mais o nome dela na carteira. Sem papel, a pessoa vê "Acesso registrado". Enquanto ninguém tiver Gestão marcada, Beatriz Teixeira (coordenação de Cobrança) e Mariana Nascimento (coordenação de Crédito) valem como gestão; a primeira a configurar fica fixada.
-- **A solicitação substitui o e-mail de sinalização**: condomínio, unidades (bloco-unidade, titular, CPF) e observações. O tipo (implantação ou avulso) vem da carteira: contrato iniciado há até 120 dias é implantação; a gestão pode corrigir ao iniciar a análise. Só texto, sem anexos. Sem prazo de atendimento; mostra há quantos dias espera.
-- **Verificação da implantação**: a carteira do portal (início de contrato) gera a lista de condomínios implantados a verificar; acumula até alguém marcar "sem espólio" ou enviar a solicitação. "Assumir" evita duas pessoas no mesmo condomínio. Idade em dias serve de SLA.
+- **Acessos com a mesma funcionalidade do Comissões de Novos Condomínios**: o portal libera a entrada; cada pessoa aparece na aba Acessos ao abrir o módulo (último acesso registrado) e a gestão marca os papéis **Gestão**, **Implantação** e **Solicitante avulso**, mais o nome dela na carteira (liberado para todos). Enquanto ninguém tiver Gestão marcada, todos que abrem o módulo veem todas as abas, com aviso. Sem papel, a pessoa vê "Você ainda não tem um papel neste módulo". Tirar a própria gestão pede confirmação. Fora do portal todas as abas ficam liberadas.
+- **Abas por papel**: Gestão vê Dashboard, Solicitações, Fila de acompanhamento, Acessos e Configurações. Implantação e Solicitante avulso veem Solicitar análise e Minhas solicitações. Quem tem mais de um papel vê a soma.
+- **A solicitação substitui o e-mail de sinalização**: condomínio, unidades (bloco-unidade, titular, CPF) e observações. Só texto, sem anexos. Sem prazo de atendimento; mostra há quantos dias espera.
+- **Tipo pelo papel de quem pede**: Implantação pedindo um condomínio do quadro de implantação = implantação; Implantação pedindo um condomínio fora do quadro = avulso; Solicitante avulso = sempre avulso. Na solicitação registrada pela gestão, a gestão escolhe o tipo. A gestão pode corrigir o tipo ao iniciar a análise.
+- **Quadro de condomínios em implantação** (só o papel Implantação vê, em Solicitar análise): condomínios da carteira com vigência (início do contrato) no mês atual, mais os de meses anteriores ainda não verificados, acumulando como atrasados **a partir de agosto/2026**. Sai do quadro com "Sem espólio", com a solicitação enviada ou com rodada. "Assumir" evita duas pessoas no mesmo condomínio. Idade em dias serve de SLA. A aba Solicitações da gestão não mostra o quadro.
 - **Ciclo**: nova → vista (gestão abriu) → em análise (rodada criada já preenchida) → concluída (protocolo e resultado por unidade; o solicitante baixa a ficha para ciência) ou devolvida (com motivo).
 - **Ticket por solicitação**: ao concluir, "Abrir ticket" para quem guarda a ficha na pasta do CPD: a assistente de crédito definida no condomínio; se não houver, a assistente de implantação que solicitou; se nenhuma, a gestão escolhe. Depende de rota do portal (configurável, padrão `/api/tickets`); sem rota, o texto fica pronto para copiar.
-- **Dashboard**: "Pendentes" passa a ser solicitações ainda não vistas.
+- **Dashboard**: "Pendentes" passa a ser solicitações ainda não vistas. Quinto cartão, **Implantação atrasada**: número de condomínios do quadro de meses anteriores sem verificação, com os do mês aguardando.
 - **Avisos no sino**: gatilho no banco do portal escrito em `docs/sql/notificacoes-trigger.sql`, **não aplicado** até aval.
 
 ## Saída do acompanhamento

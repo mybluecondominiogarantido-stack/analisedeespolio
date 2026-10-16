@@ -8,27 +8,38 @@ function mostrarAba(nome){
   $$('.painel').forEach(p => p.classList.toggle('ativa', p.id === 'p-' + nome));
   window.scrollTo({ top: 0 });
   if(nome === 'lote') renderLote();
-  if(nome === 'sol' || nome === 'minhas') renderSolicitacoes();
+  if(['sol','pedir','minhas'].includes(nome)) renderSolicitacoes();
   if(nome === 'acessos') renderAcessos();
   if(nome === 'conf') renderConf();
 }
 $('#tabs').addEventListener('click', e => { const b = e.target.closest('.tab'); if(b) mostrarAba(b.dataset.tab); });
 
+/* abas por papel, como no Comissões de Novos Condomínios: sem papel nenhum, só o aviso para pedir acesso */
 function aplicarPerfil(){
-  const gestao = ehGestao(), sem = PERFIL === 'sem';
-  $$('.tab').forEach(t => { t.hidden = sem ? true : gestao ? t.dataset.tab === 'minhas' : !['sol','minhas'].includes(t.dataset.tab); });
-  if(!gestao && S.rodada) S.rodada = null;
-  $('#tabSolRotulo').textContent = gestao ? 'Solicitações' : 'Solicitar análise';
-  if(sem){ $$('.painel').forEach(p => p.classList.toggle('ativa', p.id === 'p-sem')); S.aba = 'sem'; return; }
-  if(S.aba === 'sem') mostrarAba(gestao ? 'dash' : 'sol');
-  else if(!gestao && !['sol','minhas'].includes(S.aba)) mostrarAba('sol');
+  const abas = abasPermitidas();
+  $$('.tab').forEach(t => { t.hidden = !abas.includes(t.dataset.tab); });
+  $('#tabs').hidden = !abas.length;
+  atualizarChipPerfil();
+  renderBanners();
+  if(!abas.length){
+    S.rodada = null;
+    $('#p-sem').innerHTML = `<div class="card"><div class="corpo"><div class="vazio">Olá, ${esc(ME.name || 'usuário')}. Você ainda não tem um papel neste módulo.<br>Peça à gestão para liberar seu acesso na aba <b>Acessos</b> (gestão, implantação ou solicitante avulso).</div></div></div>`;
+    $$('.painel').forEach(p => p.classList.toggle('ativa', p.id === 'p-sem')); S.aba = 'sem'; return;
+  }
+  if(!papeis().gestao && S.rodada) S.rodada = null;
+  if(S.aba === 'nova' && S.rodada) return;
+  if(!abas.includes(S.aba)) mostrarAba(abas[0]);
+}
+function renderBanners(){
+  const p = papeis();
+  $('#banners').innerHTML = p.semGestor ? '<div class="nota"><b>Nenhum gestor definido ainda.</b> Enquanto isso, todos que abrem o módulo veem todas as abas. Defina os papéis na aba <b>Acessos</b>.</div>' : '';
 }
 function renderTudo(){
   aplicarPerfil();
-  if(PERFIL === 'sem') return;
+  const abas = abasPermitidas();
+  if(!abas.length) return;
   renderSolicitacoes();
-  if(!ehGestao()) return;
-  renderAcessosBadge();
+  if(!papeis().gestao) return;
   if(S.aba === 'acessos') renderAcessos();
   renderDashboard();
   renderBadges();
@@ -39,8 +50,8 @@ function renderTudo(){
 function renderBadges(){
   const f = fila(); const venc = f.filter(i => i.vencida).length;
   const nf = $('#nFila'); nf.hidden = !f.length; nf.textContent = venc ? `${venc} vencida${venc>1?'s':''}` : `${f.length}`; nf.classList.toggle('alerta', venc > 0);
-  const novas = solicitacoesNovas().length; const pend = ehGestao() ? pendentesVerificacao().length : 0;
-  const ns = $('#nSol'); ns.hidden = !(novas || pend); ns.textContent = novas ? `${novas} nova${novas>1?'s':''}` : `${pend} a verificar`; ns.classList.toggle('alerta', novas > 0);
+  const novas = solicitacoesNovas().length;
+  const ns = $('#nSol'); ns.hidden = !novas; ns.textContent = `${novas} nova${novas>1?'s':''}`; ns.classList.add('alerta');
 }
 function renderListaCondominios(){
   const nomes = new Set();

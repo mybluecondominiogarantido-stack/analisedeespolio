@@ -19,7 +19,10 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   const erros = [];
   p.on('pageerror', e => erros.push(e.message));
   p.on('console', m => { if(m.type() === 'error') erros.push(m.text()); });
-  p.on('dialog', d => d.accept());
+  const dialogos = [];
+  p.on('dialog', d => { dialogos.push(d.message()); d.accept(); });
+  const papeisLocal = async v => { await p.evaluate(v => { if(v === null) localStorage.removeItem('myblue_espolio_papeis'); else localStorage.setItem('myblue_espolio_papeis', v); }, v); await p.reload(); await p.waitForFunction(() => Object.values(S.pronto).every(Boolean), { timeout: 20000 }); await p.waitForTimeout(400); };
+  const abasVisiveis = () => p.$$eval('.tab', t => t.filter(x => !x.hidden).map(x => x.dataset.tab).join(','));
   const shot = async nome => { if(shots) await p.screenshot({ path: path.join(shots, nome + '.png'), fullPage: true }); };
   const arq = nome => fs.readdirSync(pdfs).find(f => f.toLowerCase().includes(nome));
 
@@ -27,6 +30,12 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   await p.waitForFunction(() => document.querySelector('#sync').classList.contains('local'), { timeout: 20000 });
   await p.waitForTimeout(500);
   ok(await p.$eval('#sync', e => e.textContent.includes('Modo local')), 'abre em modo local sem portal');
+  await p.waitForFunction(() => Object.values(S.pronto).every(Boolean), { timeout: 20000 });
+  ok((await abasVisiveis()) === 'dash,sol,pedir,minhas,lote,acessos,conf', 'fora do portal todas as abas ficam liberadas');
+  await p.click('[data-tab="acessos"]'); await p.waitForTimeout(200);
+  ok(/Fora do portal não há usuários: todas as abas ficam liberadas neste navegador/.test(await p.$eval('#p-acessos', e => e.textContent)), 'Acessos fora do portal mostra o aviso do Comissões');
+  await papeisLocal('gestao');
+  ok((await abasVisiveis()) === 'dash,sol,lote,acessos,conf', 'gestão vê Dashboard, Solicitações, Fila, Acessos e Configurações');
 
   /* 1 · carga inicial da planilha de controle */
   await p.click('[data-tab="conf"]');
@@ -42,12 +51,16 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   await p.click('[data-tab="sol"]'); await p.waitForTimeout(300);
   await p.click('#btnRegistrarSol'); await p.waitForTimeout(300);
   await p.fill('#rsNome', 'Assistente de Implantação Teste');
-  await p.fill('#solCond', 'CONDOMINIO ESMERALDA IV'); await p.fill('#solCnpj', '54.641.400/0001-05');
-  await p.fill('#solUnidades [data-su="unid"]', 'A - 207'); await p.fill('#solUnidades [data-su="titular"]', 'LILIANE LOPES PIRES'); await p.fill('#solUnidades [data-su="cpf"]', '000.603.573-63');
-  await p.click('#solAddUnid'); await p.fill('#solUnidades tr:nth-child(2) [data-su="unid"]', 'A - 407'); await p.fill('#solUnidades tr:nth-child(2) [data-su="titular"]', 'LUANA DE HOLANDA ROLIM VERAS');
-  await p.click('#solAddUnid'); await p.fill('#solUnidades tr:nth-child(3) [data-su="unid"]', 'B - 305'); await p.fill('#solUnidades tr:nth-child(3) [data-su="titular"]', 'FULANO DE TAL QUE NAO EXISTE'); await p.fill('#solUnidades tr:nth-child(3) [data-su="cpf"]', '111.222.333-44');
-  await p.click('#solEnviar'); await p.waitForFunction(() => S.solicitacoes.length === 1, { timeout: 10000 }); await p.waitForTimeout(400);
-  ok((await p.evaluate(() => S.solicitacoes[0].solicitanteNome)) === 'Assistente de Implantação Teste', 'gestão registra solicitação em nome de quem pediu');
+  await p.fill('#modal #solCond', 'CONDOMINIO ESMERALDA IV'); await p.fill('#modal #solCnpj', '54.641.400/0001-05');
+  await p.fill('#modal #solUnidades [data-su="unid"]', 'A - 207'); await p.fill('#modal #solUnidades [data-su="titular"]', 'LILIANE LOPES PIRES'); await p.fill('#modal #solUnidades [data-su="cpf"]', '000.603.573-63');
+  await p.click('#modal #solAddUnid'); await p.fill('#modal #solUnidades tr:nth-child(2) [data-su="unid"]', 'A - 407'); await p.fill('#modal #solUnidades tr:nth-child(2) [data-su="titular"]', 'LUANA DE HOLANDA ROLIM VERAS');
+  await p.click('#modal #solAddUnid'); await p.fill('#modal #solUnidades tr:nth-child(3) [data-su="unid"]', 'B - 305'); await p.fill('#modal #solUnidades tr:nth-child(3) [data-su="titular"]', 'FULANO DE TAL QUE NAO EXISTE'); await p.fill('#modal #solUnidades tr:nth-child(3) [data-su="cpf"]', '111.222.333-44');
+  await p.click('#modal #solEnviar'); await p.waitForTimeout(200);
+  ok(/Escolha o tipo/.test(await p.$eval('#modal #solStatus', e => e.textContent)) && (await p.evaluate(() => S.solicitacoes.length)) === 0, 'registro pela gestão exige escolher o tipo');
+  await p.selectOption('#rsTipo', 'implantacao');
+  await p.click('#modal #solEnviar'); await p.waitForFunction(() => S.solicitacoes.length === 1, { timeout: 10000 }); await p.waitForTimeout(400);
+  const reg = await p.evaluate(() => S.solicitacoes[0]);
+  ok(reg.solicitanteNome === 'Assistente de Implantação Teste' && reg.tipo === 'implantacao' && reg.origem === 'gestao' && reg.registradaPor === 'Coordenação de Cobrança', 'gestão registra solicitação em nome de quem pediu, com o tipo escolhido');
   await p.click('#p-sol [data-sol]'); await p.waitForTimeout(300); await p.click('#mSolIniciar');
   await p.waitForFunction(() => S.rodada && S.rodada.solicitacaoId, { timeout: 10000 }); await p.waitForTimeout(300);
   ok((await p.$$eval('.tab', t => t.filter(x => !x.hidden).length)) === 5 && (await p.$eval('#p-nova', e => e.classList.contains('ativa'))), 'editor abre como tela temporária, sem aba própria');
@@ -127,32 +140,56 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   await p.click('[data-tab="dash"]'); await p.click('#btnResumo'); await p.waitForTimeout(300);
   ok(/AE-2026-0001/.test(await p.$eval('#resumoMensal', e => e.textContent)), 'resumo mensal lista a rodada do mês');
   const tiles = await p.$eval('#dashTiles', e => e.textContent);
-  ok(/Espólios sinalizados/.test(tiles) && /Pendentes/.test(tiles) && /Excluídas/.test(tiles) && /Análises do mês/.test(tiles) && (await p.$$eval('#dashTiles .tile', t => t.length)) === 4, 'dashboard mostra os quatro cartões: total, pendentes (vencidas), excluídas, análises do mês');
+  ok(/Espólios sinalizados/.test(tiles) && /Pendentes/.test(tiles) && /Excluídas/.test(tiles) && /Análises do mês/.test(tiles) && /Implantação atrasada/.test(tiles) && (await p.$$eval('#dashTiles .tile', t => t.length)) === 5, 'dashboard mostra os cinco cartões, com a implantação atrasada');
   await shot('dashboard');
 
-  /* 6 · solicitações: carteira, perfil solicitante, pendentes de verificação, envio, gestão inicia e conclui, ficha para o solicitante */
+  /* 6 · solicitações: carteira, papéis, quadro de implantação, envio, gestão inicia e conclui, ficha para o solicitante */
+  const mesAtual = new Date().toISOString().slice(0,7);
+  const cart = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures', 'carteira-exemplo.json'), 'utf8'));
+  cart.condominios.find(c => c.codigo === 'C2').inicio_contrato = mesAtual + '-01';          // vigência no mês
+  cart.condominios.push({ codigo: 'C5', nome: 'CONDOMINIO ATRASADO EXEMPLO', razao_social: 'CONDOMINIO ATRASADO EXEMPLO', cnpj: '33.333.333/0001-33', comarca: 'CE', situacao: 'ATIVO', inicio_contrato: '2026-08-01' });   // atrasado desde ago/26
+  const cartTmp = path.join(__dirname, '.carteira.tmp.json'); fs.writeFileSync(cartTmp, JSON.stringify(cart));
   await p.click('[data-tab="conf"]'); await p.waitForTimeout(200);
-  await p.setInputFiles('#confCarteiraArquivo', path.join(__dirname, 'fixtures', 'carteira-exemplo.json'));
-  await p.waitForFunction(() => S.carteira.itens && S.carteira.itens.length === 4, { timeout: 10000 }); await p.waitForTimeout(300);
-  const pend = await p.evaluate(() => pendentesVerificacao().map(c => c.nome));
-  ok(pend.length === 2 && pend.includes('CONDOMINIO JARDIM DE NAZARE') && !pend.includes('CONDOMINIO ESMERALDA IV'), `pendentes de verificação excluem quem já tem rodada e os distratados (${pend.join(', ')})`);
-  await p.click('#chipTrocar'); await p.waitForTimeout(300);
-  ok((await p.$$eval('.tab', t => t.filter(x => !x.hidden).length)) === 2, 'solicitante vê só as abas Solicitar análise e Minhas solicitações');
+  await p.setInputFiles('#confCarteiraArquivo', cartTmp);
+  await p.waitForFunction(() => S.carteira.itens && S.carteira.itens.length === 5, { timeout: 10000 }); fs.unlinkSync(cartTmp); await p.waitForTimeout(300);
+  const pend = await p.evaluate(() => pendentesVerificacao().map(c => c.nome + (c.atrasado ? ' (atrasado)' : '')));
+  ok(pend.length === 2 && pend.includes('CONDOMINIO JARDIM DE NAZARE') && pend.includes('CONDOMINIO ATRASADO EXEMPLO (atrasado)'), `quadro: vigência no mês e atrasados desde ago/26, sem os anteriores, com rodada ou distratados (${pend.join(', ')})`);
+  ok(/Implantação atrasada\s*1/.test((await p.$eval('#dashTiles', e => e.textContent)).replace(/\s+/g, ' ')), 'dashboard mostra 1 implantação atrasada');
+  await p.click('[data-tab="sol"]'); await p.waitForTimeout(200);
+  ok(!/Condomínios em implantação/.test(await p.$eval('#p-sol', e => e.textContent)) && !/verificar/.test(await p.$eval('#nSol', e => e.textContent)), 'Solicitações da gestão não mostram o quadro de implantação');
+  // papel Implantação
+  await papeisLocal('implantacao');
+  ok((await abasVisiveis()) === 'pedir,minhas', 'Implantação vê só Solicitar análise e Minhas solicitações');
+  ok(/Condomínios em implantação/.test(await p.$eval('#p-pedir', e => e.textContent)) && /Atrasados/.test(await p.$eval('#p-pedir', e => e.textContent)), 'Implantação vê o quadro com os do mês e os atrasados');
+  const tipos = await p.evaluate(() => [tipoPeloPapel('CONDOMINIO JARDIM DE NAZARE').tipo, tipoPeloPapel('CONDOMINIO ANTIGO EXEMPLO').tipo]);
+  ok(tipos[0] === 'implantacao' && tipos[1] === 'avulso', `Implantação: condomínio do quadro = implantação, fora do quadro = avulso (${tipos})`);
   const chaveNaz = await p.evaluate(() => S.carteira.itens.find(c => c.nome === 'CONDOMINIO JARDIM DE NAZARE').chave);
   await p.click(`[data-assumir="${chaveNaz}"]`); await p.waitForTimeout(400);
-  ok(/Coordenação de Cobrança/.test(await p.$eval('#p-sol', e => e.textContent)), 'Assumir registra quem assumiu');
+  ok(/Coordenação de Cobrança/.test(await p.$eval('#p-pedir', e => e.textContent)), 'Assumir registra quem assumiu');
   await p.click(`[data-solicitar="${chaveNaz}"]`); await p.waitForTimeout(300);
-  ok((await p.inputValue('#solCond')) === 'CONDOMINIO JARDIM DE NAZARE' && (await p.inputValue('#solCnpj')) === '00.116.267/0001-49', 'formulário vem preenchido com condomínio e CNPJ');
-  await p.fill('#solUnidades [data-su="unid"]', 'A - 101'); await p.fill('#solUnidades [data-su="titular"]', 'TITULAR DE TESTE'); await p.fill('#solObs', 'teste automatizado');
-  await p.click('#solEnviar'); await p.waitForFunction(() => S.solicitacoes.length === 2, { timeout: 10000 }); await p.waitForTimeout(300);
+  ok((await p.inputValue('#p-pedir #solCond')) === 'CONDOMINIO JARDIM DE NAZARE' && (await p.inputValue('#p-pedir #solCnpj')) === '00.116.267/0001-49', 'formulário vem preenchido com condomínio e CNPJ');
+  ok(/implantação/.test(await p.$eval('#p-pedir #solTipoInfo', e => e.textContent)), 'formulário avisa que é solicitação de implantação');
+  await p.fill('#p-pedir #solUnidades [data-su="unid"]', 'A - 101'); await p.fill('#p-pedir #solUnidades [data-su="titular"]', 'TITULAR DE TESTE'); await p.fill('#p-pedir #solObs', 'teste automatizado');
+  await p.click('#p-pedir #solEnviar'); await p.waitForFunction(() => S.solicitacoes.length === 2, { timeout: 10000 }); await p.waitForTimeout(300);
+  const solNaz = await p.evaluate(() => S.solicitacoes.find(x => x.condominio.nome === 'CONDOMINIO JARDIM DE NAZARE'));
+  ok(solNaz.tipo === 'implantacao' && solNaz.origem === 'implantacao', 'solicitação da Implantação para condomínio do quadro sai como implantação');
   await p.click('[data-tab="minhas"]'); await p.waitForTimeout(200);
   ok((await p.$$eval('#p-minhas [data-sol]', t => t.length)) === 1, 'Minhas solicitações lista só a solicitação de quem está logado');
-  await p.click('[data-tab="sol"]'); await p.waitForTimeout(200);
-  ok((await p.evaluate(() => pendentesVerificacao().length)) === 1, 'condomínio solicitado sai dos pendentes de verificação');
-  await shot('solicitante');
+  ok((await p.evaluate(() => pendentesVerificacao().length)) === 1, 'condomínio solicitado sai do quadro');
+  await p.click('[data-tab="pedir"]'); await p.waitForTimeout(200);
+  await shot('solicitante-implantacao');
+  // papel Solicitante avulso
+  await papeisLocal('avulso');
+  ok((await abasVisiveis()) === 'pedir,minhas', 'Solicitante avulso vê só Solicitar análise e Minhas solicitações');
+  ok(!/Condomínios em implantação/.test(await p.$eval('#p-pedir', e => e.textContent)), 'Solicitante avulso não vê o quadro de implantação');
+  await p.fill('#p-pedir #solCond', 'CONDOMINIO ATRASADO EXEMPLO'); await p.waitForTimeout(100);
+  ok(/avulsa/.test(await p.$eval('#p-pedir #solTipoInfo', e => e.textContent)) && (await p.evaluate(() => tipoPeloPapel('CONDOMINIO ATRASADO EXEMPLO').tipo)) === 'avulso', 'Solicitante avulso sempre envia avulsa');
+  await shot('solicitante-avulso');
+  // papel sem nenhum
+  await papeisLocal('');
+  ok((await abasVisiveis()) === '' && /Você ainda não tem um papel neste módulo/.test(await p.$eval('#p-sem', e => e.textContent)), 'sem papel: nenhuma aba e o aviso para pedir acesso à gestão');
   // gestão
-  await p.evaluate(() => { localStorage.setItem('myblue_espolio_perfil', 'gestao'); }); await p.reload();
-  await p.waitForFunction(() => S.pronto.s && S.solicitacoes.length === 2 && S.pronto.r, { timeout: 20000 }); await p.waitForTimeout(400);
+  await papeisLocal('gestao');
   ok(/1 nova/.test(await p.$eval('#nSol', e => e.textContent)), 'gestão vê o contador de solicitação nova');
   ok(/Pendentes\s*1/.test((await p.$eval('#dashTiles', e => e.textContent)).replace(/\s+/g, ' ')), 'cartão Pendentes mostra 1 solicitação não vista');
   await p.click('[data-tab="sol"]'); await p.waitForTimeout(300);
@@ -173,36 +210,49 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   ok(/Coordenação de Cobrança/.test(await p.inputValue('#tkResp')) && /A - 101/.test(await p.inputValue('#tkTexto')), 'ticket vai para a assistente de implantação que solicitou quando a carteira não tem assistente de crédito');
   await p.click('#modal [data-fechar]'); await p.click('#btnFecharEditor'); await p.waitForTimeout(300);
   // solicitante vê o resultado e baixa a ficha
-  await p.evaluate(() => { localStorage.setItem('myblue_espolio_perfil', 'solicitante'); }); await p.reload();
-  await p.waitForFunction(() => S.pronto.s && S.solicitacoes.length === 2, { timeout: 20000 }); await p.waitForTimeout(400);
+  await papeisLocal('implantacao');
   await p.click('[data-tab="minhas"]'); await p.waitForTimeout(200);
   await p.click('#p-minhas [data-sol]'); await p.waitForTimeout(300);
   const [dl3] = await Promise.all([p.waitForEvent('download', { timeout: 60000 }), p.click('#mSolFicha')]);
   ok(/CONDOMINIO JARDIM DE NAZARE\.pdf$/.test(dl3.suggestedFilename()), `solicitante baixa a ficha da análise concluída (${dl3.suggestedFilename()})`);
   await shot('solicitacao-concluida');
   await p.click('#modal [data-fechar]');
-  await p.evaluate(() => { localStorage.setItem('myblue_espolio_perfil', 'gestao'); });
+  await papeisLocal('gestao');
 
-  /* 7 · acessos: modelo por pessoa (vistos + perfis), papéis definidos pela gestão */
+  /* 7 · acessos: mesma funcionalidade do Comissões de Novos Condomínios (simula o portal: DB._local = false) */
   await p.evaluate(async () => {
     await DB.doc('vistos/21').set({ id:'21', nome:'Camila Alencar', em: nowISO() });
     await DB.doc('vistos/6').set({ id:'6', nome:'Mariana Nascimento', em: nowISO() });
+    DB._local = false; ME = { name: 'Beatriz Teixeira', id: '4' }; renderTudo();
   });
-  await p.click('[data-tab="acessos"]'); await p.waitForTimeout(400);
+  await p.waitForTimeout(300);
+  ok((await abasVisiveis()) === 'dash,sol,pedir,minhas,lote,acessos,conf' && /Nenhum gestor definido ainda/.test(await p.$eval('#banners', e => e.textContent)), 'sem gestor definido: todas as abas liberadas, com o aviso');
+  await p.click('[data-tab="acessos"]'); await p.waitForTimeout(300);
   ok((await p.$$eval('#p-acessos tbody tr', t => t.length)) === 3, 'Acessos lista quem abriu o módulo (3 pessoas)');
-  ok(/1 sem papel|2 sem papel/.test(await p.$eval('#nAcessos', e => e.textContent)), 'aba Acessos mostra quem está sem papel');
-  await p.check('#p-acessos [data-u="21"][data-pp="solicitante"]'); await p.waitForTimeout(400);
+  ok((await p.$$eval('#p-acessos tbody tr:first-child [data-pp]', t => t.map(x => x.dataset.pp).join(','))) === 'gestao,implantacao,avulso', 'papéis: Gestão, Implantação e Solicitante avulso');
+  ok((await p.$$eval('#p-acessos select[data-nc]', t => t.every(x => !x.disabled))), 'nome na carteira liberado para todos');
+  await p.check('#p-acessos [data-u="4"][data-pp="gestao"]'); await p.waitForTimeout(400);
+  ok((await abasVisiveis()) === 'dash,sol,lote,acessos,conf' && !(await p.$eval('#banners', e => e.textContent)), 'com gestor marcado, cada um vê só as abas do seu papel');
   await p.check('#p-acessos [data-u="6"][data-pp="gestao"]'); await p.waitForTimeout(400);
-  const perfis = await p.evaluate(() => S.perfis);
-  ok(perfis['21'] && perfis['21'].papeis.includes('solicitante') && perfis['6'].papeis.includes('gestao'), 'marcar papel grava o perfil da pessoa');
+  await p.check('#p-acessos [data-u="21"][data-pp="implantacao"]'); await p.waitForTimeout(400);
+  await p.check('#p-acessos [data-u="21"][data-pp="avulso"]'); await p.waitForTimeout(400);
   await p.selectOption('#p-acessos select[data-nc="21"]', { index: 1 }); await p.waitForTimeout(300);
-  ok(!!(await p.evaluate(() => S.perfis['21'].nomeCarteira)), 'nome na carteira fica ligado ao login');
-  const calc = await p.evaluate(() => { const real = DB._local; DB._local = false; const r = {};
-    for(const [n,id] of [['Camila Alencar','21'],['Mariana Nascimento','6'],['Beatriz Teixeira','4'],['Pessoa Nova','99']]){ ME = { name:n, id }; r[n] = calcularPerfil(); }
-    DB._local = real; ME = { name:'Coordenação de Cobrança', id:'local' }; return r; });
-  ok(calc['Camila Alencar'] === 'solicitante' && calc['Mariana Nascimento'] === 'gestao' && calc['Pessoa Nova'] === 'sem', `perfis calculados pelos papéis (${JSON.stringify(calc)})`);
-  ok(calc['Beatriz Teixeira'] === 'sem', 'com alguém marcado na gestão, os nomes padrão deixam de valer sozinhos');
+  const perfis = await p.evaluate(() => S.perfis);
+  ok(perfis['21'].papeis.includes('implantacao') && perfis['21'].papeis.includes('avulso') && perfis['6'].papeis.includes('gestao') && perfis['4'].papeis.includes('gestao') && !!perfis['21'].nomeCarteira, 'marcar papel e nome na carteira grava o perfil da pessoa');
+  ok(/Acesso atualizado/.test(await p.$eval('#toast', e => e.textContent)), 'toast "Acesso atualizado."');
+  await shot('acessos-gestao');
+  await p.click('#p-acessos [data-u="4"][data-pp="gestao"]'); await p.waitForTimeout(400);
+  ok(dialogos.some(m => /Você vai tirar seu próprio papel de gestão\. Continuar\?/.test(m)) && !(await p.evaluate(() => S.perfis['4'].papeis.includes('gestao'))), 'tirar a própria gestão pede confirmação e grava');
+  const calc = await p.evaluate(() => { const r = {};
+    for(const [n,id] of [['Camila Alencar','21'],['Mariana Nascimento','6'],['Beatriz Teixeira','4'],['Pessoa Nova','99']]){ ME = { name:n, id }; r[n] = abasPermitidas().join(','); }
+    return r; });
+  ok(calc['Camila Alencar'] === 'pedir,minhas' && calc['Mariana Nascimento'] === 'dash,sol,lote,acessos,conf' && calc['Beatriz Teixeira'] === '' && calc['Pessoa Nova'] === '', `abas pelos papéis (${JSON.stringify(calc)})`);
+  await p.evaluate(() => { ME = { name: 'Pessoa Nova', id: '99' }; renderTudo(); }); await p.waitForTimeout(200);
+  ok(/Olá, Pessoa Nova\. Você ainda não tem um papel neste módulo/.test(await p.$eval('#p-sem', e => e.textContent)), 'quem não tem papel vê o aviso do Comissões');
+  await shot('sem-papel');
+  await p.evaluate(() => { ME = { name: 'Mariana Nascimento', id: '6' }; renderTudo(); mostrarAba('acessos'); }); await p.waitForTimeout(200);
   await shot('acessos');
+  await p.evaluate(() => { DB._local = true; ME = { name:'Coordenação de Cobrança', id:'local' }; });
 
   /* 8 · persistência local: recarrega e confere */
   await p.reload(); await p.waitForFunction(() => S.pronto.r && S.rodadas.length > 0, { timeout: 20000 }); await p.waitForTimeout(300);
