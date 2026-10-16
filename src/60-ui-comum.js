@@ -171,11 +171,11 @@ function fichaHTML(r){
   <table class="f-id">
     <tr><th>Razão social</th><td>${esc(r.condominio.nome||'—')}</td><th>CNPJ</th><td>${esc(r.condominio.cnpj||'—')}</td></tr>
     <tr><th>Tipo de análise</th><td>${tipoTxt}</td><th>Analista</th><td>${esc(r.analista||'—')}</td></tr>
-    <tr><th>Idade da garantia</th><td>${inicioTxt}</td><th>Data da análise</th><td>${fmtData(r.dataAnalise)}</td></tr>
+    <tr><th>Início do contrato</th><td>${(carteiraDe(r.condominio) || {}).inicio ? fmtData(carteiraDe(r.condominio).inicio) : '—'}</td><th>Data da análise</th><td>${fmtData(r.dataAnalise)}</td></tr>
   </table>
   <div class="f-destaques">
     <div class="f-classif"><small>Resultado</small><div>${esc(classif)}</div></div>
-    <div class="f-resumo"><div><small>Idade da garantia</small><strong>${inicioTxt}</strong></div><div><small>Resultado do BI</small><strong>${bi === null ? 'não informado' : fmtBRL(bi)}</strong></div>${r.proximaReanalise?`<div><small>Próxima reanálise</small><strong>${fmtData(r.proximaReanalise)}</strong></div>`:''}</div>
+    <div class="f-resumo"><div><small>Idade da garantia</small><strong>${inicioTxt}</strong></div><div><small>Resultado do BI</small><strong>${bi === null ? 'não informado' : fmtBRL(bi)}</strong></div>${r.proximaReanalise && seguemEmAcompanhamento(r) ? `<div><small>Próxima reanálise</small><strong>${fmtData(r.proximaReanalise)}</strong></div>` : ''}</div>
   </div>
   ${r.nota ? `<div class="f-nota">${esc(r.nota)}</div>` : ''}
   <div class="f-secao">Unidades sinalizadas × relatórios de inadimplência</div>

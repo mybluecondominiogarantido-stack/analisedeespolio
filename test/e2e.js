@@ -165,6 +165,16 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   await p.waitForFunction(() => S.carteira.itens && S.carteira.itens.length === 5, { timeout: 10000 }); fs.unlinkSync(cartTmp); await p.waitForTimeout(300);
   const pend = await p.evaluate(() => pendentesVerificacao().map(c => c.nome + (c.atrasado ? ' (atrasado)' : '')));
   ok(pend.length === 2 && pend.includes('CONDOMINIO JARDIM DE NAZARE') && pend.includes('CONDOMINIO ATRASADO EXEMPLO (atrasado)'), `quadro: vigência no mês e atrasados desde ago/26, sem os anteriores, com rodada ou distratados (${pend.join(', ')})`);
+  const reInfo = await p.evaluate(() => { S.bi = { base: [{ nome: 'CONDOMINIO ESMERALDA IV', meses: 99, sinal: '+', resultado: 1234.5 }] };
+    const ant = S.rodadas.find(x => x.condominio.nome === 'CONDOMINIO ESMERALDA IV' && x.status === 'concluida');
+    const r = rodadaDeAcompanhamento(ant); const esperado = mesesEntre('2026-06-15', r.dataAnalise);
+    const f = fichaHTML(r); S.bi = { base: [] }; return { idade: r.idadeGarantia, esperado, bi: r.bi, regra: classificar(novaUnidade('X','',''), contextoDe(r), 1, null).r, inicio: /Início do contrato<\/th><td>15\/06\/2026/.test(f) };
+  });
+  ok(reInfo.idade === reInfo.esperado && reInfo.bi && reInfo.bi.valor === 1234.5 && reInfo.regra === 'REANÁLISE' && reInfo.inicio, `reanálise: idade pela carteira, BI da base do dia só como informação, início do contrato na ficha (${JSON.stringify(reInfo)})`);
+  const protRetry = await p.evaluate(async () => { const orig = DB.doc; let falhas = 1;
+    DB.doc = path => { const d = orig(path); if(path !== COLECOES.meta + '/estado') return d; return { ...d, get: d.get, set: async v => { if(falhas-- > 0) throw new Error('protocolo_conflito'); return d.set(v); } }; };
+    try{ return await proximoProtocolo('2099'); } finally { DB.doc = orig; } });
+  ok(protRetry === "AE-2099-0001", `contador tenta de novo quando o banco recusa o número (${protRetry})`);
   ok(/Implantação atrasada\s*1/.test((await p.$eval('#dashTiles', e => e.textContent)).replace(/\s+/g, ' ')), 'dashboard mostra 1 implantação atrasada');
   await p.click('[data-tab="sol"]'); await p.waitForTimeout(200);
   ok(!/Condomínios em implantação/.test(await p.$eval('#p-sol', e => e.textContent)) && !/verificar/.test(await p.$eval('#nSol', e => e.textContent)), 'Solicitações da gestão não mostram o quadro de implantação');
@@ -219,6 +229,7 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   ok(solFinal.status === 'concluida' && /^AE-2026-000\d$/.test(solFinal.protocolo) && solFinal.resultado[0].resultado === 'EXCLUIR', `conclusão atualiza a solicitação (${solFinal.status}, ${solFinal.protocolo})`);
   ok(!!(await p.$('#btnTicketEditor')), 'botão Abrir ticket aparece na rodada concluída');
   await p.click('#btnTicketEditor'); await p.waitForTimeout(300);
+  ok(!/Próxima reanálise/.test(await p.inputValue('#tkTexto')), 'ticket sem "Próxima reanálise" quando todas as unidades foram excluídas');
   if(shots){ fs.writeFileSync(path.join(shots, 'ticket-exemplo.txt'), 'Título: ' + await p.inputValue('#tkTitulo') + '\nPara: ' + await p.inputValue('#tkResp') + '\n\n' + await p.inputValue('#tkTexto')); await shot('ticket-modal'); }
   ok(/Coordenação de Cobrança/.test(await p.inputValue('#tkResp')) && /A - 101/.test(await p.inputValue('#tkTexto')), 'ticket vai para a assistente de implantação que solicitou quando a carteira não tem assistente de crédito');
   await p.click('#modal [data-fechar]'); await p.click('#btnFecharEditor'); await p.waitForTimeout(300);

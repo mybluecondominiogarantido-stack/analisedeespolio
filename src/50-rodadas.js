@@ -83,17 +83,22 @@ function responsavelDoCondominio(chave, solicitacao){
 }
 
 /* ---------- protocolo sequencial AE-AAAA-NNNN ---------- */
+/* No portal, o banco recusa gravar um número que não seja maior que o atual (gatilho espolio_protocolo_guarda):
+   se duas pessoas pegarem o mesmo número ao mesmo tempo, a segunda é recusada e tenta de novo com o próximo. */
 async function proximoProtocolo(ano){
   ano = ano || hojeISO().slice(0,4);
   const ref = DB.doc(COLECOES.meta + '/estado');
-  const snap = await ref.get();
-  const meta = snap.exists ? snap.data() : { seq: {} };
-  meta.seq = meta.seq || {};
-  const n = (meta.seq[ano] || 0) + 1;
-  meta.seq[ano] = n;
-  await ref.set(meta);
-  S.meta = meta;
-  return `AE-${ano}-${String(n).padStart(4,'0')}`;
+  let ultimoErro = null;
+  for(let tentativa = 0; tentativa < 6; tentativa++){
+    const snap = await ref.get();
+    const meta = snap.exists ? JSON.parse(JSON.stringify(snap.data() || {})) : { seq: {} };
+    meta.seq = meta.seq || {};
+    const n = (meta.seq[ano] || 0) + 1;
+    meta.seq[ano] = n;
+    try{ await ref.set(meta); S.meta = meta; return `AE-${ano}-${String(n).padStart(4,'0')}`; }
+    catch(e){ ultimoErro = e; await new Promise(res => setTimeout(res, 150 + Math.random() * 350)); }
+  }
+  throw new Error('Não foi possível reservar o número do protocolo. Tente de novo. ' + (ultimoErro && ultimoErro.message ? '(' + ultimoErro.message + ')' : ''));
 }
 
 /* ---------- derivadas ---------- */
@@ -240,10 +245,29 @@ async function concluirRodada(r){
   return r;
 }
 /* nova rodada de acompanhamento a partir da última concluída do condomínio */
+/* há unidade que continua na fila depois desta rodada? (sem nenhuma, não há próxima reanálise) */
+const seguemEmAcompanhamento = r => (r.unidades || []).some(u => u.resultado !== 'EXCLUIR' && u.situacao !== 'encerrada' && u.resultado !== 'ENCERRADA');
+/* condomínio na carteira do portal (chave/CNPJ, senão nome) */
+function carteiraDe(cond){
+  if(!cond) return null;
+  const d = soDigitos(cond.cnpj);
+  return (S.carteira.itens || []).find(c => c.chave === cond.chave || (d.length === 14 && soDigitos(c.cnpj) === d))
+      || (S.carteira.itens || []).find(c => normCond(c.nome) === normCond(cond.nome) || normCond(c.razao) === normCond(cond.nome)) || null;
+}
+const mesesEntre = (de, ate) => { if(!de || !ate) return null; const [a1,m1,d1] = de.split('-').map(Number), [a2,m2,d2] = ate.split('-').map(Number); return Math.max(0, (a2 - a1) * 12 + (m2 - m1) - (d2 < d1 ? 1 : 0)); };
+/* reanálise: só o Vouch decide; idade da garantia (pela carteira) e BI (base do dia) entram na ficha como informação */
+function informacaoReanalise(r){
+  const c = carteiraDe(r.condominio);
+  const m = S.bi.base && S.bi.base.length ? (casarBaseBi(S.bi.base, r.condominio.nome) || (c ? casarBaseBi(S.bi.base, c.nome) : null)) : null;
+  if(c && c.inicio) r.idadeGarantia = mesesEntre(c.inicio, r.dataAnalise);
+  else if(m && m.item.meses !== null && m.item.meses !== undefined) r.idadeGarantia = m.item.meses;
+  if(m){ r.bi = { valor: m.item.resultado, sinal: m.item.sinal }; r.biAuto = 'bi'; r.semBi = false; }
+}
 function rodadaDeAcompanhamento(anterior){
   const r = novaRodada('acompanhamento', { ...anterior.condominio });
-  r.anterior = anterior.id; r.idadeGarantia = anterior.idadeGarantia; r.analista = anterior.analista || '';
+  r.anterior = anterior.id; r.idadeGarantia = null; r.analista = anterior.analista || '';
   r.semAnterior = true; r.semBi = true;
+  informacaoReanalise(r);
   r.unidades = (anterior.unidades || []).filter(u => u.situacao === 'ativa' && u.resultado !== 'EXCLUIR').map(u => {
     const n = novaUnidade(u.unid, u.titular, u.cpf); n.obs = u.obs || ''; if(u.debAnterior) n.debAnterior = u.debAnterior; n.completar = !!u.completar; n.historicoVouch = (u.historicoVouch || []).concat([{ rodada: anterior.protocolo || anterior.id, data: anterior.dataAnalise, vouch: u.vouch }]); return n; });
   return r;

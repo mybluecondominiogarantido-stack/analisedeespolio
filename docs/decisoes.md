@@ -68,3 +68,6 @@ Registro do que foi decidido com a Coordenação de Cobrança (out/2026) para a 
 - **Saída da fila**: em espera.
 - **3 taxas acumuladas** = 3 taxas em aberto no Vouch na data da reanálise (como já funciona).
 - **Parcelas de acordo e coluna "Antecipado" do Vouch**: decisão adiada; segue contando toda linha de taxa.
+- **Reanálise**: idade da garantia calculada pela carteira (início do contrato até a data da reanálise) e BI da base do dia, só como informação na ficha; o resultado continua só pelo Vouch.
+- **Ficha**: a tabela de cima mostra o início do contrato (a idade fica no quadro de destaques); "Próxima reanálise" só aparece, na ficha e no ticket, se alguma unidade continua em acompanhamento.
+- **Protocolo**: contador protegido no banco contra números repetidos (`docs/sql/protocolo-contador.sql`).
