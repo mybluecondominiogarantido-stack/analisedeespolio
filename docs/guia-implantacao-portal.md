@@ -24,36 +24,38 @@ Nada além disso foi alterado no banco. Usuários, tickets, notificações e os 
 
 **Como conferir:** abrindo o módulo pelo portal, o indicador no alto à direita mostra **"Base compartilhada · ao vivo"**. Se mostrar "Modo local", o arquivo foi aberto fora do portal.
 
-## 3. Liberar o acesso
+## 3. Liberar o acesso e definir os papéis
 
-**Quem faz:** administrador do portal.
+O acesso funciona em duas camadas, como no módulo Comissões de Novos Condomínios.
 
-O módulo decide sozinho o que cada pessoa vê. Basta liberar quem deve entrar.
+1. **Portal libera a entrada.** O administrador libera o módulo, em Usuários e acessos, para quem vai usar: coordenação, assistentes de implantação e analistas de Cobrança.
+2. **Gestão define o papel.** Cada pessoa aparece na aba **Acessos** do módulo depois de abri-lo uma vez. Ali a gestão marca o papel de cada uma. Quem abre e ainda não tem papel vê a tela "Acesso registrado" até ser marcada.
 
-| Perfil | Quem | O que vê |
+| Papel | Quem | O que vê |
 |---|---|---|
-| Gestão | Beatriz Teixeira (coordenação de Cobrança) e Mariana Nascimento (coordenação de Crédito) | Dashboard, Solicitações, Fila de acompanhamento, Configurações |
+| Gestão | Coordenação (Beatriz Teixeira, Mariana Nascimento) | Dashboard, Solicitações, Fila de acompanhamento, Acessos, Configurações |
 | Solicitante | Assistentes de implantação e analistas de Cobrança | Solicitar análise e Minhas solicitações |
 
-**Atenção, logins que faltam.** Hoje só existem no portal, dos possíveis solicitantes, a Camila Alencar (Cobrança) e a Chayanne Freitas (Crédito). O setor Implantação não tem ninguém cadastrado. Pelo cadastro de condomínios, os nomes que precisam de login são:
+**Primeira configuração.** Enquanto ninguém tiver o papel de Gestão marcado, a Beatriz e a Mariana entram como gestão automaticamente. A primeira delas a abrir a aba Acessos e marcar qualquer pessoa fica fixada como Gestão. Depois disso, só vale o que estiver marcado na aba.
+
+**Nome na carteira.** Na mesma aba, ligue o login de cada assistente de crédito e analista ao nome que aparece no cadastro de condomínios. É isso que faz o ticket da ficha chegar à pessoa certa.
+
+**Logins que faltam.** Hoje só existem no portal, dos possíveis solicitantes, a Camila Alencar (Cobrança) e a Chayanne Freitas (Crédito). O setor Implantação não tem ninguém cadastrado. Pelo cadastro de condomínios, precisam de login:
 
 - **Analistas de Cobrança:** Eduardo Sousa, Larissa Matos, Mayara Freitas, Raissa Ribeiro, Thaina Souza.
 - **Assistentes de crédito** (recebem o ticket da ficha): Evelyne Bezerra, Grazielly Soares, Jaiani Nogueira, Naiara Sousa, Sofia Matos. A Chayanne Freitas já tem.
 - **Assistentes de implantação:** informar os nomes ao administrador.
 
-O nome do login deve ser igual ao do cadastro de condomínios, sem o ramal. É assim que o módulo encontra a responsável de cada condomínio.
-
-**Como conferir:** a Beatriz e a Mariana entram e veem quatro abas. Uma analista entra e vê só "Solicitar análise" e "Minhas solicitações".
+**Como conferir:** cada pessoa liberada abre o módulo uma vez e aparece na aba Acessos com a data do último acesso. Depois de marcada, uma analista vê só "Solicitar análise" e "Minhas solicitações".
 
 ## 4. Configurar o módulo
 
 **Quem faz:** Beatriz, na aba Configurações.
 
-1. **Gestão e perfis.** A lista já começa com Beatriz Teixeira e Mariana Nascimento. Cada uma pode clicar em "Adicionar a mim" para fixar o próprio login. Inclua outra pessoa só se ela também for conduzir análises.
-2. **Verificar implantações a partir de.** Escolha **agosto de 2026**. A planilha de controle já cobre janeiro a julho, e sem esse corte esses meses voltariam como pendentes.
-3. **Carga inicial.** Em "Carga inicial · planilha de controle", envie `Controle_de_Verificacao_de_Espolios.xlsx` uma única vez. Os 35 condomínios com espólio entram na Fila de acompanhamento. Repetir a importação não duplica nada.
-4. **Base do Power BI.** Envie o Excel do dia. Ela vale para toda a equipe até a próxima troca.
-5. **Carteira.** Só conferir: deve mostrar 335 condomínios, "espelhada do cadastro de condomínios do portal".
+1. **Verificar implantações a partir de** (cartão Carteira do portal e tickets). Escolha **agosto de 2026**. A planilha de controle já cobre janeiro a julho, e sem esse corte esses meses voltariam como pendentes.
+2. **Carga inicial.** Em "Carga inicial · planilha de controle", envie `Controle_de_Verificacao_de_Espolios.xlsx` uma única vez. Os 35 condomínios com espólio entram na Fila de acompanhamento. Repetir a importação não duplica nada.
+3. **Base do Power BI.** Envie o Excel do dia. Ela vale para toda a equipe até a próxima troca.
+4. **Carteira.** Só conferir: deve mostrar 335 condomínios, "espelhada do cadastro de condomínios do portal".
 
 **Como conferir:** a Fila de acompanhamento mostra 35 condomínios, quase todos vencidos, com o selo "completar". É esperado: a planilha não tinha titular nem CPF, e eles se completam na primeira reanálise.
 

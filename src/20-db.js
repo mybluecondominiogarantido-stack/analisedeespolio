@@ -7,7 +7,7 @@
      DB.doc('c/id').set(obj) / .update(patch) / .delete() / .get() / .onSnapshot(cb, err)
      snapshot: .docs[] (id, data()), .exists, .data(), .docChanges()
    ====================================================================== */
-const COLECOES = { rodadas:'rodadas', evidencias:'evidencias', verificacoes:'verificacoes', meta:'meta', bi:'bi_base', historico:'historico', solicitacoes:'solicitacoes', carteira:'carteira' };
+const COLECOES = { rodadas:'rodadas', evidencias:'evidencias', verificacoes:'verificacoes', meta:'meta', bi:'bi_base', historico:'historico', solicitacoes:'solicitacoes', carteira:'carteira', perfis:'perfis', vistos:'vistos' };
 
 function LocalDB(prefixo){
   const KEY = prefixo || 'myblue_espolio_local';
@@ -52,18 +52,33 @@ function dbErr(e){
 }
 
 let DB = null, NS_USER = null, ME = { id:null, name:'' }, CAN_WRITE = true;
-/* perfil: 'gestao' (coordenação de Cobrança) ou 'solicitante' (implantação e analistas de Cobrança) */
+/* Perfis e papéis (mesmo modelo do módulo Comissões de Novos Condomínios)
+   - cada pessoa que abre o módulo é registrada em vistos/{id} (nome e último acesso);
+   - a gestão marca os papéis de cada uma na aba Acessos: perfis/{id} = { papeis: ['gestao'|'solicitante'], nomeCarteira };
+   - enquanto ninguém tiver o papel de gestão, valem como gestão os nomes de GESTAO_PADRAO (para a primeira configuração);
+   - quem não tem papel vê a tela "Acesso registrado" até a gestão definir. */
 let PERFIL = 'gestao';
 const GESTAO_PADRAO = ['BEATRIZ TEIXEIRA', 'MARIANA NASCIMENTO'];
-function calcularPerfil(acesso){
-  const lista = (acesso && acesso.gestao && acesso.gestao.length) ? acesso.gestao : GESTAO_PADRAO.map(n => ({ nome: n }));
-  const euId = ME.id === null || ME.id === undefined ? '' : String(ME.id);
-  const euNome = normNome(ME.name);
-  const sou = lista.some(g => (g.id !== undefined && g.id !== null && String(g.id) === euId && euId !== '' && euId !== 'local') || (g.nome && normNome(g.nome) === euNome));
-  if(DB && DB._local) return localStorage.getItem('myblue_espolio_perfil') === 'solicitante' ? 'solicitante' : 'gestao';
-  return sou ? 'gestao' : 'solicitante';
+const PAPEIS = { gestao: 'Gestão', solicitante: 'Solicitante' };
+const temAlgumaGestao = () => Object.values(S.perfis || {}).some(p => (p.papeis || []).includes('gestao'));
+function calcularPerfil(){
+  if(DB && DB._local){ const v = localStorage.getItem('myblue_espolio_perfil'); return v === 'solicitante' || v === 'sem' ? v : 'gestao'; }
+  const meu = (S.perfis || {})[String(ME.id)] || {};
+  const pp = meu.papeis || [];
+  if(pp.includes('gestao')) return 'gestao';
+  if(!temAlgumaGestao() && GESTAO_PADRAO.includes(normNome(ME.name))) return 'gestao';
+  if(pp.includes('solicitante')) return 'solicitante';
+  return 'sem';
 }
 const ehGestao = () => PERFIL === 'gestao';
+function recalcularPerfil(){ const antes = PERFIL; PERFIL = calcularPerfil(); atualizarChipPerfil(); if(antes !== PERFIL) aplicarPerfil(); }
+/* registra o acesso (uma vez por dia por pessoa) */
+async function registrarVisto(){
+  if(!DB || DB._local || ME.id === null || ME.id === undefined) return;
+  const ant = (S.vistos || {})[String(ME.id)];
+  if(ant && ant.nome === ME.name && String(ant.em || '').slice(0,10) === hojeISO()) return;
+  try{ await DB.doc(COLECOES.vistos + '/' + String(ME.id)).set({ id: String(ME.id), nome: ME.name || '', em: nowISO() }); }catch(e){ console.warn('acesso não registrado', e); }
+}
 
 async function conectarBase(){
   const sync = $('#sync');
@@ -85,10 +100,11 @@ async function conectarBase(){
 function atualizarChipPerfil(){
   const chip = $('#chipUsuario');
   const local = DB && DB._local;
-  chip.innerHTML = esc(ME.name || 'Usuário') + ' · ' + (ehGestao() ? 'gestão' : 'solicitante') + (CAN_WRITE ? '' : ' · somente leitura')
+  const rot = PERFIL === 'gestao' ? 'gestão' : PERFIL === 'solicitante' ? 'solicitante' : 'sem papel';
+  chip.innerHTML = esc(ME.name || 'Usuário') + ' · ' + rot + (CAN_WRITE ? '' : ' · somente leitura')
     + (local ? ` <button class="link" id="chipTrocar" style="margin-left:6px">ver como ${ehGestao() ? 'solicitante' : 'gestão'}</button>` : '');
   chip.hidden = false;
-  if(local) $('#chipTrocar').onclick = () => { localStorage.setItem('myblue_espolio_perfil', ehGestao() ? 'solicitante' : 'gestao'); PERFIL = calcularPerfil(S.acesso); atualizarChipPerfil(); aplicarPerfil(); renderTudo(); };
+  if(local) $('#chipTrocar').onclick = () => { localStorage.setItem('myblue_espolio_perfil', ehGestao() ? 'solicitante' : 'gestao'); recalcularPerfil(); renderTudo(); };
 }
 
 /* grava com update; se o doc não existe, set */

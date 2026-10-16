@@ -13,6 +13,7 @@
     <button class="tab" data-tab="sol"><span id="tabSolRotulo">Solicitações</span> <span class="n" id="nSol" hidden></span></button>
     <button class="tab" data-tab="minhas" hidden>Minhas solicitações</button>
     <button class="tab" data-tab="lote">Fila de acompanhamento <span class="n" id="nFila" hidden></span></button>
+    <button class="tab" data-tab="acessos">Acessos <span class="n" id="nAcessos" hidden></span></button>
     <button class="tab" data-tab="conf">Configurações</button>
   </nav>
 </div></header>
@@ -155,19 +156,24 @@
   <div id="loteAndamento"></div>
 </section>
 
+<!-- ================= ACESSOS ================= -->
+<section class="painel" id="p-acessos"></section>
+
+<!-- ================= SEM PAPEL ================= -->
+<section class="painel" id="p-sem">
+  <div class="card"><div class="corpo" style="padding:28px 24px">
+    <h2 style="font-size:18px;margin-bottom:6px">Acesso registrado</h2>
+    <p class="ajuda" style="margin:0;font-size:13.5px">Seu acesso a este módulo foi registrado agora. A coordenação precisa definir o seu papel na aba Acessos: <b>Solicitante</b> (assistentes de implantação e analistas de Cobrança) ou <b>Gestão</b>. Assim que o papel for marcado, esta tela muda sozinha.</p>
+  </div></div>
+</section>
+
 <!-- ================= CONFIGURAÇÕES ================= -->
 <section class="painel" id="p-conf">
   <div class="dois">
     <div class="card">
-      <header><h2>Gestão e perfis</h2><span class="dica">quem não está na gestão é solicitante</span></header>
-      <div class="corpo" id="confGestao"></div>
-    </div>
-    <div class="card">
       <header><h2>Carteira do portal e tickets</h2><span class="dica">responsáveis por condomínio</span></header>
       <div class="corpo" id="confCarteira"></div>
     </div>
-  </div>
-  <div class="dois">
     <div class="card">
       <header><h2>Base do Power BI</h2><span class="dica">compartilhada pela equipe</span></header>
       <div class="corpo">

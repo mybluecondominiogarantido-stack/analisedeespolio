@@ -17,7 +17,8 @@ const S = {
   bi: { base: [], enviadoEm: '', por: '' },
   solicitacoes: [],
   carteira: { itens: [], atualizadoEm: '', origem: '' },
-  pronto: { r:false, v:false, m:false, b:false, a:false, s:false, c:false },
+  perfis: {}, vistos: {},
+  pronto: { r:false, v:false, m:false, b:false, a:false, s:false, c:false, p:false, w:false },
   aba: 'dash',
   // editor (nova análise)
   rodada: null,         // rodada em edição (objeto)
@@ -33,7 +34,9 @@ function assinarBase(){
   DB.collection(COLECOES.verificacoes).onSnapshot(snap => { S.verificacoes = snap.docs.map(d => ({ id: d.id, ...d.data() })); pronto('v'); if(S.pronto.v) renderTudo(); }, fail);
   DB.doc(COLECOES.meta + '/estado').onSnapshot(snap => { S.meta = snap.exists ? snap.data() : { seq: {} }; pronto('m'); }, fail);
   DB.doc(COLECOES.bi + '/atual').onSnapshot(snap => { S.bi = snap.exists ? snap.data() : { base: [], enviadoEm:'', por:'' }; pronto('b'); renderBiInfo(); }, fail);
-  DB.doc(COLECOES.meta + '/acesso').onSnapshot(snap => { S.acesso = { gestao: [], verificacaoDesde: '', ticketRota: '/api/tickets', ticketSetor: 'Crédito', ...(snap.exists ? snap.data() : {}) }; const antes = PERFIL; PERFIL = calcularPerfil(S.acesso); atualizarChipPerfil(); if(antes !== PERFIL) aplicarPerfil(); pronto('a'); if(S.pronto.a) renderTudo(); }, fail);
+  DB.doc(COLECOES.meta + '/acesso').onSnapshot(snap => { S.acesso = { verificacaoDesde: '', ticketRota: '/api/tickets', ticketSetor: 'Crédito', ...(snap.exists ? snap.data() : {}) }; pronto('a'); if(S.pronto.a) renderTudo(); }, fail);
+  DB.collection(COLECOES.perfis).onSnapshot(snap => { const m = {}; snap.docs.forEach(d => { m[d.id] = { id: d.id, ...d.data() }; }); S.perfis = m; recalcularPerfil(); pronto('p'); if(S.pronto.p) renderTudo(); }, fail);
+  DB.collection(COLECOES.vistos).onSnapshot(snap => { const m = {}; snap.docs.forEach(d => { m[d.id] = { id: d.id, ...d.data() }; }); S.vistos = m; const primeira = !S.pronto.w; pronto('w'); if(primeira) registrarVisto(); if(S.pronto.w) renderTudo(); }, fail);
   DB.collection(COLECOES.solicitacoes).onSnapshot(snap => { S.solicitacoes = snap.docs.map(d => ({ id: d.id, ...d.data() })); pronto('s'); if(S.pronto.s) renderTudo(); }, fail);
   DB.doc(COLECOES.carteira + '/atual').onSnapshot(snap => { const d = snap.exists ? snap.data() : { itens: [], atualizadoEm:'', origem:'' }; S.carteira = { ...d, itens: normalizarCarteira(d.itens || []) }; pronto('c'); if(S.pronto.c) renderTudo(); }, fail);
 }
@@ -67,7 +70,8 @@ function pendentesVerificacao(){
 /* responsável pelo aviso/ticket: assistente de crédito da carteira; senão a assistente de implantação que solicitou */
 function responsavelDoCondominio(chave, solicitacao){
   const c = (S.carteira.itens || []).find(x => x.chave === chave || (solicitacao && normCond(x.nome) === normCond(solicitacao.condominio.nome)));
-  if(c && c.assistenteCredito) return { nome: c.assistenteCredito, papel: 'assistente de crédito', setor: S.acesso.ticketSetor || 'Crédito', carteira: c };
+  const loginDe = nome => { const p = Object.values(S.perfis || {}).find(x => x.nomeCarteira && normNome(x.nomeCarteira) === normNome(nome)) || Object.values(S.vistos || {}).find(v => normNome(v.nome) === normNome(nome)); return p ? p.id : null; };
+  if(c && c.assistenteCredito) return { nome: c.assistenteCredito, papel: 'assistente de crédito', setor: S.acesso.ticketSetor || 'Crédito', usuarioId: loginDe(c.assistenteCredito), carteira: c };
   if(solicitacao && solicitacao.tipo !== 'avulso') return { nome: solicitacao.solicitanteNome, papel: 'assistente de implantação (solicitante)', setor: 'Implantação', usuarioId: solicitacao.solicitanteId, carteira: c || null };
   return { nome: '', papel: '', setor: S.acesso.ticketSetor || 'Crédito', carteira: c || null };
 }

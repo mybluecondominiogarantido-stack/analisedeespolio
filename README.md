@@ -40,7 +40,9 @@ Bibliotecas externas (cdnjs): pdf.js 3.11.174, SheetJS 0.18.5 e html2pdf.js 0.10
 | `solicitacoes` | Solicitações de análise (condomínio, unidades, solicitante, status, protocolo, resultado) |
 | `verificacoes` | Respostas da verificação da implantação (assumido / sem espólio) |
 | `carteira/atual` | Cópia automática de `public.condominios`, mantida por gatilho no banco (`docs/sql/carteira-e-modulo.sql`) |
-| `meta/acesso` | Lista da gestão, mês inicial da verificação, rota e setor do ticket |
+| `perfis/{id}` | Papéis de cada pessoa (gestão, solicitante) e nome na carteira |
+| `vistos/{id}` | Último acesso de cada pessoa ao módulo |
+| `meta/acesso` | Mês inicial da verificação, rota e setor do ticket |
 
 A fila de acompanhamento é derivada: última rodada concluída de cada condomínio, unidades ativas (não excluídas, não encerradas), prazo = data da análise + 90 dias.
 

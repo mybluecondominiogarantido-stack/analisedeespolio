@@ -50,7 +50,7 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   ok((await p.evaluate(() => S.solicitacoes[0].solicitanteNome)) === 'Assistente de Implantação Teste', 'gestão registra solicitação em nome de quem pediu');
   await p.click('#p-sol [data-sol]'); await p.waitForTimeout(300); await p.click('#mSolIniciar');
   await p.waitForFunction(() => S.rodada && S.rodada.solicitacaoId, { timeout: 10000 }); await p.waitForTimeout(300);
-  ok((await p.$$eval('.tab', t => t.filter(x => !x.hidden).length)) === 4 && !(await p.$eval('#p-nova', e => e.classList.contains('ativa'))) === false, 'editor abre como tela temporária, sem aba própria');
+  ok((await p.$$eval('.tab', t => t.filter(x => !x.hidden).length)) === 5 && (await p.$eval('#p-nova', e => e.classList.contains('ativa'))), 'editor abre como tela temporária, sem aba própria');
   await p.setInputFiles('#docVouch input[type=file]', path.join(pdfs, arq('esmeralda')));
   await p.waitForFunction(() => document.querySelector('#docVouch').classList.contains('ok'), { timeout: 30000 });
   ok((await p.inputValue('#razao')) === 'CONDOMINIO ESMERALDA IV', 'razão social preenchida pelo Vouch');
@@ -123,7 +123,7 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   await p.click('#modal [data-ver]'); await p.waitForTimeout(300);
   ok(/AE-2026-0002/.test(await p.$eval('#modal h2', e => e.textContent)), 'clique na rodada abre a ficha');
   await p.click('#mVoltar'); await p.waitForTimeout(200); await p.click('#modal [data-fechar]');
-  ok((await p.$$eval('.tab', t => t.filter(x => !x.hidden).length)) === 4, 'gestão vê quatro abas: dashboard, solicitações, fila, configurações');
+  ok((await p.$$eval('.tab', t => t.filter(x => !x.hidden).length)) === 5, 'gestão vê cinco abas: dashboard, solicitações, fila, acessos, configurações');
   await p.click('[data-tab="dash"]'); await p.click('#btnResumo'); await p.waitForTimeout(300);
   ok(/AE-2026-0001/.test(await p.$eval('#resumoMensal', e => e.textContent)), 'resumo mensal lista a rodada do mês');
   const tiles = await p.$eval('#dashTiles', e => e.textContent);
@@ -183,7 +183,28 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   await p.click('#modal [data-fechar]');
   await p.evaluate(() => { localStorage.setItem('myblue_espolio_perfil', 'gestao'); });
 
-  /* 7 · persistência local: recarrega e confere */
+  /* 7 · acessos: modelo por pessoa (vistos + perfis), papéis definidos pela gestão */
+  await p.evaluate(async () => {
+    await DB.doc('vistos/21').set({ id:'21', nome:'Camila Alencar', em: nowISO() });
+    await DB.doc('vistos/6').set({ id:'6', nome:'Mariana Nascimento', em: nowISO() });
+  });
+  await p.click('[data-tab="acessos"]'); await p.waitForTimeout(400);
+  ok((await p.$$eval('#p-acessos tbody tr', t => t.length)) === 3, 'Acessos lista quem abriu o módulo (3 pessoas)');
+  ok(/1 sem papel|2 sem papel/.test(await p.$eval('#nAcessos', e => e.textContent)), 'aba Acessos mostra quem está sem papel');
+  await p.check('#p-acessos [data-u="21"][data-pp="solicitante"]'); await p.waitForTimeout(400);
+  await p.check('#p-acessos [data-u="6"][data-pp="gestao"]'); await p.waitForTimeout(400);
+  const perfis = await p.evaluate(() => S.perfis);
+  ok(perfis['21'] && perfis['21'].papeis.includes('solicitante') && perfis['6'].papeis.includes('gestao'), 'marcar papel grava o perfil da pessoa');
+  await p.selectOption('#p-acessos select[data-nc="21"]', { index: 1 }); await p.waitForTimeout(300);
+  ok(!!(await p.evaluate(() => S.perfis['21'].nomeCarteira)), 'nome na carteira fica ligado ao login');
+  const calc = await p.evaluate(() => { const real = DB._local; DB._local = false; const r = {};
+    for(const [n,id] of [['Camila Alencar','21'],['Mariana Nascimento','6'],['Beatriz Teixeira','4'],['Pessoa Nova','99']]){ ME = { name:n, id }; r[n] = calcularPerfil(); }
+    DB._local = real; ME = { name:'Coordenação de Cobrança', id:'local' }; return r; });
+  ok(calc['Camila Alencar'] === 'solicitante' && calc['Mariana Nascimento'] === 'gestao' && calc['Pessoa Nova'] === 'sem', `perfis calculados pelos papéis (${JSON.stringify(calc)})`);
+  ok(calc['Beatriz Teixeira'] === 'sem', 'com alguém marcado na gestão, os nomes padrão deixam de valer sozinhos');
+  await shot('acessos');
+
+  /* 8 · persistência local: recarrega e confere */
   await p.reload(); await p.waitForFunction(() => S.pronto.r && S.rodadas.length > 0, { timeout: 20000 }); await p.waitForTimeout(300);
   const nR = await p.evaluate(() => S.rodadas.filter(r => r.status === 'concluida').length);
   ok(nR === 38, `rodadas persistidas após recarregar: ${nR} (35 carga + 3)`);

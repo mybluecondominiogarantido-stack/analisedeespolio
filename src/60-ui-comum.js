@@ -9,21 +9,27 @@ function mostrarAba(nome){
   window.scrollTo({ top: 0 });
   if(nome === 'lote') renderLote();
   if(nome === 'sol' || nome === 'minhas') renderSolicitacoes();
+  if(nome === 'acessos') renderAcessos();
   if(nome === 'conf') renderConf();
 }
 $('#tabs').addEventListener('click', e => { const b = e.target.closest('.tab'); if(b) mostrarAba(b.dataset.tab); });
 
 function aplicarPerfil(){
-  const gestao = ehGestao();
-  $$('.tab').forEach(t => { t.hidden = gestao ? t.dataset.tab === 'minhas' : !['sol','minhas'].includes(t.dataset.tab); });
+  const gestao = ehGestao(), sem = PERFIL === 'sem';
+  $$('.tab').forEach(t => { t.hidden = sem ? true : gestao ? t.dataset.tab === 'minhas' : !['sol','minhas'].includes(t.dataset.tab); });
   if(!gestao && S.rodada) S.rodada = null;
   $('#tabSolRotulo').textContent = gestao ? 'Solicitações' : 'Solicitar análise';
-  if(!gestao && !['sol','minhas'].includes(S.aba)) mostrarAba('sol');
+  if(sem){ $$('.painel').forEach(p => p.classList.toggle('ativa', p.id === 'p-sem')); S.aba = 'sem'; return; }
+  if(S.aba === 'sem') mostrarAba(gestao ? 'dash' : 'sol');
+  else if(!gestao && !['sol','minhas'].includes(S.aba)) mostrarAba('sol');
 }
 function renderTudo(){
   aplicarPerfil();
+  if(PERFIL === 'sem') return;
   renderSolicitacoes();
   if(!ehGestao()) return;
+  renderAcessosBadge();
+  if(S.aba === 'acessos') renderAcessos();
   renderDashboard();
   renderBadges();
   renderListaCondominios();

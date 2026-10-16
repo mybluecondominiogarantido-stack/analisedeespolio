@@ -253,6 +253,7 @@ tr.clic{cursor:pointer}
     <button class="tab" data-tab="sol"><span id="tabSolRotulo">Solicitações</span> <span class="n" id="nSol" hidden></span></button>
     <button class="tab" data-tab="minhas" hidden>Minhas solicitações</button>
     <button class="tab" data-tab="lote">Fila de acompanhamento <span class="n" id="nFila" hidden></span></button>
+    <button class="tab" data-tab="acessos">Acessos <span class="n" id="nAcessos" hidden></span></button>
     <button class="tab" data-tab="conf">Configurações</button>
   </nav>
 </div></header>
@@ -395,19 +396,24 @@ tr.clic{cursor:pointer}
   <div id="loteAndamento"></div>
 </section>
 
+<!-- ================= ACESSOS ================= -->
+<section class="painel" id="p-acessos"></section>
+
+<!-- ================= SEM PAPEL ================= -->
+<section class="painel" id="p-sem">
+  <div class="card"><div class="corpo" style="padding:28px 24px">
+    <h2 style="font-size:18px;margin-bottom:6px">Acesso registrado</h2>
+    <p class="ajuda" style="margin:0;font-size:13.5px">Seu acesso a este módulo foi registrado agora. A coordenação precisa definir o seu papel na aba Acessos: <b>Solicitante</b> (assistentes de implantação e analistas de Cobrança) ou <b>Gestão</b>. Assim que o papel for marcado, esta tela muda sozinha.</p>
+  </div></div>
+</section>
+
 <!-- ================= CONFIGURAÇÕES ================= -->
 <section class="painel" id="p-conf">
   <div class="dois">
     <div class="card">
-      <header><h2>Gestão e perfis</h2><span class="dica">quem não está na gestão é solicitante</span></header>
-      <div class="corpo" id="confGestao"></div>
-    </div>
-    <div class="card">
       <header><h2>Carteira do portal e tickets</h2><span class="dica">responsáveis por condomínio</span></header>
       <div class="corpo" id="confCarteira"></div>
     </div>
-  </div>
-  <div class="dois">
     <div class="card">
       <header><h2>Base do Power BI</h2><span class="dica">compartilhada pela equipe</span></header>
       <div class="corpo">
@@ -547,7 +553,7 @@ const nomeArquivoSeguro = s => String(s||'').normalize('NFD').replace(/[̀-ͯ]/g
      DB.doc('c/id').set(obj) / .update(patch) / .delete() / .get() / .onSnapshot(cb, err)
      snapshot: .docs[] (id, data()), .exists, .data(), .docChanges()
    ====================================================================== */
-const COLECOES = { rodadas:'rodadas', evidencias:'evidencias', verificacoes:'verificacoes', meta:'meta', bi:'bi_base', historico:'historico', solicitacoes:'solicitacoes', carteira:'carteira' };
+const COLECOES = { rodadas:'rodadas', evidencias:'evidencias', verificacoes:'verificacoes', meta:'meta', bi:'bi_base', historico:'historico', solicitacoes:'solicitacoes', carteira:'carteira', perfis:'perfis', vistos:'vistos' };
 
 function LocalDB(prefixo){
   const KEY = prefixo || 'myblue_espolio_local';
@@ -592,18 +598,33 @@ function dbErr(e){
 }
 
 let DB = null, NS_USER = null, ME = { id:null, name:'' }, CAN_WRITE = true;
-/* perfil: 'gestao' (coordenação de Cobrança) ou 'solicitante' (implantação e analistas de Cobrança) */
+/* Perfis e papéis (mesmo modelo do módulo Comissões de Novos Condomínios)
+   - cada pessoa que abre o módulo é registrada em vistos/{id} (nome e último acesso);
+   - a gestão marca os papéis de cada uma na aba Acessos: perfis/{id} = { papeis: ['gestao'|'solicitante'], nomeCarteira };
+   - enquanto ninguém tiver o papel de gestão, valem como gestão os nomes de GESTAO_PADRAO (para a primeira configuração);
+   - quem não tem papel vê a tela "Acesso registrado" até a gestão definir. */
 let PERFIL = 'gestao';
 const GESTAO_PADRAO = ['BEATRIZ TEIXEIRA', 'MARIANA NASCIMENTO'];
-function calcularPerfil(acesso){
-  const lista = (acesso && acesso.gestao && acesso.gestao.length) ? acesso.gestao : GESTAO_PADRAO.map(n => ({ nome: n }));
-  const euId = ME.id === null || ME.id === undefined ? '' : String(ME.id);
-  const euNome = normNome(ME.name);
-  const sou = lista.some(g => (g.id !== undefined && g.id !== null && String(g.id) === euId && euId !== '' && euId !== 'local') || (g.nome && normNome(g.nome) === euNome));
-  if(DB && DB._local) return localStorage.getItem('myblue_espolio_perfil') === 'solicitante' ? 'solicitante' : 'gestao';
-  return sou ? 'gestao' : 'solicitante';
+const PAPEIS = { gestao: 'Gestão', solicitante: 'Solicitante' };
+const temAlgumaGestao = () => Object.values(S.perfis || {}).some(p => (p.papeis || []).includes('gestao'));
+function calcularPerfil(){
+  if(DB && DB._local){ const v = localStorage.getItem('myblue_espolio_perfil'); return v === 'solicitante' || v === 'sem' ? v : 'gestao'; }
+  const meu = (S.perfis || {})[String(ME.id)] || {};
+  const pp = meu.papeis || [];
+  if(pp.includes('gestao')) return 'gestao';
+  if(!temAlgumaGestao() && GESTAO_PADRAO.includes(normNome(ME.name))) return 'gestao';
+  if(pp.includes('solicitante')) return 'solicitante';
+  return 'sem';
 }
 const ehGestao = () => PERFIL === 'gestao';
+function recalcularPerfil(){ const antes = PERFIL; PERFIL = calcularPerfil(); atualizarChipPerfil(); if(antes !== PERFIL) aplicarPerfil(); }
+/* registra o acesso (uma vez por dia por pessoa) */
+async function registrarVisto(){
+  if(!DB || DB._local || ME.id === null || ME.id === undefined) return;
+  const ant = (S.vistos || {})[String(ME.id)];
+  if(ant && ant.nome === ME.name && String(ant.em || '').slice(0,10) === hojeISO()) return;
+  try{ await DB.doc(COLECOES.vistos + '/' + String(ME.id)).set({ id: String(ME.id), nome: ME.name || '', em: nowISO() }); }catch(e){ console.warn('acesso não registrado', e); }
+}
 
 async function conectarBase(){
   const sync = $('#sync');
@@ -625,10 +646,11 @@ async function conectarBase(){
 function atualizarChipPerfil(){
   const chip = $('#chipUsuario');
   const local = DB && DB._local;
-  chip.innerHTML = esc(ME.name || 'Usuário') + ' · ' + (ehGestao() ? 'gestão' : 'solicitante') + (CAN_WRITE ? '' : ' · somente leitura')
+  const rot = PERFIL === 'gestao' ? 'gestão' : PERFIL === 'solicitante' ? 'solicitante' : 'sem papel';
+  chip.innerHTML = esc(ME.name || 'Usuário') + ' · ' + rot + (CAN_WRITE ? '' : ' · somente leitura')
     + (local ? ` <button class="link" id="chipTrocar" style="margin-left:6px">ver como ${ehGestao() ? 'solicitante' : 'gestão'}</button>` : '');
   chip.hidden = false;
-  if(local) $('#chipTrocar').onclick = () => { localStorage.setItem('myblue_espolio_perfil', ehGestao() ? 'solicitante' : 'gestao'); PERFIL = calcularPerfil(S.acesso); atualizarChipPerfil(); aplicarPerfil(); renderTudo(); };
+  if(local) $('#chipTrocar').onclick = () => { localStorage.setItem('myblue_espolio_perfil', ehGestao() ? 'solicitante' : 'gestao'); recalcularPerfil(); renderTudo(); };
 }
 
 /* grava com update; se o doc não existe, set */
@@ -1200,7 +1222,8 @@ const S = {
   bi: { base: [], enviadoEm: '', por: '' },
   solicitacoes: [],
   carteira: { itens: [], atualizadoEm: '', origem: '' },
-  pronto: { r:false, v:false, m:false, b:false, a:false, s:false, c:false },
+  perfis: {}, vistos: {},
+  pronto: { r:false, v:false, m:false, b:false, a:false, s:false, c:false, p:false, w:false },
   aba: 'dash',
   // editor (nova análise)
   rodada: null,         // rodada em edição (objeto)
@@ -1216,7 +1239,9 @@ function assinarBase(){
   DB.collection(COLECOES.verificacoes).onSnapshot(snap => { S.verificacoes = snap.docs.map(d => ({ id: d.id, ...d.data() })); pronto('v'); if(S.pronto.v) renderTudo(); }, fail);
   DB.doc(COLECOES.meta + '/estado').onSnapshot(snap => { S.meta = snap.exists ? snap.data() : { seq: {} }; pronto('m'); }, fail);
   DB.doc(COLECOES.bi + '/atual').onSnapshot(snap => { S.bi = snap.exists ? snap.data() : { base: [], enviadoEm:'', por:'' }; pronto('b'); renderBiInfo(); }, fail);
-  DB.doc(COLECOES.meta + '/acesso').onSnapshot(snap => { S.acesso = { gestao: [], verificacaoDesde: '', ticketRota: '/api/tickets', ticketSetor: 'Crédito', ...(snap.exists ? snap.data() : {}) }; const antes = PERFIL; PERFIL = calcularPerfil(S.acesso); atualizarChipPerfil(); if(antes !== PERFIL) aplicarPerfil(); pronto('a'); if(S.pronto.a) renderTudo(); }, fail);
+  DB.doc(COLECOES.meta + '/acesso').onSnapshot(snap => { S.acesso = { verificacaoDesde: '', ticketRota: '/api/tickets', ticketSetor: 'Crédito', ...(snap.exists ? snap.data() : {}) }; pronto('a'); if(S.pronto.a) renderTudo(); }, fail);
+  DB.collection(COLECOES.perfis).onSnapshot(snap => { const m = {}; snap.docs.forEach(d => { m[d.id] = { id: d.id, ...d.data() }; }); S.perfis = m; recalcularPerfil(); pronto('p'); if(S.pronto.p) renderTudo(); }, fail);
+  DB.collection(COLECOES.vistos).onSnapshot(snap => { const m = {}; snap.docs.forEach(d => { m[d.id] = { id: d.id, ...d.data() }; }); S.vistos = m; const primeira = !S.pronto.w; pronto('w'); if(primeira) registrarVisto(); if(S.pronto.w) renderTudo(); }, fail);
   DB.collection(COLECOES.solicitacoes).onSnapshot(snap => { S.solicitacoes = snap.docs.map(d => ({ id: d.id, ...d.data() })); pronto('s'); if(S.pronto.s) renderTudo(); }, fail);
   DB.doc(COLECOES.carteira + '/atual').onSnapshot(snap => { const d = snap.exists ? snap.data() : { itens: [], atualizadoEm:'', origem:'' }; S.carteira = { ...d, itens: normalizarCarteira(d.itens || []) }; pronto('c'); if(S.pronto.c) renderTudo(); }, fail);
 }
@@ -1250,7 +1275,8 @@ function pendentesVerificacao(){
 /* responsável pelo aviso/ticket: assistente de crédito da carteira; senão a assistente de implantação que solicitou */
 function responsavelDoCondominio(chave, solicitacao){
   const c = (S.carteira.itens || []).find(x => x.chave === chave || (solicitacao && normCond(x.nome) === normCond(solicitacao.condominio.nome)));
-  if(c && c.assistenteCredito) return { nome: c.assistenteCredito, papel: 'assistente de crédito', setor: S.acesso.ticketSetor || 'Crédito', carteira: c };
+  const loginDe = nome => { const p = Object.values(S.perfis || {}).find(x => x.nomeCarteira && normNome(x.nomeCarteira) === normNome(nome)) || Object.values(S.vistos || {}).find(v => normNome(v.nome) === normNome(nome)); return p ? p.id : null; };
+  if(c && c.assistenteCredito) return { nome: c.assistenteCredito, papel: 'assistente de crédito', setor: S.acesso.ticketSetor || 'Crédito', usuarioId: loginDe(c.assistenteCredito), carteira: c };
   if(solicitacao && solicitacao.tipo !== 'avulso') return { nome: solicitacao.solicitanteNome, papel: 'assistente de implantação (solicitante)', setor: 'Implantação', usuarioId: solicitacao.solicitanteId, carteira: c || null };
   return { nome: '', papel: '', setor: S.acesso.ticketSetor || 'Crédito', carteira: c || null };
 }
@@ -1446,21 +1472,27 @@ function mostrarAba(nome){
   window.scrollTo({ top: 0 });
   if(nome === 'lote') renderLote();
   if(nome === 'sol' || nome === 'minhas') renderSolicitacoes();
+  if(nome === 'acessos') renderAcessos();
   if(nome === 'conf') renderConf();
 }
 $('#tabs').addEventListener('click', e => { const b = e.target.closest('.tab'); if(b) mostrarAba(b.dataset.tab); });
 
 function aplicarPerfil(){
-  const gestao = ehGestao();
-  $$('.tab').forEach(t => { t.hidden = gestao ? t.dataset.tab === 'minhas' : !['sol','minhas'].includes(t.dataset.tab); });
+  const gestao = ehGestao(), sem = PERFIL === 'sem';
+  $$('.tab').forEach(t => { t.hidden = sem ? true : gestao ? t.dataset.tab === 'minhas' : !['sol','minhas'].includes(t.dataset.tab); });
   if(!gestao && S.rodada) S.rodada = null;
   $('#tabSolRotulo').textContent = gestao ? 'Solicitações' : 'Solicitar análise';
-  if(!gestao && !['sol','minhas'].includes(S.aba)) mostrarAba('sol');
+  if(sem){ $$('.painel').forEach(p => p.classList.toggle('ativa', p.id === 'p-sem')); S.aba = 'sem'; return; }
+  if(S.aba === 'sem') mostrarAba(gestao ? 'dash' : 'sol');
+  else if(!gestao && !['sol','minhas'].includes(S.aba)) mostrarAba('sol');
 }
 function renderTudo(){
   aplicarPerfil();
+  if(PERFIL === 'sem') return;
   renderSolicitacoes();
   if(!ehGestao()) return;
+  renderAcessosBadge();
+  if(S.aba === 'acessos') renderAcessos();
   renderDashboard();
   renderBadges();
   renderListaCondominios();
@@ -2149,32 +2181,20 @@ $('#btnResumo').onclick = () => {
 };
 
 /* ---------- configurações ---------- */
-function renderConfGestao(){
-  const lista = S.acesso.gestao && S.acesso.gestao.length ? S.acesso.gestao : GESTAO_PADRAO.map(n => ({ nome: n, padrao: true }));
-  $('#confGestao').innerHTML = `<p class="ajuda" style="margin:0 0 8px">Gestão: vê tudo, cria e conclui análises. Solicitantes (assistentes de implantação e analistas de Cobrança): veem só a aba Solicitações. O acesso ao módulo em si é liberado no portal.</p>
-    <table><thead><tr><th>Gestão</th><th></th></tr></thead><tbody>${lista.map((g,i) => `<tr><td>${esc(g.nome||'')}${g.id?` <span class="ajuda" style="margin:0;display:inline">· login ${esc(String(g.id))}</span>`:''}${g.padrao?' <span class="selo s-rasc">padrão</span>':''}</td><td>${g.padrao?'':`<button class="btn perigo mini" data-gestao-rm="${i}">×</button>`}</td></tr>`).join('')}</tbody></table>
-    <div class="acoes" style="margin-top:10px"><input type="text" id="confGestaoNome" class="campo" style="width:auto;min-width:220px" placeholder="Nome como aparece no portal"><button class="btn sec mini" id="confGestaoAdd">Adicionar à gestão</button><button class="btn sec mini" id="confGestaoEu">Adicionar a mim (${esc(ME.name||'eu')})</button></div>
-    <div style="margin-top:12px"><label>Verificar implantações a partir de</label><input type="month" id="confVerifDesde" class="campo" style="width:auto" value="${esc(S.acesso.verificacaoDesde||'')}"><p class="ajuda">Condomínios com início de contrato antes desse mês não entram nos pendentes de verificação (já cobertos pela planilha de controle).</p></div>
-    ${DB._local ? `<p class="ajuda">Modo local: para testar o outro perfil, use "ver como…" no chip do usuário, no alto da página.</p>` : ''}`;
-  const salvar = patch => gravarDoc(COLECOES.meta + '/acesso', patch, S.acesso);
-  const atual = () => (S.acesso.gestao && S.acesso.gestao.length ? S.acesso.gestao : GESTAO_PADRAO.map(n => ({ nome: n }))).map(g => ({ nome: g.nome, id: g.id || null }));
-  $('#confGestaoAdd').onclick = () => { const n = $('#confGestaoNome').value.trim(); if(!n) return; salvar({ gestao: atual().concat([{ nome: n, id: null }]) }); };
-  $('#confGestaoEu').onclick = () => salvar({ gestao: atual().concat([{ nome: ME.name, id: ME.id }]) });
-  $('#confGestao').querySelectorAll('[data-gestao-rm]').forEach(b => b.onclick = async () => { const l = atual(); l.splice(+b.dataset.gestaoRm, 1); if(!l.length && !(await confirmar('Sem ninguém na gestão, volta ao padrão (Beatriz Teixeira e Mariana Nascimento). Continuar?'))) return; salvar({ gestao: l }); });
-  $('#confVerifDesde').onchange = e => salvar({ verificacaoDesde: e.target.value });
-}
 function renderConfCarteira(){
   const c = S.carteira;
   $('#confCarteira').innerHTML = `<p class="ajuda" style="margin:0 0 8px">${c.itens && c.itens.length ? `<b>${c.itens.length} condomínios</b> · atualizada em ${fmtData((c.atualizadoEm||'').slice(0,10))} · ${c.origem === 'banco' ? 'espelhada do cadastro de condomínios do portal, atualiza sozinha' : 'origem: ' + esc(c.origem||'')}` : (DB._local ? 'Carteira não carregada. Fora do portal, importe um JSON ou Excel do cadastro.' : 'Carteira ainda não espelhada do cadastro do portal.')}</p>
     ${DB._local ? `<div class="doc"><div class="ico">CAD</div><div><b>Importar carteira (JSON ou Excel)</b><span>só em modo local · no portal a carteira vem do cadastro de condomínios</span></div><input type="file" accept=".json,.xlsx,.xls,.csv" id="confCarteiraArquivo"></div>` : ''}
     <div class="grade" style="margin-top:12px"><div><label>Rota do portal para abrir tickets</label><input type="text" id="confTicketRota" class="campo" value="${esc(S.acesso.ticketRota||'/api/tickets')}"></div><div><label>Setor padrão do ticket</label><input type="text" id="confTicketSetor" class="campo" value="${esc(S.acesso.ticketSetor||'Crédito')}"></div></div>
-    <p class="ajuda">O ticket vai para a assistente de crédito do condomínio; sem assistente na carteira, vai para a assistente de implantação que solicitou. A rota precisa ser liberada por quem mantém o portal.</p>`;
+    <p class="ajuda">O ticket vai para a assistente de crédito do condomínio; sem assistente na carteira, vai para a assistente de implantação que solicitou. A rota precisa ser liberada por quem mantém o portal.</p>
+    <div style="margin-top:12px"><label>Verificar implantações a partir de</label><input type="month" id="confVerifDesde" class="campo" style="width:auto" value="${esc(S.acesso.verificacaoDesde||'')}"><p class="ajuda">Condomínios com início de contrato antes desse mês não entram nos pendentes de verificação (já cobertos pela planilha de controle).</p></div>`;
   if($('#confCarteiraArquivo')) $('#confCarteiraArquivo').onchange = async e => { const f = e.target.files[0]; e.target.value = ''; if(!f) return; try{ const n = await importarCarteiraArquivo(f); toast(`Carteira importada: ${n} condomínios.`); }catch(err){ toast('Não deu para importar: ' + err.message, 6000); } };
   $('#confTicketRota').onchange = e => gravarDoc(COLECOES.meta + '/acesso', { ticketRota: e.target.value.trim() || '/api/tickets' }, S.acesso);
   $('#confTicketSetor').onchange = e => gravarDoc(COLECOES.meta + '/acesso', { ticketSetor: e.target.value.trim() || 'Crédito' }, S.acesso);
+  $('#confVerifDesde').onchange = e => gravarDoc(COLECOES.meta + '/acesso', { verificacaoDesde: e.target.value }, S.acesso);
 }
 function renderConf(){
-  renderConfGestao(); renderConfCarteira();
+  renderConfCarteira();
   $('#confRegras').innerHTML = TEXTO_REGRAS;
   renderBiInfo();
 }
@@ -2471,6 +2491,91 @@ async function fichaPDFBlob(r){
     const h = el.offsetHeight; if(h > ALT_MAX){ const k = ALT_MAX / h; el.style.width = (LARG / k) + 'px'; el.style.transform = `scale(${k})`; } wrap.style.height = Math.min(h, ALT_MAX) + 'px';
     return await html2pdf().set({ margin: 6, image: { type:'jpeg', quality: 0.95 }, html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0 }, jsPDF: { unit:'mm', format:'a4', orientation:'landscape' }, pagebreak: { mode: ['css'] } }).from(wrap).outputPdf('blob');
   } finally { wrap.remove(); }
+}
+
+/* ===== 67-ui-acessos.js ===== */
+/* ======================================================================
+   Acessos — quem faz o quê (mesmo modelo do módulo Comissões de Novos Condomínios)
+   Cada pessoa aparece aqui depois de abrir o módulo no portal uma vez. A gestão marca os papéis.
+   ====================================================================== */
+function linhasAcessos(){
+  const ids = {};
+  Object.keys(S.vistos || {}).forEach(k => ids[k] = 1);
+  Object.keys(S.perfis || {}).forEach(k => ids[k] = 1);
+  if(ME.id !== null && ME.id !== undefined) ids[String(ME.id)] = 1;
+  return Object.keys(ids).map(id => {
+    const v = (S.vistos || {})[id] || {}, p = (S.perfis || {})[id] || {};
+    return { id, nome: p.nome || v.nome || (id === String(ME.id) ? ME.name : 'Usuário ' + id), visto: v.em || '', papeis: p.papeis || [], nomeCarteira: p.nomeCarteira || '' };
+  }).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+}
+const semPapel = () => linhasAcessos().filter(l => !l.papeis.length && l.id !== String(ME.id));
+function renderAcessosBadge(){
+  const n = semPapel().length, el = $('#nAcessos');
+  if(!el) return;
+  el.hidden = !n; el.textContent = `${n} sem papel`; el.classList.toggle('alerta', n > 0);
+}
+function nomesDaCarteira(){
+  const set = new Map();
+  (S.carteira.itens || []).forEach(c => [c.assistenteCredito, c.analistaCobranca].forEach(n => { if(n) set.set(normNome(n), n); }));
+  return [...set.values()].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+}
+const fmtDataHora = iso => { if(!iso) return '—'; const d = new Date(iso); if(isNaN(d)) return '—'; return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' }); };
+
+function renderAcessos(){
+  const root = $('#p-acessos'); if(!root) return;
+  const linhas = linhasAcessos();
+  const nomes = nomesDaCarteira();
+  const provisoria = !temAlgumaGestao();
+  const local = DB && DB._local;
+  root.innerHTML = `
+    <div class="card"><header><h2>Quem faz o quê</h2><span class="dica">${linhas.length} pessoa(s)</span></header>
+      <div class="corpo">
+        <p class="ajuda" style="margin:0 0 10px">Cada pessoa aparece aqui depois de abrir este módulo no portal uma vez. O acesso ao módulo em si é liberado pela administração do portal (Usuários e acessos). Quem ainda não tem papel vê a tela “Acesso registrado” até a gestão marcar.</p>
+        ${provisoria ? `<div class="aviso" style="margin:0 0 10px">Ninguém tem o papel de Gestão ainda. Até alguém ser marcado, valem como gestão: ${GESTAO_PADRAO.map(n => esc(n.toLowerCase().replace(/\b\w/g, c => c.toUpperCase()))).join(' e ')}. Marque a gestão abaixo para fixar.</div>` : ''}
+        ${local ? '<div class="aviso" style="margin:0 0 10px">Modo local: fora do portal não há usuários; a tabela mostra só este navegador. Para testar os perfis use “ver como…” no chip do usuário.</div>' : ''}
+        <div class="tabela-wrap"><table style="min-width:760px"><thead><tr><th>Pessoa</th><th>Papéis</th><th>Nome na carteira</th><th>Último acesso</th></tr></thead><tbody>${
+          linhas.map(l => {
+            const cb = (pp, rot) => `<label class="check" style="display:inline-flex;margin:0 16px 0 0;text-transform:none;letter-spacing:0;font-size:13px;font-weight:700;color:var(--ink-2)"><input type="checkbox" data-u="${esc(l.id)}" data-pp="${pp}" ${l.papeis.includes(pp) ? 'checked' : ''} ${!CAN_WRITE ? 'disabled' : ''}> ${rot}</label>`;
+            const opts = '<option value="">—</option>' + nomes.map(n => `<option ${normNome(n) === normNome(l.nomeCarteira) ? 'selected' : ''}>${esc(n)}</option>`).join('')
+              + (l.nomeCarteira && !nomes.some(n => normNome(n) === normNome(l.nomeCarteira)) ? `<option selected>${esc(l.nomeCarteira)}</option>` : '');
+            return `<tr><td><b>${esc(l.nome)}</b>${l.id === String(ME.id) ? ' <span class="ajuda" style="display:inline;margin:0">(você)</span>' : ''}${!l.papeis.length && l.id !== String(ME.id) ? ' <span class="selo s-rean">sem papel</span>' : ''}</td>
+              <td>${cb('gestao', 'Gestão')}${cb('solicitante', 'Solicitante')}</td>
+              <td><select class="campo" data-nc="${esc(l.id)}" style="width:auto;min-width:220px" ${!CAN_WRITE ? 'disabled' : ''}>${opts}</select></td>
+              <td>${fmtDataHora(l.visto)}</td></tr>`;
+          }).join('')}</tbody></table></div>
+      </div></div>
+    <div class="card"><header><h2>Papéis</h2></header><div class="corpo">
+      <p class="ajuda" style="margin:0 0 6px"><b>Gestão</b>: coordenação. Vê tudo, recebe e registra solicitações, conduz e conclui as análises, cuida da fila de acompanhamento, das configurações e define os papéis nesta aba.</p>
+      <p class="ajuda" style="margin:0 0 6px"><b>Solicitante</b>: assistentes de implantação e analistas de Cobrança. Envia solicitações, verifica os condomínios implantados e acompanha as próprias solicitações, baixando a ficha quando concluída.</p>
+      <p class="ajuda" style="margin:0"><b>Nome na carteira</b>: liga o login ao nome que aparece no cadastro de condomínios (assistente de crédito ou analista de cobrança). É assim que o ticket da ficha chega à pessoa certa.</p>
+    </div></div>`;
+
+  const salvarPerfil = async (uid, fn) => {
+    const lin = linhas.find(l => l.id === uid);
+    const atual = JSON.parse(JSON.stringify((S.perfis || {})[uid] || { id: uid, papeis: [], nomeCarteira: '' }));
+    atual.nome = lin ? lin.nome : atual.nome;
+    fn(atual);
+    atual.atualizadoEm = nowISO(); atual.atualizadoPor = ME.name;
+    try{
+      // primeira configuração: quem está na gestão provisória (nomes padrão) fica fixado como Gestão antes de marcar outra pessoa
+      const eu = String(ME.id);
+      if(!temAlgumaGestao() && ehGestao() && uid !== eu && !(DB && DB._local)){
+        const meu = JSON.parse(JSON.stringify((S.perfis || {})[eu] || { id: eu, papeis: [], nomeCarteira: '' }));
+        meu.nome = ME.name; if(!meu.papeis.includes('gestao')) meu.papeis.push('gestao'); meu.atualizadoEm = nowISO(); meu.atualizadoPor = ME.name;
+        await DB.doc(COLECOES.perfis + '/' + eu).set(meu);
+      }
+      await DB.doc(COLECOES.perfis + '/' + uid).set(atual); registrarHistorico('papel', { usuario: uid, nome: atual.nome, papeis: atual.papeis }); toast('Papéis de ' + atual.nome + ' atualizados.'); }
+    catch(e){ toast(dbErr(e), 5000); renderAcessos(); }
+  };
+  root.querySelectorAll('[data-pp]').forEach(el => el.onchange = async () => {
+    const uid = el.dataset.u, pp = el.dataset.pp, on = el.checked;
+    if(pp === 'gestao' && !on && uid === String(ME.id)){
+      const outras = Object.values(S.perfis || {}).filter(p => p.id !== uid && (p.papeis || []).includes('gestao')).length;
+      if(!(await confirmar('Você vai tirar o seu próprio papel de Gestão' + (outras ? '.' : ' e não sobra ninguém na gestão: valem de novo os nomes padrão.') + ' Continuar?'))){ el.checked = true; return; }
+    }
+    salvarPerfil(uid, p => { p.papeis = (p.papeis || []).filter(x => x !== pp); if(on) p.papeis.push(pp); });
+  });
+  root.querySelectorAll('[data-nc]').forEach(el => el.onchange = () => salvarPerfil(el.dataset.nc, p => { p.nomeCarteira = el.value; }));
 }
 
 /* ===== 90-init.js ===== */
