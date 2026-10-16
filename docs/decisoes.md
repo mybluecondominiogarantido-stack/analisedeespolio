@@ -25,7 +25,7 @@ Registro do que foi decidido com a Coordenação de Cobrança (out/2026) para a 
 - **Rodada concluída trava**; correção gera nova rodada.
 - **Carga inicial** a partir da planilha "Controle de Verificação de Espólios": só os 35 condomínios com espólio (jan–jul/2026) entram na fila; unidades em "VÁRIAS" ficam marcadas para completar.
 - **Resumo mensal** gerado no dashboard.
-- **Dashboard** com quatro cartões, nesta ordem: total de espólios sinalizados (acumulado), análises do mês, pendentes (unidades com reanálise vencida), excluídas (acumulado).
+- **Dashboard** com quatro cartões, nesta ordem: espólios sinalizados (acumulado), análises do mês, pendentes (unidades com reanálise vencida), excluídas (acumulado).
 
 ## Saída do acompanhamento
 - Exclusão da garantia (3+ taxas no Vouch em acompanhamento) ou **troca de titularidade concluída** (encerramento manual com motivo).
