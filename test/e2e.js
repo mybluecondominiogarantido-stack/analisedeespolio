@@ -93,15 +93,19 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   ok(/^AE-2026-0002 - /.test(dl2.suggestedFilename()), `lote concluído gera AE-2026-0002 e baixa a ficha (${dl2.suggestedFilename()})`);
   await p.waitForTimeout(600);
 
-  /* 5 · histórico, evolução, dashboard, resumo */
-  await p.click('[data-tab="hist"]'); await p.waitForTimeout(300);
-  const nHist = await p.$$eval('#histTabela tbody tr', t => t.length);
-  ok(nHist >= 2, `histórico lista as rodadas (${nHist} nos últimos 90 dias)`);
+  /* 5 · histórico do condomínio pela fila, dashboard, resumo */
+  await p.click('[data-tab="lote"]'); await p.waitForTimeout(300);
   const chave = await p.evaluate(() => S.rodadas.find(r => r.condominio.nome === 'CONDOMINIO ESMERALDA IV').condominio.chave);
-  await p.selectOption('#evoCond', chave); await p.waitForTimeout(300);
-  const evoCols = await p.$$eval('#evoTabela thead th', t => t.length);
+  await p.click(`#loteFila [data-hist="${chave}"]`); await p.waitForTimeout(300);
+  const nRod = await p.$$eval('#modal [data-ver]', t => t.length);
+  ok(nRod === 2, `histórico do condomínio lista as duas rodadas (${nRod})`);
+  const evoCols = await p.$$eval('#modal .card:last-child thead th', t => t.length);
   ok(evoCols === 4, 'evolução mostra as duas rodadas do condomínio');
-  await shot('historico');
+  await shot('historico-condominio');
+  await p.click('#modal [data-ver]'); await p.waitForTimeout(300);
+  ok(/AE-2026-0002/.test(await p.$eval('#modal h2', e => e.textContent)), 'clique na rodada abre a ficha');
+  await p.click('#mVoltar'); await p.waitForTimeout(200); await p.click('#modal [data-fechar]');
+  ok((await p.$$eval('.tab', t => t.length)) === 4, 'quatro abas: dashboard, nova análise, fila, configurações');
   await p.click('[data-tab="dash"]'); await p.click('#btnResumo'); await p.waitForTimeout(300);
   ok(/AE-2026-0001/.test(await p.$eval('#resumoMensal', e => e.textContent)), 'resumo mensal lista a rodada do mês');
   const tiles = await p.$eval('#dashTiles', e => e.textContent);

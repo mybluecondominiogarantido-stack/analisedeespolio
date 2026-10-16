@@ -7,15 +7,24 @@ function renderLoteFila(){
   const venc = f.filter(i => i.vencida).length;
   $('#loteContagem').innerHTML = `${f.length} condomínio(s) na fila · <b>${venc}</b> vencido(s) · <b>${S.lote.selecionados.size}</b> selecionado(s)`;
   const wrap = $('#loteFila');
-  if(!f.length){ wrap.innerHTML = '<div class="corpo"><div class="vazio">A fila está vazia. Conclua análises de implantação ou importe a planilha de controle em Configurações.</div></div>'; return; }
+  if(!f.length){ wrap.innerHTML = '<div class="corpo"><div class="vazio">A fila está vazia. Conclua análises de implantação ou importe a planilha de controle em Configurações.</div></div>'; renderLoteFora(); return; }
   wrap.innerHTML = `<table><thead><tr><th></th><th>Condomínio</th><th>Unidades</th><th>Última rodada</th><th>Prazo</th><th>Situação</th></tr></thead><tbody>${
-    f.map(i => `<tr class="clic" data-chave="${esc(i.chave)}"><td><input type="checkbox" data-sel="${esc(i.chave)}" ${S.lote.selecionados.has(i.chave)?'checked':''}></td>
-      <td><b>${esc(i.condominio.nome)}</b>${i.condominio.cnpj?`<div class="ajuda" style="margin:0">${esc(i.condominio.cnpj)}</div>`:''}</td>
+    f.map(i => `<tr data-chave="${esc(i.chave)}"><td><input type="checkbox" data-sel="${esc(i.chave)}" ${S.lote.selecionados.has(i.chave)?'checked':''}></td>
+      <td><button class="link" data-hist="${esc(i.chave)}" style="text-decoration:none;color:var(--ink)"><b>${esc(i.condominio.nome)}</b></button>${i.condominio.cnpj?`<div class="ajuda" style="margin:0">${esc(i.condominio.cnpj)}</div>`:''}</td>
       <td>${i.unidades.length}${i.completar?' <span class="selo s-rean">completar</span>':''}</td>
       <td>${esc(i.rodada.protocolo || 'carga inicial')} · ${fmtData(i.rodada.dataAnalise)}</td>
       <td class="${i.vencida?'venc':''}">${i.vencida ? `vencida há ${-i.dias} dia(s)` : `em ${i.dias} dia(s)`}</td>
       <td>${i.rascunho ? '<span class="selo s-rasc">rascunho em aberto</span>' : S.lote.itens.some(x => x.fila && x.fila.chave === i.chave) ? '<span class="selo s-prev">no lote</span>' : ''}</td></tr>`).join('')}</tbody></table>`;
   wrap.querySelectorAll('[data-sel]').forEach(cb => cb.onchange = () => { if(cb.checked) S.lote.selecionados.add(cb.dataset.sel); else S.lote.selecionados.delete(cb.dataset.sel); renderLoteFila(); });
+  wrap.querySelectorAll('[data-hist]').forEach(b => b.onclick = () => abrirCondominioModal(b.dataset.hist));
+  renderLoteFora();
+}
+function renderLoteFora(){
+  const fora = foraDaFila(); const el = $('#loteFora');
+  if(!fora.length){ el.innerHTML = ''; return; }
+  el.innerHTML = `<details style="border-top:1px solid var(--linha)"><summary style="cursor:pointer;padding:11px 18px;font-size:13px;color:var(--muted);font-weight:700">Fora do acompanhamento · ${fora.length} condomínio(s) com todas as unidades excluídas ou encerradas</summary>
+    <div class="tabela-wrap"><table><thead><tr><th>Condomínio</th><th>Unidades</th><th>Excluídas</th><th>Última rodada</th></tr></thead><tbody>${fora.map(i => `<tr><td><button class="link" data-hist="${esc(i.chave)}" style="text-decoration:none;color:var(--ink)"><b>${esc(i.condominio.nome)}</b></button></td><td>${i.unidades.length}</td><td>${i.unidades.filter(u=>u.resultado==='EXCLUIR').length}</td><td>${esc(i.rodada.protocolo||'carga inicial')} · ${fmtData(i.rodada.dataAnalise)}</td></tr>`).join('')}</tbody></table></div></details>`;
+  el.querySelectorAll('[data-hist]').forEach(b => b.onclick = () => abrirCondominioModal(b.dataset.hist));
 }
 $('#btnSelVencidos').onclick = () => { fila().filter(i => i.vencida).forEach(i => S.lote.selecionados.add(i.chave)); renderLoteFila(); };
 $('#btnSelNenhum').onclick = () => { S.lote.selecionados.clear(); renderLoteFila(); };

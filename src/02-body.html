@@ -12,7 +12,6 @@
     <button class="tab ativa" data-tab="dash">Dashboard</button>
     <button class="tab" data-tab="nova">Nova análise <span class="n" id="nNova" hidden></span></button>
     <button class="tab" data-tab="lote">Fila de acompanhamento <span class="n" id="nFila" hidden></span></button>
-    <button class="tab" data-tab="hist">Histórico</button>
     <button class="tab" data-tab="conf">Configurações</button>
   </nav>
 </div></header>
@@ -141,10 +140,11 @@
 
 <!-- ================= REANÁLISE DO DIA ================= -->
 <section class="painel" id="p-lote">
-  <div class="nota"><b>Fila de acompanhamento:</b> selecione os condomínios da fila, arraste os PDFs do Vouch de uma vez e o sistema identifica cada condomínio pelo cabeçalho. Só o Vouch entra; as unidades vêm da rodada anterior. Conclusão e ficha são por condomínio.</div>
+  <div class="nota"><b>Fila de acompanhamento:</b> clique no nome do condomínio para ver as rodadas, as fichas e a evolução das unidades. Para reanalisar, selecione os condomínios, arraste os PDFs do Vouch de uma vez e o sistema identifica cada um pelo cabeçalho. Só o Vouch entra; as unidades vêm da rodada anterior. Conclusão e ficha são por condomínio.</div>
   <div class="card">
     <header><h2>Fila de acompanhamento</h2><div class="acoes"><span class="pill" id="loteContagem"></span><button class="btn sec mini" id="btnSelVencidos">Selecionar vencidos</button><button class="btn sec mini" id="btnSelNenhum">Limpar seleção</button></div></header>
     <div class="tabela-wrap" id="loteFila"></div>
+    <div id="loteFora"></div>
   </div>
   <div class="card">
     <header><h2>PDFs do Vouch</h2><span class="dica">um relatório por condomínio · pode arrastar vários</span></header>
@@ -154,29 +154,6 @@
     </div>
   </div>
   <div id="loteRevisao"></div>
-</section>
-
-<!-- ================= HISTÓRICO ================= -->
-<section class="painel" id="p-hist">
-  <div class="card">
-    <header><h2>Rodadas de análise</h2><span class="dica" id="histContagem"></span></header>
-    <div class="corpo">
-      <div class="filtros">
-        <input type="text" id="histBusca" class="campo" placeholder="Buscar condomínio ou protocolo">
-        <select id="histTipo"><option value="">Todos os tipos</option><option value="implantacao">Implantação</option><option value="acompanhamento">Acompanhamento</option><option value="carga">Carga inicial</option></select>
-        <select id="histStatus"><option value="">Todos os status</option><option value="rascunho">Rascunho</option><option value="concluida">Concluída</option></select>
-        <select id="histPeriodo"><option value="90">Últimos 90 dias</option><option value="365">Últimos 12 meses</option><option value="">Tudo</option></select>
-      </div>
-      <div class="tabela-wrap" id="histTabela"></div>
-    </div>
-  </div>
-  <div class="card">
-    <header><h2>Evolução por condomínio</h2><span class="dica">escolha um condomínio para ver as unidades rodada a rodada</span></header>
-    <div class="corpo">
-      <div class="filtros"><select id="evoCond"><option value="">Escolha o condomínio</option></select></div>
-      <div class="tabela-wrap" id="evoTabela"></div>
-    </div>
-  </div>
 </section>
 
 <!-- ================= CONFIGURAÇÕES ================= -->

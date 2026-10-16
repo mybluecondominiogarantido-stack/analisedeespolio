@@ -1,6 +1,6 @@
 # Análise de Espólio · MyBlue
 
-Módulo do portal MyBlue para a Coordenação de Cobrança: análise de implantação de espólios, fila de acompanhamento com prazo de 90 dias, reanálise em lote e ficha em PDF por condomínio.
+Módulo do portal MyBlue para a Coordenação de Cobrança: análise de implantação de espólios, fila de acompanhamento com prazo de 90 dias e histórico por condomínio, reanálise em lote e ficha em PDF por condomínio.
 
 ## Arquivos
 

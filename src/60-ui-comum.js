@@ -7,7 +7,6 @@ function mostrarAba(nome){
   $$('.painel').forEach(p => p.classList.toggle('ativa', p.id === 'p-' + nome));
   window.scrollTo({ top: 0 });
   if(nome === 'lote') renderLote();
-  if(nome === 'hist') renderHistorico();
   if(nome === 'conf') renderConf();
 }
 $('#tabs').addEventListener('click', e => { const b = e.target.closest('.tab'); if(b) mostrarAba(b.dataset.tab); });
@@ -18,7 +17,6 @@ function renderTudo(){
   renderBadges();
   renderListaCondominios();
   if(S.aba === 'lote') renderLote();
-  if(S.aba === 'hist') renderHistorico();
   if(S.aba === 'conf') renderConf();
 }
 function renderBadges(){
