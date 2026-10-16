@@ -167,7 +167,7 @@ function abrirSolicitacaoModal(x){
     </div>
     ${x.obs ? `<div class="nota" style="margin-bottom:12px"><b>Observações:</b> ${esc(x.obs)}</div>` : ''}
     ${x.motivoDevolucao ? `<div class="aviso" style="margin:0 0 12px"><b>Devolvida:</b> ${esc(x.motivoDevolucao)}</div>` : ''}
-    <div class="tabela-wrap"><table><thead><tr><th>Unidade</th><th>Titular</th><th>CPF</th>${x.resultado && x.resultado.length ? '<th>Resultado</th>' : ''}</tr></thead><tbody>${unidades.map(u => `<tr><td><b>${esc(u.unid||'—')}</b></td><td>${esc(u.titular||'')}</td><td>${esc(u.cpf||'')}</td>${x.resultado && x.resultado.length ? `<td><span class="selo ${classeSelo(u.resultado)}">${esc(rotuloStatus(u.resultado))}</span><div class="ajuda" style="margin:2px 0 0">Regra ${esc(u.regra||'')}</div></td>` : ''}</tr>`).join('')}</tbody></table></div>`;
+    <div class="tabela-wrap"><table><thead><tr><th>Unidade</th><th>Titular</th><th>CPF</th>${x.resultado && x.resultado.length ? '<th>Resultado</th>' : ''}</tr></thead><tbody>${unidades.map(u => `<tr><td><b>${esc(u.unid||'—')}</b></td><td>${esc(u.titular||'')}</td><td>${esc(u.cpf||'')}</td>${x.resultado && x.resultado.length ? `<td><span class="selo ${classeSelo(u.resultado)}">${esc(rotuloStatus(u.resultado))}</span></td>` : ''}</tr>`).join('')}</tbody></table></div>`;
   let acoes = '';
   if(x.status === 'concluida' && rod) acoes += `<button class="btn mini" id="mSolFicha">Baixar ficha</button>`;
   if(gestao){

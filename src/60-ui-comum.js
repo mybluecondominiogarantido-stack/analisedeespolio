@@ -160,7 +160,8 @@ function fichaHTML(r){
   const classif = res.length ? [nE?`Excluir da garantia (${nE})`:null, (nR+nP)?`Sob análise · ${tipoSob} (${nR+nP})`:null, nEnc?`Encerradas (${nEnc})`:null].filter(Boolean).join('  ·  ') : '—';
   const sit = n => n === null || n === undefined ? 'Não informado' : (n > 0 ? `Inadimplente (${n} taxa${n>1?'s':''})` : 'Sem cobrança');
   const tipoTxt = r.tipo === 'acompanhamento' ? 'Acompanhamento (reanálise)' : r.tipo === 'carga' ? 'Carga inicial' : r.tipo === 'avulso' ? 'Avulso (sinalização da Cobrança)' : 'Implantação (1ª análise)';
-  const semAnt = r.semAnterior || r.tipo === 'acompanhamento';
+  const semColAnt = r.tipo === 'acompanhamento';   // reanálise: só o Vouch entra
+  const antTxt = u => r.semAnterior ? 'Sem relatório anterior' : sit(u.ant);
   const logo = $('.brand img') ? $('.brand img').getAttribute('src') : '';
   return `
   ${logo ? `<img src="${logo}" class="f-logo" alt="MyBlue">` : ''}
@@ -173,14 +174,14 @@ function fichaHTML(r){
     <tr><th>Idade da garantia</th><td>${inicioTxt}</td><th>Data da análise</th><td>${fmtData(r.dataAnalise)}</td></tr>
   </table>
   <div class="f-destaques">
-    <div class="f-classif"><small>Classificação sugerida</small><div>${esc(classif)}</div></div>
+    <div class="f-classif"><small>Resultado</small><div>${esc(classif)}</div></div>
     <div class="f-resumo"><div><small>Idade da garantia</small><strong>${inicioTxt}</strong></div><div><small>Resultado do BI</small><strong>${bi === null ? 'não informado' : fmtBRL(bi)}</strong></div>${r.proximaReanalise?`<div><small>Próxima reanálise</small><strong>${fmtData(r.proximaReanalise)}</strong></div>`:''}</div>
   </div>
   ${r.nota ? `<div class="f-nota">${esc(r.nota)}</div>` : ''}
   <div class="f-secao">Unidades sinalizadas × relatórios de inadimplência</div>
-  <table class="f-tab"><thead><tr><th style="width:8%">UNID.</th><th style="width:26%">TITULAR</th><th style="width:14%">CPF</th>${semAnt?'':'<th style="width:18%">INADIMPLÊNCIA ANTERIOR</th>'}<th style="width:16%">VOUCH</th><th style="width:18%">RESULTADO</th></tr></thead><tbody>${
-    res.length ? res.map(u => `<tr><td><b>${esc(u.unid||'—')}</b></td><td>${esc(u.titular||'(a completar)')}</td><td>${esc(u.cpf||'—')}</td>${semAnt?'':`<td>${sit(r.semAnterior?0:u.ant)}</td>`}<td>${sit(u.vouch)}</td>
-      <td class="res ${classeRes(u.resultado)}">${esc(rotuloStatus(u.resultado))}<small>Regra ${esc(u.regra)}</small></td></tr>`).join('')
+  <table class="f-tab"><thead><tr><th style="width:8%">UNID.</th><th style="width:26%">TITULAR</th><th style="width:14%">CPF</th>${semColAnt?'':'<th style="width:18%">INADIMPLÊNCIA ANTERIOR</th>'}<th style="width:16%">VOUCH</th><th style="width:18%">RESULTADO</th></tr></thead><tbody>${
+    res.length ? res.map(u => `<tr><td><b>${esc(u.unid||'—')}</b></td><td>${esc(u.titular||'(a completar)')}</td><td>${esc(u.cpf||'—')}</td>${semColAnt?'':`<td>${antTxt(u)}</td>`}<td>${sit(u.vouch)}</td>
+      <td class="res ${classeRes(u.resultado)}">${esc(rotuloStatus(u.resultado))}</td></tr>`).join('')
     : `<tr><td colspan="6" style="text-align:center;color:#6b7f88">Sem unidades sinalizadas.</td></tr>`}
   </tbody></table>
   <div class="f-legenda">
@@ -188,14 +189,14 @@ function fichaHTML(r){
     <span><i style="background:#F2A93B"></i> Sob análise · Reanálise (acompanhamento)</span>
     <span><i style="background:#C0392B"></i> Excluir da garantia</span>
   </div>
-  <div class="f-rodape-tab">Inadimplência anterior = débito antes da garantia MyBlue. Vouch = sistema interno MyBlue. • Regras 1 a 5 da Política de Análise de Espólio, aplicadas na ordem.</div>
+  <div class="f-rodape-tab">Inadimplência anterior = débito antes da garantia MyBlue. Vouch = sistema interno MyBlue. • Classificação conforme a Política de Análise de Espólio.</div>
   <div class="f-caixas">
-    <div class="f-caixa cx-EXCLUIR"><h4>Sugestão: excluir da garantia</h4><p>${esc(nomes(grupo('EXCLUIR')))}</p></div>
+    <div class="f-caixa cx-EXCLUIR"><h4>Excluir da garantia</h4><p>${esc(nomes(grupo('EXCLUIR')))}</p></div>
     <div class="f-caixa cx-REAN"><h4>Sob análise · Reanálise</h4><p>${esc(nomes(grupo('REANÁLISE')))}</p></div>
     <div class="f-caixa cx-PREV"><h4>Sob análise · Preventivo</h4><p>${esc(nomes(grupo('PREVENTIVO')))}</p></div>
     <div class="f-caixa"><h4>Observações</h4><p>${esc(obs||'—')}</p></div>
   </div>
-  <div class="f-rodape"><span>MyBlue Condomínio Garantido | contato@myblue.com.br | www.myblue.com.br | (85) 4042.9277</span><span>${esc(r.protocolo||'rascunho')} · gerada em ${fmtData(hojeISO())}</span></div>`;
+  <div class="f-rodape"><span>MyBlue Condomínio Garantido | contato@myblue.com.br | www.myblue.com.br | 0800 085 9277</span><span>${esc(r.protocolo||'rascunho')} · gerada em ${fmtData(hojeISO())}</span></div>`;
 }
 const nomeFicha = r => nomeArquivoSeguro(`${r.status === 'concluida' && r.protocolo ? r.protocolo : 'RASCUNHO' + (r.protocolo ? ' ' + r.protocolo : '')} - ${r.condominio.nome || 'condominio'}`) + '.pdf';
 
