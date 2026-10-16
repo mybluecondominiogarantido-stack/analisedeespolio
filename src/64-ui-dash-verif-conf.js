@@ -1,5 +1,5 @@
 /* ======================================================================
-   Dashboard, verificação mensal, configurações
+   Dashboard, resumo mensal, configurações
    ====================================================================== */
 function renderDashboard(){
   const hoje = hojeISO(), mes = mesDe(hoje);
@@ -7,15 +7,16 @@ function renderDashboard(){
   const doMes = conc.filter(r => mesDe(r.dataAnalise) === mes);
   const unidadesMes = doMes.flatMap(r => r.unidades || []);
   const f = fila(); const venc = f.filter(i => i.vencida);
-  const verifMes = S.verificacoes.filter(v => v.mes === mes);
   const n = (arr, x) => arr.filter(u => u.resultado === x).length;
+  const pan = panoramaUnidades();
   $('#dashTiles').innerHTML = `
-    <div class="tile"><small>Análises em ${MESES_FULL[+mes.slice(5)-1].toLowerCase()}</small><strong>${doMes.length}</strong><em>${doMes.filter(r=>r.tipo!=='acompanhamento').length} implantação · ${doMes.filter(r=>r.tipo==='acompanhamento').length} acompanhamento</em></div>
-    <div class="tile"><small>Espólios no mês</small><strong>${unidadesMes.length}</strong><em>nas ${doMes.length} rodadas do mês</em></div>
-    <div class="tile"><small>Excluídos no mês</small><strong>${n(unidadesMes,'EXCLUIR')}</strong><em>${unidadesMes.length ? Math.round(100*n(unidadesMes,'EXCLUIR')/unidadesMes.length) + '% dos sinalizados' : '—'}</em></div>
-    <div class="tile"><small>Na fila</small><strong>${f.reduce((s,i)=>s+i.unidades.length,0)}</strong><em>${f.length} condomínio(s) em acompanhamento</em></div>
+    <div class="tile"><small>Total de espólios</small><strong>${pan.total}</strong><em>unidades sinalizadas desde o início</em></div>
+    <div class="tile" style="border-color:#ecd8a8;background:#fffcf5"><small>Pendentes · sob análise</small><strong style="color:#b57a12">${pan.sobAnalise}</strong><em>${f.length} condomínio(s) na fila de reanálise</em></div>
+    <div class="tile"><small>Em análise agora</small><strong>${pan.emAnalise}</strong><em>em rodadas ainda não concluídas</em></div>
+    <div class="tile" style="border-color:#9ed6bd;background:#f6fcf9"><small>Encerradas</small><strong style="color:var(--green)">${pan.encerradas}</strong><em>troca de titularidade concluída</em></div>
+    <div class="tile alerta"><small>Excluídas da garantia</small><strong>${pan.excluidas}</strong><em>acumulado</em></div>
     <div class="tile ${venc.length?'alerta':''}"><small>Reanálises vencidas</small><strong>${venc.length}</strong><em>mais de ${PRAZO_REANALISE_DIAS} dias sem nova rodada</em></div>
-    <div class="tile"><small>Verificados no mês</small><strong>${verifMes.length}</strong><em>${verifMes.filter(v=>v.temEspolio).length} com espólio</em></div>`;
+    <div class="tile"><small>Análises do mês</small><strong>${doMes.length}</strong><em>${doMes.filter(r=>r.tipo!=='acompanhamento').length} implantação · ${doMes.filter(r=>r.tipo==='acompanhamento').length} acompanhamento · ${n(unidadesMes,'EXCLUIR')} excluída(s)</em></div>`;
   renderGraficoMensal(conc);
   const top = f.slice(0, 8);
   $('#dashFila').innerHTML = top.length ? `<table><thead><tr><th>Condomínio</th><th>Unid.</th><th>Última rodada</th><th>Prazo</th></tr></thead><tbody>${top.map(i => `<tr class="clic" data-lote="${esc(i.chave)}"><td>${esc(i.condominio.nome)}</td><td>${i.unidades.length}</td><td>${fmtData(i.rodada.dataAnalise)}</td><td class="${i.vencida?'venc':''}">${i.vencida ? `vencida há ${-i.dias} dia(s)` : `em ${i.dias} dia(s)`}</td></tr>`).join('')}</tbody></table>` : '<div class="corpo"><div class="vazio">Fila vazia.</div></div>';
@@ -49,11 +50,9 @@ $('#btnResumo').onclick = () => {
   const mes = $('#resumoMes').value; if(!mes) return;
   const conc = rodadasConcluidas().filter(r => r.origem !== 'carga' && mesDe(r.dataAnalise) === mes);
   const us = conc.flatMap(r => r.unidades || []);
-  const verif = S.verificacoes.filter(v => v.mes === mes);
   const f = fila(); const venc = f.filter(i => i.vencida);
   const n = x => us.filter(u => u.resultado === x).length;
   const html = `<div class="ficha" id="resumoFicha" style="padding:20px 24px"><div class="f-titulo" style="font-size:20px">Resumo mensal · Análise de Espólio · ${MESES_FULL[+mes.slice(5)-1]}/${mes.slice(0,4)}</div><div class="f-sub">Cobrança / Coordenação · gerado em ${fmtData(hojeISO())}</div>
-    <div class="f-secao">Verificação mensal</div><p>${verif.length} condomínio(s) verificado(s) · ${verif.filter(v=>v.temEspolio).length} com espólio · ${verif.filter(v=>!v.temEspolio).length} sem espólio.</p>
     <div class="f-secao">Rodadas concluídas no mês</div>
     <table class="f-tab"><thead><tr><th>Protocolo</th><th>Condomínio</th><th>Tipo</th><th>Data</th><th>Sinalizados</th><th>Excluídos</th><th>Sob análise</th></tr></thead><tbody>${conc.length ? conc.map(r => { const s = r.resumo || resumoRodada(r); return `<tr><td>${esc(r.protocolo)}</td><td>${esc(r.condominio.nome)}</td><td>${r.tipo==='acompanhamento'?'Acompanhamento':'Implantação'}</td><td>${fmtData(r.dataAnalise)}</td><td>${s.total}</td><td>${s.excluir}</td><td>${s.prev+s.rean}</td></tr>`; }).join('') : '<tr><td colspan="7" style="text-align:center">Nenhuma rodada concluída no mês.</td></tr>'}</tbody></table>
     <div class="f-caixas" style="grid-template-columns:repeat(4,1fr)"><div class="f-caixa"><h4>Rodadas</h4><p>${conc.length}</p></div><div class="f-caixa cx-EXCLUIR"><h4>Excluídos</h4><p>${n('EXCLUIR')}</p></div><div class="f-caixa"><h4>Sob análise</h4><p>${n('PREVENTIVO')+n('REANÁLISE')}</p></div><div class="f-caixa cx-REAN"><h4>Fila vencida hoje</h4><p>${venc.length} condomínio(s)</p></div></div>
@@ -61,35 +60,6 @@ $('#btnResumo').onclick = () => {
     <div class="acoes" style="margin-top:10px"><button class="btn sec mini" id="btnResumoPdf">Baixar resumo em PDF</button></div>`;
   $('#resumoMensal').innerHTML = html;
   $('#btnResumoPdf').onclick = async () => { const el = $('#resumoFicha'); if(typeof html2pdf === 'undefined'){ window.print(); return; } await html2pdf().set({ margin: 8, filename: `Resumo Espolio ${mes}.pdf`, html2canvas: { scale: 2, backgroundColor:'#fff' }, jsPDF: { unit:'mm', format:'a4', orientation:'landscape' } }).from(el).save(); };
-};
-
-/* ---------- verificação mensal ---------- */
-function renderVerificacao(){
-  if(!$('#verifMes').value) $('#verifMes').value = mesDe(hojeISO());
-  const mes = $('#verifMes').value;
-  const lista = S.verificacoes.filter(v => v.mes === mes).sort((a,b) => (a.ordem||0) - (b.ordem||0) || a.condominio.localeCompare(b.condominio));
-  const com = lista.filter(v => v.temEspolio).length;
-  $('#verifResumo').innerHTML = `<span class="pill">Verificados <b>${lista.length}</b></span><span class="pill">Com espólio <b>${com}</b></span><span class="pill">Sem espólio <b>${lista.length - com}</b></span>`;
-  const wrap = $('#verifTabela');
-  if(!lista.length){ wrap.innerHTML = `<div class="vazio">Nenhum condomínio verificado em ${fmtMesAno(mes)}. Adicione ou importe a planilha de controle em Configurações.</div>`; return; }
-  const temRodada = v => S.rodadas.some(r => r.condominio.chave === chaveCond(v.condominio, '') || normCond(r.condominio.nome) === normCond(v.condominio));
-  wrap.innerHTML = `<table><thead><tr><th>Condomínio</th><th>Comarca</th><th>Vigência</th><th>Espólio?</th><th>Unidades / observações</th><th></th></tr></thead><tbody>${
-    lista.map(v => `<tr><td><b>${esc(v.condominio)}</b></td><td>${esc(v.comarca||'')}</td><td>${esc(v.vigencia||'')}</td>
-      <td><input type="checkbox" data-verif-esp="${v.id}" ${v.temEspolio?'checked':''} ${!CAN_WRITE?'disabled':''}></td>
-      <td><input type="text" data-verif-obs="${v.id}" value="${esc(v.obs||'')}" placeholder="unidades, ex.: A - 101 / B - 204" ${!CAN_WRITE?'disabled':''}></td>
-      <td class="acoes">${v.temEspolio ? (temRodada(v) ? '<span class="selo s-ok">em análise</span>' : `<button class="btn mini" data-verif-analisar="${v.id}">Iniciar análise</button>`) : ''}<button class="btn perigo mini" data-verif-rm="${v.id}" title="Remover">×</button></td></tr>`).join('')}</tbody></table>`;
-  wrap.querySelectorAll('[data-verif-esp]').forEach(cb => cb.onchange = () => gravarDoc(COLECOES.verificacoes + '/' + cb.dataset.verifEsp, { temEspolio: cb.checked, atualizadoEm: nowISO() }));
-  wrap.querySelectorAll('[data-verif-obs]').forEach(inp => inp.onchange = () => gravarDoc(COLECOES.verificacoes + '/' + inp.dataset.verifObs, { obs: inp.value, atualizadoEm: nowISO() }));
-  wrap.querySelectorAll('[data-verif-rm]').forEach(b => b.onclick = async () => { if(await confirmar('Remover este condomínio da verificação do mês?')) await DB.doc(COLECOES.verificacoes + '/' + b.dataset.verifRm).delete(); });
-  wrap.querySelectorAll('[data-verif-analisar]').forEach(b => b.onclick = () => { const v = S.verificacoes.find(x => x.id === b.dataset.verifAnalisar); const r = novaRodada('implantacao', { nome: v.condominio, cnpj: '', chave: chaveCond(v.condominio, '') }); const u = unidadesDasObs(v.obs); u.unidades.forEach(x => r.unidades.push(novaUnidade(x.unidTxt, '', ''))); abrirEditor(r); });
-}
-$('#verifMes').addEventListener('change', renderVerificacao);
-$('#btnVerifAdd').onclick = () => {
-  const mes = $('#verifMes').value || mesDe(hojeISO());
-  abrirModal('Adicionar condomínio verificado', `<div class="grade"><div><label>Condomínio</label><input type="text" id="vaCond" list="listaCondominios"></div><div><label>Comarca (UF)</label><input type="text" id="vaComarca" placeholder="CE"></div><div><label>Vigência</label><input type="text" id="vaVig" value="${esc(mes.slice(5)+'/'+mes.slice(0,4))}"></div><div><label>Tem espólio?</label><select id="vaEsp"><option value="0">Não</option><option value="1">Sim</option></select></div><div><label>Unidades / observações</label><input type="text" id="vaObs" placeholder="A - 101 / B - 204"></div></div><div class="acoes" style="margin-top:12px"><button class="btn" id="vaOk">Adicionar</button></div>`);
-  $('#vaOk').onclick = async () => { const cond = $('#vaCond').value.trim(); if(!cond){ toast('Informe o condomínio.'); return; }
-    await DB.collection(COLECOES.verificacoes).add({ mes, condominio: cond, comarca: $('#vaComarca').value.trim().toUpperCase(), vigencia: $('#vaVig').value.trim(), responsavel: ME.name, temEspolio: $('#vaEsp').value === '1', obs: $('#vaObs').value.trim(), origem: 'manual', criadoEm: nowISO(), criadoPor: ME.id });
-    fecharModal(); toast('Condomínio adicionado.'); };
 };
 
 /* ---------- configurações ---------- */
@@ -112,9 +82,9 @@ $('#confCargaArquivo').addEventListener('change', async e => {
     const linhas = await lerPlanilhaControle(f);
     if(!linhas.length){ st.innerHTML = '<div class="aviso">Não encontrei abas com a coluna "Condomínio".</div>'; return; }
     const com = linhas.filter(l => l.temEspolio).length;
-    if(!(await confirmar(`Importar ${linhas.length} condomínios verificados (${com} com espólio) de ${new Set(linhas.map(l=>l.aba)).size} abas?\nLinhas já importadas não duplicam.`))) { st.innerHTML = ''; return; }
+    if(!(await confirmar(`Encontrei ${linhas.length} condomínios em ${new Set(linhas.map(l=>l.aba)).size} abas; ${com} com espólio entram na fila.\nLinhas já importadas não duplicam.`))) { st.innerHTML = ''; return; }
     const r = await importarPlanilhaControle(linhas);
-    st.innerHTML = `<div class="ok">Importado: ${r.verificacoes} verificações novas, ${r.rodadas} condomínios com espólio entraram na fila (${r.pulados} linhas já existiam).</div>`;
+    st.innerHTML = `<div class="ok">Importado: ${r.rodadas} condomínio(s) com espólio entraram na fila${r.pulados ? ` (${r.pulados} já existiam)` : ''}.</div>`;
   }catch(err){ st.innerHTML = `<div class="erro">Não deu para importar: ${esc(err.message)}</div>`; }
 });
 $('#btnBackup').onclick = () => baixarArquivo(`backup-analise-espolio-${hojeISO()}.json`, JSON.stringify({ geradoEm: nowISO(), rodadas: S.rodadas, verificacoes: S.verificacoes, meta: S.meta, bi: S.bi }, null, 1), 'application/json');

@@ -37,10 +37,6 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   await p.waitForTimeout(800);
   const nFila = await p.evaluate(() => fila().length);
   ok(nFila === 35, `fila após a carga inicial tem 35 condomínios (tem ${nFila})`);
-  const nVerif = await p.evaluate(() => S.verificacoes.length);
-  ok(nVerif === 102, `102 verificações importadas (tem ${nVerif})`);
-  await p.click('[data-tab="verif"]'); await p.fill('#verifMes', '2026-03'); await p.$eval('#verifMes', e => e.dispatchEvent(new Event('change')));
-  await p.waitForTimeout(300); await shot('verificacao');
 
   /* 2 · implantação com PDF real do Vouch (Esmeralda IV) */
   await p.click('[data-tab="nova"]');
@@ -108,6 +104,8 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   await shot('historico');
   await p.click('[data-tab="dash"]'); await p.click('#btnResumo'); await p.waitForTimeout(300);
   ok(/AE-2026-0001/.test(await p.$eval('#resumoMensal', e => e.textContent)), 'resumo mensal lista a rodada do mês');
+  const tiles = await p.$eval('#dashTiles', e => e.textContent);
+  ok(/Total de espólios/.test(tiles) && /Pendentes/.test(tiles) && /Excluídas da garantia/.test(tiles) && !/Verificados/.test(tiles), 'dashboard mostra o quadro acumulado (total, pendentes, excluídas) sem verificados');
   await shot('dashboard');
 
   /* 6 · persistência local: recarrega e confere */

@@ -1,6 +1,6 @@
 # Análise de Espólio · MyBlue
 
-Módulo do portal MyBlue para a Coordenação de Cobrança: verificação mensal de espólios, análise de implantação, fila de acompanhamento com prazo de 90 dias, reanálise em lote e ficha em PDF por condomínio.
+Módulo do portal MyBlue para a Coordenação de Cobrança: análise de implantação de espólios, fila de acompanhamento com prazo de 90 dias, reanálise em lote e ficha em PDF por condomínio.
 
 ## Arquivos
 
@@ -32,7 +32,6 @@ Bibliotecas externas (cdnjs): pdf.js 3.11.174, SheetJS 0.18.5 e html2pdf.js 0.10
 |---|---|
 | `rodadas` | Uma por análise: condomínio, tipo, data, protocolo, unidades (com contagens, casamento, resultado, regra, ajuste e situação), status, próxima reanálise |
 | `evidencias/{rodadaId}` | Texto extraído dos PDFs e devedores lidos |
-| `verificacoes` | Verificação mensal: condomínio, mês, comarca, vigência, tem espólio, observações |
 | `bi_base/atual` | Base do dia do Power BI, compartilhada |
 | `meta/estado` | Sequência do protocolo por ano (`AE-AAAA-NNNN`) |
 | `historico` | Log de ações (conclusão, ficha, carga, base do BI) |
@@ -45,7 +44,7 @@ A fila de acompanhamento é derivada: última rodada concluída de cada condomí
 - **E-mail de sinalização**: PDF do e-mail (tabela unidade | CPF | nome, blocos rotulados ou linhas soltas com CPF).
 - **Inadimplência anterior**: PDF da administradora anterior, leitor heurístico.
 - **Base do BI**: Excel/CSV do dia com Condomínio, Idade (meses) e Resultado.
-- **Planilha de controle** ("Controle de Verificação de Espólios", abas mensais): carga inicial da verificação e da fila.
+- **Planilha de controle** ("Controle de Verificação de Espólios", abas mensais): carga inicial da fila, só os condomínios marcados com espólio.
 
 ## Testes
 

@@ -8,7 +8,6 @@ function mostrarAba(nome){
   window.scrollTo({ top: 0 });
   if(nome === 'lote') renderLote();
   if(nome === 'hist') renderHistorico();
-  if(nome === 'verif') renderVerificacao();
   if(nome === 'conf') renderConf();
 }
 $('#tabs').addEventListener('click', e => { const b = e.target.closest('.tab'); if(b) mostrarAba(b.dataset.tab); });
@@ -20,7 +19,6 @@ function renderTudo(){
   renderListaCondominios();
   if(S.aba === 'lote') renderLote();
   if(S.aba === 'hist') renderHistorico();
-  if(S.aba === 'verif') renderVerificacao();
   if(S.aba === 'conf') renderConf();
 }
 function renderBadges(){
@@ -32,7 +30,6 @@ function renderBadges(){
 function renderListaCondominios(){
   const nomes = new Set();
   S.rodadas.forEach(r => nomes.add(r.condominio.nome));
-  S.verificacoes.forEach(v => nomes.add(v.condominio));
   (S.bi.base || []).forEach(b => nomes.add(b.nome));
   $('#listaCondominios').innerHTML = [...nomes].filter(Boolean).sort().map(n => `<option value="${esc(n)}">`).join('');
 }

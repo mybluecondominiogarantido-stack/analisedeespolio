@@ -10,7 +10,6 @@
   </div>
   <nav class="tabs" id="tabs">
     <button class="tab ativa" data-tab="dash">Dashboard</button>
-    <button class="tab" data-tab="verif">Verificação mensal</button>
     <button class="tab" data-tab="nova">Nova análise <span class="n" id="nNova" hidden></span></button>
     <button class="tab" data-tab="lote">Reanálise do dia <span class="n" id="nFila" hidden></span></button>
     <button class="tab" data-tab="hist">Histórico</button>
@@ -40,19 +39,6 @@
   <div class="card">
     <header><h2>Resumo mensal</h2><div class="acoes"><input type="month" id="resumoMes" class="campo" style="width:auto"><button class="btn sec mini" id="btnResumo">Gerar resumo</button></div></header>
     <div class="corpo" id="resumoMensal"><div class="vazio">Escolha o mês e clique em “Gerar resumo”.</div></div>
-  </div>
-</section>
-
-<!-- ================= VERIFICAÇÃO MENSAL ================= -->
-<section class="painel" id="p-verif">
-  <div class="nota"><b>Verificação mensal:</b> cada condomínio com vigência iniciada no mês é verificado e marcado como com ou sem espólio. Os que têm espólio seguem para a análise de implantação. Substitui a planilha “Controle de Verificação de Espólios”.</div>
-  <div class="card">
-    <header><h2>Condomínios verificados</h2>
-      <div class="acoes"><input type="month" id="verifMes" class="campo" style="width:auto"><button class="btn sec mini" id="btnVerifAdd">Adicionar condomínio</button></div></header>
-    <div class="corpo">
-      <div class="resumo" id="verifResumo"></div>
-      <div class="tabela-wrap" id="verifTabela"></div>
-    </div>
   </div>
 </section>
 
@@ -209,9 +195,9 @@
     </div>
   </div>
   <div class="card">
-    <header><h2>Carga inicial · planilha de controle</h2><span class="dica">importa a verificação mensal e cria a fila a partir dos condomínios com espólio</span></header>
+    <header><h2>Carga inicial · planilha de controle</h2><span class="dica">cria a fila a partir dos condomínios com espólio</span></header>
     <div class="corpo">
-      <p class="ajuda" style="margin:0 0 10px">Aceita a planilha “Controle de Verificação de Espólios” (uma aba por mês: Quant., Status, Comarca, Condomínio, Vigência, Responsável, Observações). Condomínios com espólio viram rodadas de carga inicial com as unidades das observações; “VÁRIAS” fica marcado para completar na primeira reanálise.</p>
+      <p class="ajuda" style="margin:0 0 10px">Aceita a planilha “Controle de Verificação de Espólios” (uma aba por mês: Quant., Status, Comarca, Condomínio, Vigência, Responsável, Observações). Só os condomínios marcados com espólio entram: viram rodadas de carga inicial com as unidades das observações; “VÁRIAS” fica marcado para completar na primeira reanálise. Condomínios sem espólio são ignorados.</p>
       <div class="doc"><div class="ico">XLS</div><div><b>Importar planilha de controle</b><span>Pode repetir: linhas já importadas não duplicam</span></div><input type="file" accept=".xlsx,.xls" id="confCargaArquivo"></div>
       <div id="confCargaStatus"></div>
     </div>
@@ -225,7 +211,7 @@
       <header><h2>Dados</h2><span class="dica">cópia de segurança</span></header>
       <div class="corpo">
         <div class="acoes"><button class="btn sec mini" id="btnBackup">Exportar tudo (JSON)</button><button class="btn sec mini" id="btnPlanilhaAcomp">Planilha de acompanhamento (CSV)</button></div>
-        <p class="ajuda">O backup contém rodadas, verificações, base do BI e protocolo. Guarde fora do portal.</p>
+        <p class="ajuda">O backup contém rodadas, base do BI e protocolo. Guarde fora do portal.</p>
         <div id="confLocalAviso"></div>
       </div>
     </div>

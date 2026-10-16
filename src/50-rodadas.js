@@ -71,6 +71,19 @@ function fila(){
   itens.sort((a,b) => a.prazo.localeCompare(b.prazo));
   return itens;
 }
+/* panorama acumulado por unidade (mesmo quadro da planilha antiga): total, sob análise, em análise, encerradas, excluídas */
+function panoramaUnidades(){
+  const chaveU = u => soDigitos(u.cpf) || (normUnid(u.unid) + '|' + normNome(u.titular)) || u.id;
+  const porCond = new Map();
+  rodadasConcluidas().slice().sort((a,b) => (a.dataAnalise + (a.concluidaEm||'')).localeCompare(b.dataAnalise + (b.concluidaEm||''))).forEach(r => {
+    const m = porCond.get(r.condominio.chave) || new Map(); porCond.set(r.condominio.chave, m);
+    (r.unidades || []).forEach(u => { m.set(chaveU(u), u.resultado === 'EXCLUIR' ? 'excluida' : u.situacao === 'encerrada' ? 'encerrada' : 'ativa'); });
+  });
+  const p = { total: 0, sobAnalise: 0, excluidas: 0, encerradas: 0, emAnalise: 0 };
+  porCond.forEach(m => m.forEach(st => { p.total++; if(st === 'excluida') p.excluidas++; else if(st === 'encerrada') p.encerradas++; else p.sobAnalise++; }));
+  p.emAnalise = S.rodadas.filter(r => r.status === 'rascunho').reduce((s, r) => s + (r.unidades || []).length, 0);
+  return p;
+}
 function rodadasDoCondominio(chave){ return S.rodadas.filter(r => r.condominio.chave === chave).sort((a,b) => a.dataAnalise.localeCompare(b.dataAnalise)); }
 
 /* ---------- construção de rodada ---------- */
@@ -171,29 +184,21 @@ function identificarCondominio(leitura, candidatos){
 
 /* ---------- carga inicial a partir da planilha de controle ---------- */
 async function importarPlanilhaControle(linhas){
-  const existentesV = new Set(S.verificacoes.map(v => v.mes + '|' + normCond(v.condominio)));
-  const existentesR = new Set(S.rodadas.filter(r => r.origem === 'carga').map(r => r.condominio.chave));
-  let nv = 0, nr = 0, pulados = 0;
+  let nr = 0, pulados = 0;
   for(const l of linhas){
-    const kv = l.mes + '|' + normCond(l.condominio);
-    if(!existentesV.has(kv)){
-      await DB.collection(COLECOES.verificacoes).add({ mes: l.mes, condominio: l.condominio, comarca: l.comarca, vigencia: l.vigencia, responsavel: l.responsavel, temEspolio: l.temEspolio, obs: l.obs, origem: 'planilha', criadoEm: nowISO(), criadoPor: ME.id });
-      existentesV.add(kv); nv++;
-    } else pulados++;
-    if(l.temEspolio){
-      const chave = chaveCond(l.condominio, '');
-      if(existentesR.has(chave) || S.rodadas.some(r => r.condominio.chave === chave)) continue;
-      const r = novaRodada('carga', { nome: l.condominio, cnpj: '', chave });
-      r.origem = 'carga'; r.status = 'concluida'; r.protocolo = '';
-      r.dataAnalise = l.mes ? l.mes + '-01' : hojeISO();
-      r.nota = 'Carga inicial da planilha de controle' + (l.obs ? ' · obs.: ' + l.obs : '');
-      r.unidades = l.unidades.length ? l.unidades.map(u => { const n = novaUnidade(u.unidTxt, '', ''); n.resultado = 'PREVENTIVO'; n.regra = 'Carga'; n.motivo = 'Importada da planilha de controle; titular a completar.'; n.completar = true; return n; })
-                                     : [Object.assign(novaUnidade('', '', ''), { resultado:'PREVENTIVO', regra:'Carga', motivo: l.varias ? 'Planilha indica "várias" unidades; completar na primeira reanálise.' : 'Unidades não informadas na planilha; completar na primeira reanálise.', completar: true })];
-      r.concluidaEm = nowISO(); r.proximaReanalise = somaDias(r.dataAnalise, PRAZO_REANALISE_DIAS); r.resumo = resumoRodada(r);
-      await DB.collection(COLECOES.rodadas).add(rodadaParaGravar(r));
-      existentesR.add(chave); nr++;
-    }
+    if(!l.temEspolio) continue;
+    const chave = chaveCond(l.condominio, '');
+    if(S.rodadas.some(r => r.condominio.chave === chave)){ pulados++; continue; }
+    const r = novaRodada('carga', { nome: l.condominio, cnpj: '', chave });
+    r.origem = 'carga'; r.status = 'concluida'; r.protocolo = '';
+    r.dataAnalise = l.mes ? l.mes + '-01' : hojeISO();
+    r.nota = 'Carga inicial da planilha de controle' + (l.comarca ? ' · ' + l.comarca : '') + (l.obs ? ' · obs.: ' + l.obs : '');
+    r.unidades = l.unidades.length ? l.unidades.map(u => { const n = novaUnidade(u.unidTxt, '', ''); n.resultado = 'PREVENTIVO'; n.regra = 'Carga'; n.motivo = 'Importada da planilha de controle; titular a completar.'; n.completar = true; return n; })
+                                   : [Object.assign(novaUnidade('', '', ''), { resultado:'PREVENTIVO', regra:'Carga', motivo: l.varias ? 'Planilha indica "várias" unidades; completar na primeira reanálise.' : 'Unidades não informadas na planilha; completar na primeira reanálise.', completar: true })];
+    r.concluidaEm = nowISO(); r.proximaReanalise = somaDias(r.dataAnalise, PRAZO_REANALISE_DIAS); r.resumo = resumoRodada(r);
+    const ref = await DB.collection(COLECOES.rodadas).add(rodadaParaGravar(r));
+    S.rodadas.push({ id: ref.id, ...r }); nr++;
   }
-  registrarHistorico('carga_inicial', { verificacoes: nv, rodadas: nr });
-  return { verificacoes: nv, rodadas: nr, pulados };
+  registrarHistorico('carga_inicial', { rodadas: nr });
+  return { rodadas: nr, pulados };
 }
