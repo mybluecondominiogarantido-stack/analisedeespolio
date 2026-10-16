@@ -23,6 +23,7 @@ Registro do que foi decidido com a Coordenação de Cobrança (out/2026) para a 
 - **Reanálise só dentro da Fila de acompanhamento**: em lote (vários PDFs) ou pelo botão "Nova reanálise" no histórico do condomínio. O tipo da rodada é fixo, definido pelo ponto de entrada.
 - **Fila de acompanhamento**: prazo de **90 dias** a partir da data da análise, por condomínio; vencidos em vermelho no dashboard.
 - **Fila de acompanhamento (reanálise em lote)**: selecionar na fila → botão "Reanalisar selecionados" pede os PDFs do Vouch → identificação do condomínio pelo cabeçalho (CNPJ, senão nome) → lista com um condomínio por linha (leitura, resultado, exceções) → "Revisar" abre os cartões das unidades → **conclusão e ficha por condomínio**. Unidades vêm da rodada anterior.
+- **Ficha só baixa sozinha quando há exclusão da garantia** (serve para formalizar a exclusão). Análise sem exclusão conclui sem baixar; a ficha fica disponível em "Baixar ficha".
 - **Fichas**: uma por condomínio, baixadas **uma a uma**, nome `AE-AAAA-NNNN - Condomínio.pdf`, salvas pela assistente de crédito na pasta do condomínio.
 - **Protocolo** sequencial começando em **AE-2026-0001**. Nasce **na solicitação** e acompanha a análise até a ficha; solicitações excluídas ou devolvidas deixam o número sem uso. Reanálises da fila (sem solicitação) ganham o número na conclusão. Ficha baixada antes da conclusão sai como "RASCUNHO AE-…".
 - **Rodada concluída trava**; correção gera nova rodada.

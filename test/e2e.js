@@ -81,12 +81,11 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   ok(res[2].r === 'PREVENTIVO' && res[2].regra === '3', 'sem Vouch → Preventivo (regra 3)');
   await shot('nova-analise');
   // concluir
-  await p.click('#btnConcluir');
+  // com exclusão, concluir já baixa a ficha (para formalizar)
+  const [dl] = await Promise.all([p.waitForEvent('download', { timeout: 60000 }), p.click('#btnConcluir')]);
   await p.waitForFunction(() => S.rodada && S.rodada.status === 'concluida', { timeout: 15000 });
   const prot = await p.evaluate(() => S.rodada.protocolo);
   ok(prot === 'AE-2026-0001', `protocolo sequencial começa em AE-2026-0001 (${prot})`);
-  // ficha
-  const [dl] = await Promise.all([p.waitForEvent('download', { timeout: 60000 }), p.click('#btnBaixarFicha')]);
   const nomeFicha = dl.suggestedFilename(); const destino = path.join(shots || __dirname, nomeFicha); await dl.saveAs(destino);
   const tam = fs.statSync(destino).size;
   ok(/^AE-2026-0001 - CONDOMINIO ESMERALDA IV\.pdf$/.test(nomeFicha) && tam > 20000, `ficha baixada como "${nomeFicha}" (${(tam/1024).toFixed(0)} KB)`);
@@ -121,8 +120,12 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   await p.click(`[data-revisar="${idx}"]`); await p.waitForTimeout(300);
   ok((await p.$$eval('#modal details.unid', t => t.length)) === 1, 'Revisar abre o modal com os cartões das unidades');
   await shot('lote-revisar');
-  const [dl2] = await Promise.all([p.waitForEvent('download', { timeout: 60000 }), p.click('#mLoteConcluir')]);
-  ok(/^AE-2026-0002 - /.test(dl2.suggestedFilename()), `concluir pelo modal gera AE-2026-0002 e baixa a ficha (${dl2.suggestedFilename()})`);
+  ok((await p.$eval('#mLoteConcluir', e => e.textContent.trim())) === 'Concluir', 'sem exclusão, o botão é só "Concluir"');
+  let baixouSozinho = false; const ouvir = () => { baixouSozinho = true; }; p.on('download', ouvir);
+  await p.click('#mLoteConcluir'); await p.waitForTimeout(4000); p.off('download', ouvir);
+  ok(!baixouSozinho && /sem exclusão/.test(await p.$eval('#toast', e => e.textContent)), 'concluir sem exclusão não baixa a ficha');
+  const [dl2] = await Promise.all([p.waitForEvent('download', { timeout: 60000 }), p.click('#loteAndamento [data-ficha]')]);
+  ok(/^AE-2026-0002 - /.test(dl2.suggestedFilename()), `ficha continua disponível em "Baixar ficha" (${dl2.suggestedFilename()})`);
   await p.waitForTimeout(600);
   ok(/AE-2026-0002/.test(await p.$eval('#loteAndamento', e => e.textContent)), 'linha do condomínio mostra o protocolo concluído');
   await p.click('#btnLoteCancelar'); await p.waitForTimeout(300);

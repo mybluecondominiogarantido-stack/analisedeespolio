@@ -68,9 +68,10 @@ function renderEditorResumo(){
         const s2 = resumoRodada(r);
         if(!(await confirmar(`Concluir a análise de ${r.condominio.nome}?\n${s2.excluir} a excluir · ${s2.prev + s2.rean} sob análise.\nDepois de concluída, a rodada não pode ser editada.`))) return;
         await concluirRodada(r); await salvarEvidencias(r.id, { textos: S.textos, dev: S.dev });
-        toast('Rodada ' + r.protocolo + ' concluída.');
         renderEditor();
-        if(await confirmar('Baixar a ficha em PDF agora?')) await baixarFichaPDF(r);
+        // a ficha só é necessária para formalizar exclusão da garantia; sem exclusão, fica disponível em "Baixar ficha"
+        if(s2.excluir){ toast('Rodada ' + r.protocolo + ' concluída. Baixando a ficha para formalizar a exclusão.', 5000); await baixarFichaPDF(r); }
+        else toast('Rodada ' + r.protocolo + ' concluída, sem exclusão. A ficha fica disponível em “Baixar ficha” se precisar.', 6000);
         if(window.claude && !DB._local && await confirmar('Abrir o ticket para quem guarda a ficha na pasta?')) abrirTicketModal(r, r.solicitacaoId ? S.solicitacoes.find(x => x.id === r.solicitacaoId) : null);
       }catch(e){ toast(e.message || dbErr(e), 6000); }
     };
