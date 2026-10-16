@@ -171,6 +171,7 @@ function abrirSolicitacaoModal(x){
   let acoes = '';
   if(x.status === 'concluida' && rod) acoes += `<button class="btn mini" id="mSolFicha">Baixar ficha</button>`;
   if(gestao){
+    if(x.status !== 'concluida' && !(rod && rod.status === 'concluida')) acoes += `<button class="btn perigo mini" id="mSolExcluir">Excluir</button>`;
     if(['nova','vista','devolvida'].includes(x.status)) acoes += `<button class="btn sec mini" id="mSolDevolver">Devolver</button><button class="btn mini" id="mSolIniciar">Iniciar análise</button>`;
     if(x.status === 'em_analise' && rod) acoes += `<button class="btn mini" id="mSolAbrirRodada">Abrir rodada</button>`;
     if(x.status === 'concluida' && rod) acoes += `<button class="btn sec mini" id="mSolTicket">Abrir ticket</button>`;
@@ -179,6 +180,12 @@ function abrirSolicitacaoModal(x){
   if($('#mSolFicha')) $('#mSolFicha').onclick = () => baixarFichaPDF(rod);
   if($('#mSolTicket')) $('#mSolTicket').onclick = () => abrirTicketModal(rod, x);
   if($('#mSolAbrirRodada')) $('#mSolAbrirRodada').onclick = () => { fecharModal(); abrirEditor(JSON.parse(JSON.stringify(rod))); };
+  if($('#mSolExcluir')) $('#mSolExcluir').onclick = async () => {
+    if(!(await confirmar(`Excluir a solicitação de ${x.condominio.nome}${x.solicitanteNome ? ' (' + x.solicitanteNome + ')' : ''}?` + (rod ? ' O rascunho da análise também será excluído.' : '') + ' Não dá para desfazer.\nUse para testes ou lançamentos errados; para recusar um pedido, prefira Devolver.'))) return;
+    try{ await excluirSolicitacao(x); }catch(e){ toast(e.message && !e.code ? e.message : dbErr(e), 5000); return; }
+    if(S.rodada && S.rodada.id === x.rodadaId) S.rodada = null;
+    fecharModal(); toast('Solicitação excluída.');
+  };
   if($('#mSolDevolver')) $('#mSolDevolver').onclick = async () => { const motivo = window.prompt('Motivo da devolução (o solicitante vai ver):'); if(motivo === null || !motivo.trim()) return; await atualizarSolicitacao(x.id, { status: 'devolvida', motivoDevolucao: motivo.trim(), devolvidaEm: nowISO() }); fecharModal(); toast('Solicitação devolvida.'); };
   if($('#mSolIniciar')) $('#mSolIniciar').onclick = async () => {
     const tipoEsc = $('#mSolTipo') ? $('#mSolTipo').value : (x.tipo === 'avulso' ? 'avulso' : 'implantacao');

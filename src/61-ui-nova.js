@@ -51,11 +51,17 @@ function renderEditorResumo(){
     <span style="flex:1"></span>
     ${travada ? `<button class="btn sec mini" id="btnTicketEditor">Abrir ticket</button>` : ''}
     <button class="btn sec mini" id="btnFecharEditor">${travada?'Fechar':'Salvar e fechar'}</button>
-    ${travada ? '' : `<button class="btn sec mini" id="btnSalvarRasc">Salvar rascunho</button><button class="btn mini" id="btnConcluir" ${!CAN_WRITE?'disabled':''}>Concluir análise</button>`}`;
+    ${travada ? '' : `${r.id && S.rodadas.some(x => x.id === r.id) ? '<button class="btn perigo mini" id="btnExcluirRasc">Excluir rascunho</button>' : ''}<button class="btn sec mini" id="btnSalvarRasc">Salvar rascunho</button><button class="btn mini" id="btnConcluir" ${!CAN_WRITE?'disabled':''}>Concluir análise</button>`}`;
   if($('#btnTicketEditor')) $('#btnTicketEditor').onclick = () => abrirTicketModal(r, r.solicitacaoId ? S.solicitacoes.find(x => x.id === r.solicitacaoId) : null);
   $('#btnFecharEditor').onclick = async () => { if(!travada){ try{ if(r.condominio.nome || r.unidades.length){ await salvarRodada(r); await salvarEvidencias(r.id, { textos: S.textos, dev: S.dev }); } }catch(e){ toast(dbErr(e), 5000); return; } } fecharEditor(); };
   $('#btnFecharEditor').textContent = travada ? '← Voltar' : '← Salvar e voltar';
   if(!travada){
+    if($('#btnExcluirRasc')) $('#btnExcluirRasc').onclick = async () => {
+      if(!(await confirmar(`Excluir o rascunho de ${r.condominio.nome || 'condomínio sem nome'}? Os documentos lidos também saem. Não dá para desfazer.` + (r.solicitacaoId ? '\nA solicitação volta para a lista, pronta para iniciar de novo.' : '')))) return;
+      clearTimeout(salvarTimers.nova);
+      try{ await excluirRascunho(r); }catch(e){ toast(e.message && !e.code ? e.message : dbErr(e), 5000); return; }
+      fecharEditor(); toast('Rascunho excluído.');
+    };
     $('#btnSalvarRasc').onclick = async () => { try{ await salvarRodada(r); await salvarEvidencias(r.id, { textos: S.textos, dev: S.dev }); toast('Rascunho salvo.'); }catch(e){ toast(dbErr(e), 5000); } };
     $('#btnConcluir').onclick = async () => {
       try{

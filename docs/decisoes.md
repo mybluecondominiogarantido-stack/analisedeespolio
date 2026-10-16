@@ -26,6 +26,7 @@ Registro do que foi decidido com a Coordenação de Cobrança (out/2026) para a 
 - **Fichas**: uma por condomínio, baixadas **uma a uma**, nome `AE-AAAA-NNNN - Condomínio.pdf`, salvas pela assistente de crédito na pasta do condomínio.
 - **Protocolo** sequencial começando em **AE-2026-0001**.
 - **Rodada concluída trava**; correção gera nova rodada.
+- **Exclusão (só gestão)**: rascunho de análise ("Excluir rascunho" no editor; a solicitação ligada volta para "vista") e solicitação ainda não concluída ("Excluir" na solicitação, leva o rascunho junto). Rodada e solicitação concluídas não se excluem. Cada exclusão fica no histórico de ações.
 - **Carga inicial** a partir da planilha "Controle de Verificação de Espólios": só os 35 condomínios com espólio (jan–jul/2026) entram na fila; unidades em "VÁRIAS" ficam marcadas para completar.
 - **Resumo mensal** gerado no dashboard.
 - **Sem aba de histórico**: o histórico de cada condomínio (rodadas, fichas e evolução das unidades) abre pelo nome na Fila de acompanhamento; os que saíram do acompanhamento ficam numa seção recolhida no fim da fila. Abas: ver "Abas por papel" abaixo.

@@ -254,6 +254,37 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   await shot('acessos');
   await p.evaluate(() => { DB._local = true; ME = { name:'Coordenação de Cobrança', id:'local' }; });
 
+  /* 7b · exclusão de teste: rascunho volta a solicitação; solicitação sai com o rascunho */
+  const registrar = async (cond) => {
+    await p.click('[data-tab="sol"]'); await p.waitForTimeout(200); await p.click('#btnRegistrarSol'); await p.waitForTimeout(200);
+    await p.fill('#rsNome', 'Teste Exclusão'); await p.selectOption('#rsTipo', 'avulso');
+    await p.fill('#modal #solCond', cond); await p.fill('#modal #solUnidades [data-su="unid"]', 'A - 1'); await p.fill('#modal #solUnidades [data-su="titular"]', 'TITULAR TESTE');
+    const n = await p.evaluate(() => S.solicitacoes.length);
+    await p.click('#modal #solEnviar'); await p.waitForFunction(n => S.solicitacoes.length === n + 1, n, { timeout: 10000 }); await p.waitForTimeout(300);
+    return p.evaluate(() => S.solicitacoes.find(x => x.solicitanteNome === 'Teste Exclusão').id);
+  };
+  const nRodAntes = await p.evaluate(() => S.rodadas.length);
+  let sid = await registrar('CONDOMINIO TESTE EXCLUSAO');
+  await p.click(`#p-sol [data-sol="${sid}"]`); await p.waitForTimeout(300); await p.click('#mSolIniciar');
+  await p.waitForFunction(() => S.rodada && S.rodada.solicitacaoId && S.rodadas.some(r => r.id === S.rodada.id), { timeout: 10000 }); await p.waitForTimeout(300);
+  const renderok = await p.$('#btnExcluirRasc');
+  ok(!!renderok, 'rascunho mostra o botão Excluir rascunho');
+  await p.click('#btnExcluirRasc'); await p.waitForTimeout(2200);
+  const aposRasc = await p.evaluate(sid => ({ rod: S.rodadas.length, st: S.solicitacoes.find(x => x.id === sid).status, aba: S.aba }), sid);
+  ok(aposRasc.rod === nRodAntes && aposRasc.st === 'vista', `Excluir rascunho apaga a rodada e devolve a solicitação para "vista" (${JSON.stringify(aposRasc)})`);
+  await p.click(`#p-sol [data-sol="${sid}"]`); await p.waitForTimeout(300); await p.click('#mSolIniciar');
+  await p.waitForFunction(() => S.rodada && S.rodadas.some(r => r.id === S.rodada.id), { timeout: 10000 }); await p.waitForTimeout(300);
+  await p.click('#btnFecharEditor'); await p.waitForTimeout(300);
+  await p.click(`#p-sol [data-sol="${sid}"]`); await p.waitForTimeout(300);
+  await p.click('#mSolExcluir'); await p.waitForTimeout(500);
+  const aposSol = await p.evaluate(sid => ({ rod: S.rodadas.length, existe: S.solicitacoes.some(x => x.id === sid) }), sid);
+  ok(aposSol.rod === nRodAntes && !aposSol.existe, `Excluir solicitação apaga a solicitação e o rascunho dela (${JSON.stringify(aposSol)})`);
+  const concl = await p.evaluate(() => S.solicitacoes.find(x => x.status === 'concluida').id);
+  await p.click('[data-tab="sol"]'); await p.selectOption('#solFiltro', 'todas'); await p.waitForTimeout(200);
+  await p.click(`#p-sol [data-sol="${concl}"]`); await p.waitForTimeout(300);
+  ok(!(await p.$('#mSolExcluir')), 'solicitação concluída não tem Excluir');
+  await p.click('#modal [data-fechar]');
+
   /* 8 · persistência local: recarrega e confere */
   await p.reload(); await p.waitForFunction(() => S.pronto.r && S.rodadas.length > 0, { timeout: 20000 }); await p.waitForTimeout(300);
   const nR = await p.evaluate(() => S.rodadas.filter(r => r.status === 'concluida').length);

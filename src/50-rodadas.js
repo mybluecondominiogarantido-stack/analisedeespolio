@@ -196,6 +196,25 @@ async function carregarEvidencias(rodadaId){
   const snap = await DB.doc(COLECOES.evidencias + '/' + rodadaId).get();
   return snap.exists ? snap.data() : null;
 }
+/* exclusão (só gestão): rascunho de análise e solicitação ainda não concluída. Rodada concluída não se exclui. */
+async function excluirRascunho(r, opts){
+  opts = opts || {};
+  if(!r || !r.id || r.status === 'concluida') throw new Error('Só rascunho pode ser excluído.');
+  await DB.doc(COLECOES.rodadas + '/' + r.id).delete();
+  try{ await DB.doc(COLECOES.evidencias + '/' + r.id).delete(); }catch(_){}
+  // a solicitação ligada volta para "vista", pronta para iniciar de novo (a não ser que ela também esteja sendo excluída)
+  const sol = r.solicitacaoId && S.solicitacoes.find(x => x.id === r.solicitacaoId);
+  if(sol && !opts.semVoltarSolicitacao && sol.status === 'em_analise') await atualizarSolicitacao(sol.id, { status: 'vista', rodadaId: null });
+  registrarHistorico('exclusao', { alvo: 'rascunho', rodadaId: r.id, condominio: r.condominio.nome });
+}
+async function excluirSolicitacao(x){
+  if(!x || x.status === 'concluida') throw new Error('Solicitação concluída não pode ser excluída.');
+  const rod = x.rodadaId && S.rodadas.find(r => r.id === x.rodadaId);
+  if(rod && rod.status === 'concluida') throw new Error('A análise desta solicitação já foi concluída.');
+  if(rod) await excluirRascunho(rod, { semVoltarSolicitacao: true });
+  await DB.doc(COLECOES.solicitacoes + '/' + x.id).delete();
+  registrarHistorico('exclusao', { alvo: 'solicitacao', solicitacaoId: x.id, condominio: x.condominio.nome, solicitante: x.solicitanteNome });
+}
 /* conclusão: trava, atribui protocolo, define situação das unidades e prazo */
 async function concluirRodada(r){
   const pend = r.unidades.filter(u => u.pendente && !u.override);

@@ -1403,6 +1403,25 @@ async function carregarEvidencias(rodadaId){
   const snap = await DB.doc(COLECOES.evidencias + '/' + rodadaId).get();
   return snap.exists ? snap.data() : null;
 }
+/* exclusão (só gestão): rascunho de análise e solicitação ainda não concluída. Rodada concluída não se exclui. */
+async function excluirRascunho(r, opts){
+  opts = opts || {};
+  if(!r || !r.id || r.status === 'concluida') throw new Error('Só rascunho pode ser excluído.');
+  await DB.doc(COLECOES.rodadas + '/' + r.id).delete();
+  try{ await DB.doc(COLECOES.evidencias + '/' + r.id).delete(); }catch(_){}
+  // a solicitação ligada volta para "vista", pronta para iniciar de novo (a não ser que ela também esteja sendo excluída)
+  const sol = r.solicitacaoId && S.solicitacoes.find(x => x.id === r.solicitacaoId);
+  if(sol && !opts.semVoltarSolicitacao && sol.status === 'em_analise') await atualizarSolicitacao(sol.id, { status: 'vista', rodadaId: null });
+  registrarHistorico('exclusao', { alvo: 'rascunho', rodadaId: r.id, condominio: r.condominio.nome });
+}
+async function excluirSolicitacao(x){
+  if(!x || x.status === 'concluida') throw new Error('Solicitação concluída não pode ser excluída.');
+  const rod = x.rodadaId && S.rodadas.find(r => r.id === x.rodadaId);
+  if(rod && rod.status === 'concluida') throw new Error('A análise desta solicitação já foi concluída.');
+  if(rod) await excluirRascunho(rod, { semVoltarSolicitacao: true });
+  await DB.doc(COLECOES.solicitacoes + '/' + x.id).delete();
+  registrarHistorico('exclusao', { alvo: 'solicitacao', solicitacaoId: x.id, condominio: x.condominio.nome, solicitante: x.solicitanteNome });
+}
 /* conclusão: trava, atribui protocolo, define situação das unidades e prazo */
 async function concluirRodada(r){
   const pend = r.unidades.filter(u => u.pendente && !u.override);
@@ -1764,11 +1783,17 @@ function renderEditorResumo(){
     <span style="flex:1"></span>
     ${travada ? `<button class="btn sec mini" id="btnTicketEditor">Abrir ticket</button>` : ''}
     <button class="btn sec mini" id="btnFecharEditor">${travada?'Fechar':'Salvar e fechar'}</button>
-    ${travada ? '' : `<button class="btn sec mini" id="btnSalvarRasc">Salvar rascunho</button><button class="btn mini" id="btnConcluir" ${!CAN_WRITE?'disabled':''}>Concluir análise</button>`}`;
+    ${travada ? '' : `${r.id && S.rodadas.some(x => x.id === r.id) ? '<button class="btn perigo mini" id="btnExcluirRasc">Excluir rascunho</button>' : ''}<button class="btn sec mini" id="btnSalvarRasc">Salvar rascunho</button><button class="btn mini" id="btnConcluir" ${!CAN_WRITE?'disabled':''}>Concluir análise</button>`}`;
   if($('#btnTicketEditor')) $('#btnTicketEditor').onclick = () => abrirTicketModal(r, r.solicitacaoId ? S.solicitacoes.find(x => x.id === r.solicitacaoId) : null);
   $('#btnFecharEditor').onclick = async () => { if(!travada){ try{ if(r.condominio.nome || r.unidades.length){ await salvarRodada(r); await salvarEvidencias(r.id, { textos: S.textos, dev: S.dev }); } }catch(e){ toast(dbErr(e), 5000); return; } } fecharEditor(); };
   $('#btnFecharEditor').textContent = travada ? '← Voltar' : '← Salvar e voltar';
   if(!travada){
+    if($('#btnExcluirRasc')) $('#btnExcluirRasc').onclick = async () => {
+      if(!(await confirmar(`Excluir o rascunho de ${r.condominio.nome || 'condomínio sem nome'}? Os documentos lidos também saem. Não dá para desfazer.` + (r.solicitacaoId ? '\nA solicitação volta para a lista, pronta para iniciar de novo.' : '')))) return;
+      clearTimeout(salvarTimers.nova);
+      try{ await excluirRascunho(r); }catch(e){ toast(e.message && !e.code ? e.message : dbErr(e), 5000); return; }
+      fecharEditor(); toast('Rascunho excluído.');
+    };
     $('#btnSalvarRasc').onclick = async () => { try{ await salvarRodada(r); await salvarEvidencias(r.id, { textos: S.textos, dev: S.dev }); toast('Rascunho salvo.'); }catch(e){ toast(dbErr(e), 5000); } };
     $('#btnConcluir').onclick = async () => {
       try{
@@ -2408,6 +2433,7 @@ function abrirSolicitacaoModal(x){
   let acoes = '';
   if(x.status === 'concluida' && rod) acoes += `<button class="btn mini" id="mSolFicha">Baixar ficha</button>`;
   if(gestao){
+    if(x.status !== 'concluida' && !(rod && rod.status === 'concluida')) acoes += `<button class="btn perigo mini" id="mSolExcluir">Excluir</button>`;
     if(['nova','vista','devolvida'].includes(x.status)) acoes += `<button class="btn sec mini" id="mSolDevolver">Devolver</button><button class="btn mini" id="mSolIniciar">Iniciar análise</button>`;
     if(x.status === 'em_analise' && rod) acoes += `<button class="btn mini" id="mSolAbrirRodada">Abrir rodada</button>`;
     if(x.status === 'concluida' && rod) acoes += `<button class="btn sec mini" id="mSolTicket">Abrir ticket</button>`;
@@ -2416,6 +2442,12 @@ function abrirSolicitacaoModal(x){
   if($('#mSolFicha')) $('#mSolFicha').onclick = () => baixarFichaPDF(rod);
   if($('#mSolTicket')) $('#mSolTicket').onclick = () => abrirTicketModal(rod, x);
   if($('#mSolAbrirRodada')) $('#mSolAbrirRodada').onclick = () => { fecharModal(); abrirEditor(JSON.parse(JSON.stringify(rod))); };
+  if($('#mSolExcluir')) $('#mSolExcluir').onclick = async () => {
+    if(!(await confirmar(`Excluir a solicitação de ${x.condominio.nome}${x.solicitanteNome ? ' (' + x.solicitanteNome + ')' : ''}?` + (rod ? ' O rascunho da análise também será excluído.' : '') + ' Não dá para desfazer.\nUse para testes ou lançamentos errados; para recusar um pedido, prefira Devolver.'))) return;
+    try{ await excluirSolicitacao(x); }catch(e){ toast(e.message && !e.code ? e.message : dbErr(e), 5000); return; }
+    if(S.rodada && S.rodada.id === x.rodadaId) S.rodada = null;
+    fecharModal(); toast('Solicitação excluída.');
+  };
   if($('#mSolDevolver')) $('#mSolDevolver').onclick = async () => { const motivo = window.prompt('Motivo da devolução (o solicitante vai ver):'); if(motivo === null || !motivo.trim()) return; await atualizarSolicitacao(x.id, { status: 'devolvida', motivoDevolucao: motivo.trim(), devolvidaEm: nowISO() }); fecharModal(); toast('Solicitação devolvida.'); };
   if($('#mSolIniciar')) $('#mSolIniciar').onclick = async () => {
     const tipoEsc = $('#mSolTipo') ? $('#mSolTipo').value : (x.tipo === 'avulso' ? 'avulso' : 'implantacao');
