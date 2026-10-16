@@ -76,26 +76,36 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   function hoje(){ const d = new Date(); return d.toISOString().slice(0,10); }
   function somaDiasNode(iso, n){ const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0,10); }
 
-  /* 4 · reanálise em lote com o mesmo PDF (identificação por CNPJ) */
-  await p.click('[data-tab="lote"]');
-  await p.setInputFiles('#loteArquivos', [path.join(pdfs, arq('esmeralda')), path.join(pdfs, arq('nazare'))]);
+  /* 4 · reanálise em lote: selecionar → Reanalisar selecionados → anexar PDFs → lista → concluir */
+  await p.click('[data-tab="lote"]'); await p.waitForTimeout(300);
+  ok(await p.$eval('#btnReanalisarSel', e => e.hidden), 'botão Reanalisar só aparece com seleção');
+  const chaveEsm = await p.evaluate(() => fila().find(i => i.condominio.nome === 'CONDOMINIO ESMERALDA IV').chave);
+  await p.check(`[data-sel="${chaveEsm}"]`);
+  ok(!(await p.$eval('#btnReanalisarSel', e => e.hidden)), 'botão Reanalisar aparece após selecionar');
+  const [chooser] = await Promise.all([p.waitForEvent('filechooser'), p.click('#btnReanalisarSel')]);
+  await chooser.setFiles([path.join(pdfs, arq('esmeralda')), path.join(pdfs, arq('nazare'))]);
   await p.waitForFunction(() => S.lote.itens.length === 2, { timeout: 30000 });
   await p.waitForTimeout(500);
   const lote = await p.evaluate(() => S.lote.itens.map(it => ({ arq: it.arquivo, ident: it.ident && it.ident.modo, cond: it.rodada && it.rodada.condominio.nome, n: it.rodada && it.rodada.unidades.map(u => [u.unid, u.vouch, u.resultado]) })));
   console.log('    ', JSON.stringify(lote));
   ok(lote.some(x => x.ident === 'CNPJ' && x.cond === 'CONDOMINIO ESMERALDA IV'), 'PDF do Esmeralda identificado pelo CNPJ');
   ok(lote.some(x => x.ident === null && /nazare/i.test(x.arq)), 'PDF de condomínio fora da fila fica como não identificado');
-  const esm = lote.find(x => x.ident === 'CNPJ');
-  ok(esm.n.every(u => u[2] === 'EXCLUIR' || u[1] < 3), 'acompanhamento: 3+ taxas → Excluir, abaixo permanece');
-  await shot('lote');
+  const linhas = await p.$$eval('#loteAndamento tbody tr', t => t.length);
+  ok(linhas === 1, `lista de reanálise tem uma linha por condomínio selecionado (${linhas})`);
+  ok(/Relatórios sem condomínio na fila/.test(await p.$eval('#loteAndamento', e => e.textContent)), 'relatório sem dono aparece à parte com escolha manual');
+  await shot('lote-lista');
   const idx = await p.evaluate(() => S.lote.itens.findIndex(it => it.ident && it.ident.modo === 'CNPJ'));
-  const [dl2] = await Promise.all([p.waitForEvent('download', { timeout: 60000 }), p.click(`[data-concluir="${idx}"]`)]);
-  ok(/^AE-2026-0002 - /.test(dl2.suggestedFilename()), `lote concluído gera AE-2026-0002 e baixa a ficha (${dl2.suggestedFilename()})`);
+  await p.click(`[data-revisar="${idx}"]`); await p.waitForTimeout(300);
+  ok((await p.$$eval('#modal details.unid', t => t.length)) === 1, 'Revisar abre o modal com os cartões das unidades');
+  await shot('lote-revisar');
+  const [dl2] = await Promise.all([p.waitForEvent('download', { timeout: 60000 }), p.click('#mLoteConcluir')]);
+  ok(/^AE-2026-0002 - /.test(dl2.suggestedFilename()), `concluir pelo modal gera AE-2026-0002 e baixa a ficha (${dl2.suggestedFilename()})`);
   await p.waitForTimeout(600);
+  ok(/AE-2026-0002/.test(await p.$eval('#loteAndamento', e => e.textContent)), 'linha do condomínio mostra o protocolo concluído');
+  await p.click('#btnLoteCancelar'); await p.waitForTimeout(300);
 
   /* 5 · histórico do condomínio pela fila, dashboard, resumo */
-  await p.click('[data-tab="lote"]'); await p.waitForTimeout(300);
-  const chave = await p.evaluate(() => S.rodadas.find(r => r.condominio.nome === 'CONDOMINIO ESMERALDA IV').condominio.chave);
+  const chave = chaveEsm;
   await p.click(`#loteFila [data-hist="${chave}"]`); await p.waitForTimeout(300);
   const nRod = await p.$$eval('#modal [data-ver]', t => t.length);
   ok(nRod === 2, `histórico do condomínio lista as duas rodadas (${nRod})`);

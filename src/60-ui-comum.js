@@ -87,7 +87,7 @@ function cardUnidade(u, r, dev, rid, opts){
 function rodadaPorRid(rid){
   if(rid === 'nova') return { r: S.rodada, dev: S.dev, lidos: { vouch: !!S.textos.vouch.trim(), ant: !!S.textos.ant.trim() }, apos: () => renderEditorUnidades(true) };
   const m = rid.match(/^lote:(\d+)$/);
-  if(m){ const it = S.lote.itens[+m[1]]; return { r: it.rodada, dev: it.dev, lidos: { vouch: true, ant: false }, apos: () => renderLoteRevisao() }; }
+  if(m){ const it = S.lote.itens[+m[1]]; return { r: it.rodada, dev: it.dev, lidos: { vouch: true, ant: false }, apos: () => renderLote() }; }
   return null;
 }
 async function eventoCartao(e, tipo){
@@ -131,7 +131,7 @@ function fichaHTML(r){
   const tipoSob = r.tipo === 'acompanhamento' ? 'reanálise' : 'preventivo';
   const classif = res.length ? [nE?`Excluir da garantia (${nE})`:null, (nR+nP)?`Sob análise · ${tipoSob} (${nR+nP})`:null, nEnc?`Encerradas (${nEnc})`:null].filter(Boolean).join('  ·  ') : '—';
   const sit = n => n === null || n === undefined ? 'Não informado' : (n > 0 ? `Inadimplente (${n} taxa${n>1?'s':''})` : 'Sem cobrança');
-  const tipoTxt = r.tipo === 'acompanhamento' ? 'Acompanhamento (reanálise)' : r.tipo === 'carga' ? 'Carga inicial' : 'Implantação (1ª análise)';
+  const tipoTxt = r.tipo === 'acompanhamento' ? 'Acompanhamento (reanálise)' : r.tipo === 'carga' ? 'Carga inicial' : r.tipo === 'avulso' ? 'Avulso (sinalização da Cobrança)' : 'Implantação (1ª análise)';
   const semAnt = r.semAnterior || r.tipo === 'acompanhamento';
   const logo = $('.brand img') ? $('.brand img').getAttribute('src') : '';
   return `
