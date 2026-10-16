@@ -5,13 +5,22 @@
 function renderLote(){ renderLoteFila(); renderLoteAndamento(); if(S.lote.modalIdx !== null && S.lote.modalIdx !== undefined) renderLoteModal(S.lote.modalIdx); }
 S.lote.modalIdx = null;
 
+/* pesquisa da fila: nome do condomínio (sem acento, por palavras) ou CNPJ */
+function casaBusca(i){
+  const q = String(S.lote.busca || '').trim(); if(!q) return true;
+  const d = soDigitos(q);
+  if(d.length >= 3 && soDigitos(i.condominio.cnpj).includes(d)) return true;
+  const alvo = normCond(i.condominio.nome) + ' ' + normCond((carteiraDe(i.condominio) || {}).razao || '');
+  return normCond(q).split(' ').filter(Boolean).every(t => alvo.includes(t));
+}
 function renderLoteFila(){
-  const f = fila();
+  const todos = fila(); const f = todos.filter(casaBusca);
   const venc = f.filter(i => i.vencida).length;
   const sel = S.lote.selecionados.size;
-  $('#loteContagem').innerHTML = `${f.length} condomínio(s) · <b>${venc}</b> vencido(s)${sel ? ` · <b>${sel}</b> selecionado(s)` : ''}`;
+  $('#loteContagem').innerHTML = `${S.lote.busca ? `${f.length} de ${todos.length}` : f.length} condomínio(s) · <b>${venc}</b> vencido(s)${sel ? ` · <b>${sel}</b> selecionado(s)` : ''}`;
   const btn = $('#btnReanalisarSel'); btn.hidden = !sel; btn.textContent = `Reanalisar ${sel} selecionado(s)`;
   const wrap = $('#loteFila');
+  if(!f.length && todos.length){ wrap.innerHTML = '<div class="corpo"><div class="vazio">Nenhum condomínio da fila encontrado para essa pesquisa.</div></div>'; renderLoteFora(); return; }
   if(!f.length){ wrap.innerHTML = '<div class="corpo"><div class="vazio">A fila está vazia. Conclua análises de implantação ou importe a planilha de controle em Configurações.</div></div>'; renderLoteFora(); return; }
   wrap.innerHTML = `<table><thead><tr><th></th><th>Condomínio</th><th>Unidades</th><th>Última rodada</th><th>Prazo</th><th>Situação</th></tr></thead><tbody>${
     f.map(i => { const emLote = S.lote.itens.find(x => x.fila && x.fila.chave === i.chave);
@@ -26,13 +35,14 @@ function renderLoteFila(){
   renderLoteFora();
 }
 function renderLoteFora(){
-  const fora = foraDaFila(); const el = $('#loteFora');
+  const fora = foraDaFila().filter(casaBusca); const el = $('#loteFora');
   if(!fora.length){ el.innerHTML = ''; return; }
-  el.innerHTML = `<details style="border-top:1px solid var(--linha)"><summary style="cursor:pointer;padding:11px 18px;font-size:13px;color:var(--muted);font-weight:700">Fora do acompanhamento · ${fora.length} condomínio(s) com todas as unidades excluídas ou encerradas</summary>
+  el.innerHTML = `<details style="border-top:1px solid var(--linha)" ${S.lote.busca ? 'open' : ''}><summary style="cursor:pointer;padding:11px 18px;font-size:13px;color:var(--muted);font-weight:700">Fora do acompanhamento · ${fora.length} condomínio(s) com todas as unidades excluídas ou encerradas</summary>
     <div class="tabela-wrap"><table><thead><tr><th>Condomínio</th><th>Unidades</th><th>Excluídas</th><th>Última rodada</th></tr></thead><tbody>${fora.map(i => `<tr><td><button class="link" data-hist="${esc(i.chave)}" style="text-decoration:none;color:var(--ink)"><b>${esc(i.condominio.nome)}</b></button></td><td>${i.unidades.length}</td><td>${i.unidades.filter(u=>u.resultado==='EXCLUIR').length}</td><td>${esc(i.rodada.protocolo||'carga inicial')} · ${fmtData(i.rodada.dataAnalise)}</td></tr>`).join('')}</tbody></table></div></details>`;
   el.querySelectorAll('[data-hist]').forEach(b => b.onclick = () => abrirCondominioModal(b.dataset.hist));
 }
-$('#btnSelVencidos').onclick = () => { fila().filter(i => i.vencida).forEach(i => S.lote.selecionados.add(i.chave)); renderLoteFila(); };
+$('#loteBusca').addEventListener('input', e => { S.lote.busca = e.target.value; renderLoteFila(); });
+$('#btnSelVencidos').onclick = () => { fila().filter(i => i.vencida && casaBusca(i)).forEach(i => S.lote.selecionados.add(i.chave)); renderLoteFila(); };
 $('#btnSelNenhum').onclick = () => { S.lote.selecionados.clear(); renderLoteFila(); };
 $('#btnReanalisarSel').onclick = () => { S.lote.emAndamento = true; renderLoteAndamento(); $('#loteArquivos').click(); };
 $('#loteArquivos').addEventListener('change', e => { const fs = [...e.target.files]; e.target.value = ''; if(fs.length) processarLoteArquivos(fs); });

@@ -106,6 +106,14 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   /* 4 · reanálise em lote: selecionar → Reanalisar selecionados → anexar PDFs → lista → concluir */
   await p.click('[data-tab="lote"]'); await p.waitForTimeout(300);
   ok(await p.$eval('#btnReanalisarSel', e => e.hidden), 'botão Reanalisar só aparece com seleção');
+  await p.fill('#loteBusca', 'esmeralda'); await p.waitForTimeout(150);
+  const b1 = await p.$$eval('#loteFila tbody tr', t => t.length);
+  await p.fill('#loteBusca', '54.641.400'); await p.waitForTimeout(150);
+  const b2 = await p.$$eval('#loteFila tbody tr', t => t.map(x => x.textContent).join('|'));
+  await p.fill('#loteBusca', 'nao existe xyz'); await p.waitForTimeout(150);
+  const b3 = await p.$eval('#loteFila', e => e.textContent);
+  await p.fill('#loteBusca', ''); await p.waitForTimeout(150);
+  ok(b1 === 1 && /ESMERALDA/.test(b2) && !/\|/.test(b2) && /Nenhum condomínio/.test(b3) && (await p.$$eval('#loteFila tbody tr', t => t.length)) === 36, `pesquisa da fila por nome e por CNPJ (${b1}, ${b2.slice(0,40)})`);
   const chaveEsm = await p.evaluate(() => fila().find(i => i.condominio.nome === 'CONDOMINIO ESMERALDA IV').chave);
   await p.check(`[data-sel="${chaveEsm}"]`);
   ok(!(await p.$eval('#btnReanalisarSel', e => e.hidden)), 'botão Reanalisar aparece após selecionar');
