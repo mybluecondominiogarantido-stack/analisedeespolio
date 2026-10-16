@@ -418,6 +418,36 @@ function unidadesDasObs(obs){
   const unidades = partes.map(p => { const m = p.match(/^(.+?)\s*-\s*([A-Za-z0-9]+)$/); return m ? { bloco: m[1].trim(), unid: m[2].trim(), unidTxt: p } : { bloco:'', unid: p, unidTxt: p }; });
   return { unidades, varias: false, nota: '' };
 }
+/* planilha unificada (Acompanhamento + Controle): uma linha por unidade, com CNPJ.
+   Colunas: Condomínio, Razão social, CNPJ, UF, Vigência, Mês da verificação, Unidade, Déb. anterior, Última verificação, Status, Observação, Fonte.
+   Devolve null se o arquivo não estiver nesse formato. */
+async function lerPlanilhaUnificada(file){
+  if(typeof XLSX === 'undefined') throw new Error('leitor de Excel não carregou');
+  const wb = XLSX.read(await file.arrayBuffer(), {type:'array'});
+  for(const nomeAba of wb.SheetNames){
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[nomeAba], {header:1, raw:true, defval:''});
+    const hi = rows.findIndex(r => { const h = r.map(c => String(c||'').toLowerCase()); return h.some(c => /^unidade/.test(c)) && h.some(c => /cnpj/.test(c)) && h.some(c => /condom/.test(c)); });
+    if(hi < 0) continue;
+    const head = rows[hi].map(c => String(c||'').toLowerCase().trim());
+    const col = re => head.findIndex(h => re.test(h));
+    const c = { cond: col(/^condom/), razao: col(/raz/), cnpj: col(/cnpj/), uf: col(/^uf$|comarca/), mes: col(/m[êe]s/), unid: col(/^unidade/), deb: col(/d[ée]b/), ult: col(/[úu]ltima/), st: col(/^status/), obs: col(/observ/), fonte: col(/fonte/) };
+    const v = (row, i) => i >= 0 ? row[i] : '';
+    const grupos = new Map();
+    for(let r = hi+1; r < rows.length; r++){
+      const row = rows[r]; const nome = String(v(row, c.cond) ?? '').trim(); if(!nome) continue;
+      const cnpj = String(v(row, c.cnpj) ?? '').trim();
+      const chave = chaveCond(String(v(row, c.razao) || nome), cnpj);
+      const g = grupos.get(chave) || { chave, condominio: nome, razao: String(v(row, c.razao) ?? '').trim(), cnpj, comarca: String(v(row, c.uf) ?? '').trim(), unidades: [] };
+      const unid = String(v(row, c.unid) ?? '').trim();
+      const mes = String(v(row, c.mes) ?? '').trim();
+      g.unidades.push({ unid: /^V[ÁA]RIAS/i.test(unid) ? '' : unid, varias: /^V[ÁA]RIAS/i.test(unid), deb: String(v(row, c.deb) ?? '').trim(), ultima: excelData(v(row, c.ult)),
+                        mes: /^\d{2}\/\d{4}$/.test(mes) ? mes.slice(3) + '-' + mes.slice(0,2) : '', status: String(v(row, c.st) ?? '').trim(), obs: String(v(row, c.obs) ?? '').trim(), fonte: String(v(row, c.fonte) ?? '').trim() });
+      grupos.set(chave, g);
+    }
+    return [...grupos.values()];
+  }
+  return null;
+}
 async function lerPlanilhaControle(file){
   if(typeof XLSX === 'undefined') throw new Error('leitor de Excel não carregou');
   const wb = XLSX.read(await file.arrayBuffer(), {type:'array'});

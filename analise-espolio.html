@@ -422,10 +422,11 @@ tr.clic{cursor:pointer}
     </div>
   </div>
   <div class="card">
-    <header><h2>Carga inicial · planilha de controle</h2><span class="dica">cria a fila a partir dos condomínios com espólio</span></header>
+    <header><h2>Carga inicial</h2><span class="dica">cria a fila a partir dos condomínios com espólio</span></header>
     <div class="corpo">
-      <p class="ajuda" style="margin:0 0 10px">Aceita a planilha “Controle de Verificação de Espólios” (uma aba por mês: Quant., Status, Comarca, Condomínio, Vigência, Responsável, Observações). Só os condomínios marcados com espólio entram: viram rodadas de carga inicial com as unidades das observações; “VÁRIAS” fica marcado para completar na primeira reanálise. Condomínios sem espólio são ignorados.</p>
-      <div class="doc"><div class="ico">XLS</div><div><b>Importar planilha de controle</b><span>Pode repetir: linhas já importadas não duplicam</span></div><input type="file" accept=".xlsx,.xls" id="confCargaArquivo"></div>
+      <p class="ajuda" style="margin:0 0 10px"><b>Base unificada</b> (Acompanhamento de Espólios + Controle de Verificação, uma linha por unidade com CNPJ): cada condomínio entra na fila com as unidades, o débito anterior registrado na época, o status (excluídas entram como excluídas) e prazo de 90 dias a partir da última verificação.</p>
+      <p class="ajuda" style="margin:0 0 10px">Também aceita a planilha “Controle de Verificação de Espólios” (uma aba por mês: Quant., Status, Comarca, Condomínio, Vigência, Responsável, Observações). Só os condomínios marcados com espólio entram: viram rodadas de carga inicial com as unidades das observações; “VÁRIAS” fica marcado para completar na primeira reanálise. Condomínios sem espólio são ignorados.</p>
+      <div class="doc"><div class="ico">XLS</div><div><b>Importar base unificada ou planilha de controle</b><span>Pode repetir: condomínios já importados não duplicam</span></div><input type="file" accept=".xlsx,.xls" id="confCargaArquivo"></div>
       <div id="confCargaStatus"></div>
     </div>
   </div>
@@ -1086,6 +1087,36 @@ function unidadesDasObs(obs){
   const unidades = partes.map(p => { const m = p.match(/^(.+?)\s*-\s*([A-Za-z0-9]+)$/); return m ? { bloco: m[1].trim(), unid: m[2].trim(), unidTxt: p } : { bloco:'', unid: p, unidTxt: p }; });
   return { unidades, varias: false, nota: '' };
 }
+/* planilha unificada (Acompanhamento + Controle): uma linha por unidade, com CNPJ.
+   Colunas: Condomínio, Razão social, CNPJ, UF, Vigência, Mês da verificação, Unidade, Déb. anterior, Última verificação, Status, Observação, Fonte.
+   Devolve null se o arquivo não estiver nesse formato. */
+async function lerPlanilhaUnificada(file){
+  if(typeof XLSX === 'undefined') throw new Error('leitor de Excel não carregou');
+  const wb = XLSX.read(await file.arrayBuffer(), {type:'array'});
+  for(const nomeAba of wb.SheetNames){
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[nomeAba], {header:1, raw:true, defval:''});
+    const hi = rows.findIndex(r => { const h = r.map(c => String(c||'').toLowerCase()); return h.some(c => /^unidade/.test(c)) && h.some(c => /cnpj/.test(c)) && h.some(c => /condom/.test(c)); });
+    if(hi < 0) continue;
+    const head = rows[hi].map(c => String(c||'').toLowerCase().trim());
+    const col = re => head.findIndex(h => re.test(h));
+    const c = { cond: col(/^condom/), razao: col(/raz/), cnpj: col(/cnpj/), uf: col(/^uf$|comarca/), mes: col(/m[êe]s/), unid: col(/^unidade/), deb: col(/d[ée]b/), ult: col(/[úu]ltima/), st: col(/^status/), obs: col(/observ/), fonte: col(/fonte/) };
+    const v = (row, i) => i >= 0 ? row[i] : '';
+    const grupos = new Map();
+    for(let r = hi+1; r < rows.length; r++){
+      const row = rows[r]; const nome = String(v(row, c.cond) ?? '').trim(); if(!nome) continue;
+      const cnpj = String(v(row, c.cnpj) ?? '').trim();
+      const chave = chaveCond(String(v(row, c.razao) || nome), cnpj);
+      const g = grupos.get(chave) || { chave, condominio: nome, razao: String(v(row, c.razao) ?? '').trim(), cnpj, comarca: String(v(row, c.uf) ?? '').trim(), unidades: [] };
+      const unid = String(v(row, c.unid) ?? '').trim();
+      const mes = String(v(row, c.mes) ?? '').trim();
+      g.unidades.push({ unid: /^V[ÁA]RIAS/i.test(unid) ? '' : unid, varias: /^V[ÁA]RIAS/i.test(unid), deb: String(v(row, c.deb) ?? '').trim(), ultima: excelData(v(row, c.ult)),
+                        mes: /^\d{2}\/\d{4}$/.test(mes) ? mes.slice(3) + '-' + mes.slice(0,2) : '', status: String(v(row, c.st) ?? '').trim(), obs: String(v(row, c.obs) ?? '').trim(), fonte: String(v(row, c.fonte) ?? '').trim() });
+      grupos.set(chave, g);
+    }
+    return [...grupos.values()];
+  }
+  return null;
+}
 async function lerPlanilhaControle(file){
   if(typeof XLSX === 'undefined') throw new Error('leitor de Excel não carregou');
   const wb = XLSX.read(await file.arrayBuffer(), {type:'array'});
@@ -1450,7 +1481,7 @@ function rodadaDeAcompanhamento(anterior){
   r.anterior = anterior.id; r.idadeGarantia = anterior.idadeGarantia; r.analista = anterior.analista || '';
   r.semAnterior = true; r.semBi = true;
   r.unidades = (anterior.unidades || []).filter(u => u.situacao === 'ativa' && u.resultado !== 'EXCLUIR').map(u => {
-    const n = novaUnidade(u.unid, u.titular, u.cpf); n.obs = u.obs || ''; n.completar = !!u.completar; n.historicoVouch = (u.historicoVouch || []).concat([{ rodada: anterior.protocolo || anterior.id, data: anterior.dataAnalise, vouch: u.vouch }]); return n; });
+    const n = novaUnidade(u.unid, u.titular, u.cpf); n.obs = u.obs || ''; if(u.debAnterior) n.debAnterior = u.debAnterior; n.completar = !!u.completar; n.historicoVouch = (u.historicoVouch || []).concat([{ rodada: anterior.protocolo || anterior.id, data: anterior.dataAnalise, vouch: u.vouch }]); return n; });
   return r;
 }
 
@@ -1465,6 +1496,38 @@ function identificarCondominio(leitura, candidatos){
 }
 
 /* ---------- carga inicial a partir da planilha de controle ---------- */
+/* carga a partir da planilha unificada: uma rodada concluída por condomínio (chave pelo CNPJ, liga com a carteira).
+   Data da análise = última verificação mais recente das unidades (sem ela, o mês da verificação).
+   "Excluída da garantia" entra excluída; as demais ficam em acompanhamento, titular a completar. */
+async function importarPlanilhaUnificada(grupos){
+  let nr = 0, pulados = 0, unidades = 0;
+  for(const g of grupos){
+    const ja = r => r.condominio.chave === g.chave || normCond(r.condominio.nome) === normCond(g.condominio) || (g.razao && normCond(r.condominio.nome) === normCond(g.razao));
+    if(S.rodadas.some(ja)){ pulados++; continue; }
+    const r = novaRodada('carga', { nome: g.condominio, cnpj: g.cnpj, chave: g.chave });
+    r.origem = 'carga'; r.status = 'concluida'; r.protocolo = '';
+    const datas = g.unidades.map(u => u.ultima).filter(Boolean).sort();
+    const meses = g.unidades.map(u => u.mes).filter(Boolean).sort();
+    r.dataAnalise = datas.length ? datas[datas.length - 1] : meses.length ? meses[meses.length - 1] + '-01' : hojeISO();
+    r.nota = 'Carga inicial da base unificada (Acompanhamento de Espólios + Controle de Verificação)' + (g.comarca ? ' · ' + g.comarca : '');
+    r.unidades = g.unidades.map(x => {
+      const n = novaUnidade(x.unid, '', '');
+      const exc = /exclu/i.test(x.status);
+      n.resultado = exc ? 'EXCLUIR' : 'PREVENTIVO'; n.situacao = exc ? 'excluida' : 'ativa'; n.regra = 'Carga';
+      n.motivo = exc ? 'Excluída da garantia (planilha de acompanhamento).' : x.varias ? 'Planilha indica "várias" unidades; completar na primeira reanálise.' : 'Importada da planilha; titular a completar.' + (x.status ? ' Status na planilha: ' + x.status + '.' : '');
+      n.obs = [x.deb ? 'Déb. anterior: ' + x.deb : '', x.ultima ? 'Última verificação: ' + fmtData(x.ultima) : '', x.obs, x.fonte ? 'Fonte: ' + x.fonte : ''].filter(Boolean).join(' · ');
+      if(/^(sim|n[ãa]o)$/i.test(x.deb)) n.debAnterior = /^sim$/i.test(x.deb) ? 'SIM' : 'NÃO';   // conferência feita na época com a administradora anterior
+      n.completar = !exc;
+      return n;
+    });
+    unidades += r.unidades.length;
+    r.concluidaEm = nowISO(); r.proximaReanalise = somaDias(r.dataAnalise, PRAZO_REANALISE_DIAS); r.resumo = resumoRodada(r);
+    const ref = await DB.collection(COLECOES.rodadas).add(rodadaParaGravar(r));
+    S.rodadas.push({ id: ref.id, ...r }); nr++;
+  }
+  registrarHistorico('carga_inicial', { rodadas: nr, unidades, formato: 'unificada' });
+  return { rodadas: nr, pulados, unidades };
+}
 async function importarPlanilhaControle(linhas){
   let nr = 0, pulados = 0;
   for(const l of linhas){
@@ -1572,7 +1635,7 @@ function cardUnidade(u, r, dev, rid, opts){
     <summary>
       <div class="num">${esc(u.unid || '—')}</div>
       <div class="quem"><b>${esc(u.titular || '(titular a completar)')}</b><span>${esc(u.cpf || 'sem CPF')}${u.completar?' · <b style="color:#b57a12">completar</b>':''}${u.titularAuto==='vouch'?' · titular vindo do Vouch, confira':''}</span>
-        <div class="taxas"><span>Vouch <b>${u.vouch===null||u.vouch===undefined?'—':u.vouch}</b></span>${semAnt?'':`<span>Anterior <b>${u.ant===null||u.ant===undefined?'—':u.ant}</b></span>`}${anterior?`<span>antes: <b>${esc(rotuloStatus(anterior))}</b></span>`:''}</div></div>
+        <div class="taxas"><span>Vouch <b>${u.vouch===null||u.vouch===undefined?'—':u.vouch}</b></span>${semAnt?'':`<span>Anterior <b>${u.ant===null||u.ant===undefined?'—':u.ant}</b></span>`}${u.debAnterior?`<span>Déb. anterior <b>${esc(u.debAnterior)}</b></span>`:''}${anterior?`<span>antes: <b>${esc(rotuloStatus(anterior))}</b></span>`:''}</div></div>
       <div class="res"><span class="selo ${classeSelo(c.r)}">${esc(rotuloStatus(c.r))}</span>${mudou?' <span class="selo s-rean">mudou</span>':''}${u.pendente?' <span class="selo s-rean">pendência 5.5</span>':''}<div class="motivo">Regra ${esc(c.regra)} · ${esc(c.motivo)}</div></div>
     </summary>
     <div class="det">
@@ -2249,6 +2312,14 @@ $('#confCargaArquivo').addEventListener('change', async e => {
   const f = e.target.files[0]; e.target.value = ''; if(!f) return;
   const st = $('#confCargaStatus'); st.innerHTML = '<p class="ajuda">Lendo a planilha…</p>';
   try{
+    const grupos = await lerPlanilhaUnificada(f);
+    if(grupos){
+      const nU = grupos.reduce((s, g) => s + g.unidades.length, 0), nExc = grupos.reduce((s, g) => s + g.unidades.filter(u => /exclu/i.test(u.status)).length, 0);
+      if(!(await confirmar(`Base unificada: ${grupos.length} condomínios e ${nU} unidades (${nExc} excluídas da garantia).\nCada condomínio entra na Fila de acompanhamento com prazo de 90 dias a partir da última verificação.\nCondomínios que já estão na base não duplicam.`))) { st.innerHTML = ''; return; }
+      const r = await importarPlanilhaUnificada(grupos);
+      st.innerHTML = `<div class="ok">Importado: ${r.rodadas} condomínio(s) e ${r.unidades} unidade(s)${r.pulados ? ` (${r.pulados} condomínio(s) já existiam e foram mantidos)` : ''}.</div>`;
+      return;
+    }
     const linhas = await lerPlanilhaControle(f);
     if(!linhas.length){ st.innerHTML = '<div class="aviso">Não encontrei abas com a coluna "Condomínio".</div>'; return; }
     const com = linhas.filter(l => l.temEspolio).length;

@@ -243,7 +243,7 @@ function rodadaDeAcompanhamento(anterior){
   r.anterior = anterior.id; r.idadeGarantia = anterior.idadeGarantia; r.analista = anterior.analista || '';
   r.semAnterior = true; r.semBi = true;
   r.unidades = (anterior.unidades || []).filter(u => u.situacao === 'ativa' && u.resultado !== 'EXCLUIR').map(u => {
-    const n = novaUnidade(u.unid, u.titular, u.cpf); n.obs = u.obs || ''; n.completar = !!u.completar; n.historicoVouch = (u.historicoVouch || []).concat([{ rodada: anterior.protocolo || anterior.id, data: anterior.dataAnalise, vouch: u.vouch }]); return n; });
+    const n = novaUnidade(u.unid, u.titular, u.cpf); n.obs = u.obs || ''; if(u.debAnterior) n.debAnterior = u.debAnterior; n.completar = !!u.completar; n.historicoVouch = (u.historicoVouch || []).concat([{ rodada: anterior.protocolo || anterior.id, data: anterior.dataAnalise, vouch: u.vouch }]); return n; });
   return r;
 }
 
@@ -258,6 +258,38 @@ function identificarCondominio(leitura, candidatos){
 }
 
 /* ---------- carga inicial a partir da planilha de controle ---------- */
+/* carga a partir da planilha unificada: uma rodada concluída por condomínio (chave pelo CNPJ, liga com a carteira).
+   Data da análise = última verificação mais recente das unidades (sem ela, o mês da verificação).
+   "Excluída da garantia" entra excluída; as demais ficam em acompanhamento, titular a completar. */
+async function importarPlanilhaUnificada(grupos){
+  let nr = 0, pulados = 0, unidades = 0;
+  for(const g of grupos){
+    const ja = r => r.condominio.chave === g.chave || normCond(r.condominio.nome) === normCond(g.condominio) || (g.razao && normCond(r.condominio.nome) === normCond(g.razao));
+    if(S.rodadas.some(ja)){ pulados++; continue; }
+    const r = novaRodada('carga', { nome: g.condominio, cnpj: g.cnpj, chave: g.chave });
+    r.origem = 'carga'; r.status = 'concluida'; r.protocolo = '';
+    const datas = g.unidades.map(u => u.ultima).filter(Boolean).sort();
+    const meses = g.unidades.map(u => u.mes).filter(Boolean).sort();
+    r.dataAnalise = datas.length ? datas[datas.length - 1] : meses.length ? meses[meses.length - 1] + '-01' : hojeISO();
+    r.nota = 'Carga inicial da base unificada (Acompanhamento de Espólios + Controle de Verificação)' + (g.comarca ? ' · ' + g.comarca : '');
+    r.unidades = g.unidades.map(x => {
+      const n = novaUnidade(x.unid, '', '');
+      const exc = /exclu/i.test(x.status);
+      n.resultado = exc ? 'EXCLUIR' : 'PREVENTIVO'; n.situacao = exc ? 'excluida' : 'ativa'; n.regra = 'Carga';
+      n.motivo = exc ? 'Excluída da garantia (planilha de acompanhamento).' : x.varias ? 'Planilha indica "várias" unidades; completar na primeira reanálise.' : 'Importada da planilha; titular a completar.' + (x.status ? ' Status na planilha: ' + x.status + '.' : '');
+      n.obs = [x.deb ? 'Déb. anterior: ' + x.deb : '', x.ultima ? 'Última verificação: ' + fmtData(x.ultima) : '', x.obs, x.fonte ? 'Fonte: ' + x.fonte : ''].filter(Boolean).join(' · ');
+      if(/^(sim|n[ãa]o)$/i.test(x.deb)) n.debAnterior = /^sim$/i.test(x.deb) ? 'SIM' : 'NÃO';   // conferência feita na época com a administradora anterior
+      n.completar = !exc;
+      return n;
+    });
+    unidades += r.unidades.length;
+    r.concluidaEm = nowISO(); r.proximaReanalise = somaDias(r.dataAnalise, PRAZO_REANALISE_DIAS); r.resumo = resumoRodada(r);
+    const ref = await DB.collection(COLECOES.rodadas).add(rodadaParaGravar(r));
+    S.rodadas.push({ id: ref.id, ...r }); nr++;
+  }
+  registrarHistorico('carga_inicial', { rodadas: nr, unidades, formato: 'unificada' });
+  return { rodadas: nr, pulados, unidades };
+}
 async function importarPlanilhaControle(linhas){
   let nr = 0, pulados = 0;
   for(const l of linhas){

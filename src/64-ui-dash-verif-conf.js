@@ -87,6 +87,14 @@ $('#confCargaArquivo').addEventListener('change', async e => {
   const f = e.target.files[0]; e.target.value = ''; if(!f) return;
   const st = $('#confCargaStatus'); st.innerHTML = '<p class="ajuda">Lendo a planilha…</p>';
   try{
+    const grupos = await lerPlanilhaUnificada(f);
+    if(grupos){
+      const nU = grupos.reduce((s, g) => s + g.unidades.length, 0), nExc = grupos.reduce((s, g) => s + g.unidades.filter(u => /exclu/i.test(u.status)).length, 0);
+      if(!(await confirmar(`Base unificada: ${grupos.length} condomínios e ${nU} unidades (${nExc} excluídas da garantia).\nCada condomínio entra na Fila de acompanhamento com prazo de 90 dias a partir da última verificação.\nCondomínios que já estão na base não duplicam.`))) { st.innerHTML = ''; return; }
+      const r = await importarPlanilhaUnificada(grupos);
+      st.innerHTML = `<div class="ok">Importado: ${r.rodadas} condomínio(s) e ${r.unidades} unidade(s)${r.pulados ? ` (${r.pulados} condomínio(s) já existiam e foram mantidos)` : ''}.</div>`;
+      return;
+    }
     const linhas = await lerPlanilhaControle(f);
     if(!linhas.length){ st.innerHTML = '<div class="aviso">Não encontrei abas com a coluna "Condomínio".</div>'; return; }
     const com = linhas.filter(l => l.temEspolio).length;

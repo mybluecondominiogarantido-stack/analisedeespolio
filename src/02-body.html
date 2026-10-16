@@ -181,10 +181,11 @@
     </div>
   </div>
   <div class="card">
-    <header><h2>Carga inicial · planilha de controle</h2><span class="dica">cria a fila a partir dos condomínios com espólio</span></header>
+    <header><h2>Carga inicial</h2><span class="dica">cria a fila a partir dos condomínios com espólio</span></header>
     <div class="corpo">
-      <p class="ajuda" style="margin:0 0 10px">Aceita a planilha “Controle de Verificação de Espólios” (uma aba por mês: Quant., Status, Comarca, Condomínio, Vigência, Responsável, Observações). Só os condomínios marcados com espólio entram: viram rodadas de carga inicial com as unidades das observações; “VÁRIAS” fica marcado para completar na primeira reanálise. Condomínios sem espólio são ignorados.</p>
-      <div class="doc"><div class="ico">XLS</div><div><b>Importar planilha de controle</b><span>Pode repetir: linhas já importadas não duplicam</span></div><input type="file" accept=".xlsx,.xls" id="confCargaArquivo"></div>
+      <p class="ajuda" style="margin:0 0 10px"><b>Base unificada</b> (Acompanhamento de Espólios + Controle de Verificação, uma linha por unidade com CNPJ): cada condomínio entra na fila com as unidades, o débito anterior registrado na época, o status (excluídas entram como excluídas) e prazo de 90 dias a partir da última verificação.</p>
+      <p class="ajuda" style="margin:0 0 10px">Também aceita a planilha “Controle de Verificação de Espólios” (uma aba por mês: Quant., Status, Comarca, Condomínio, Vigência, Responsável, Observações). Só os condomínios marcados com espólio entram: viram rodadas de carga inicial com as unidades das observações; “VÁRIAS” fica marcado para completar na primeira reanálise. Condomínios sem espólio são ignorados.</p>
+      <div class="doc"><div class="ico">XLS</div><div><b>Importar base unificada ou planilha de controle</b><span>Pode repetir: condomínios já importados não duplicam</span></div><input type="file" accept=".xlsx,.xls" id="confCargaArquivo"></div>
       <div id="confCargaStatus"></div>
     </div>
   </div>

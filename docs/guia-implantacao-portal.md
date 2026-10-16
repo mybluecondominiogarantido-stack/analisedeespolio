@@ -57,7 +57,7 @@ Quem tem mais de um papel vê a soma das abas. Uma solicitação da Implantaçã
 
 **Quem faz:** Beatriz, na aba Configurações.
 
-1. **Carga inicial.** Em "Carga inicial · planilha de controle", envie `Controle_de_Verificacao_de_Espolios.xlsx` uma única vez. Os 35 condomínios com espólio entram na Fila de acompanhamento. Repetir a importação não duplica nada.
+1. **Carga inicial.** Em "Carga inicial", envie a planilha **base unificada** (Acompanhamento de Espólios + Controle de Verificação), depois de conferir as linhas marcadas em amarelo. Os condomínios entram na Fila de acompanhamento com as unidades, o status e o prazo contado da última verificação. Repetir a importação não duplica nada.
 2. **Base do Power BI.** Envie o Excel do dia. Ela vale para toda a equipe até a próxima troca.
 3. **Carteira.** Só conferir: deve mostrar 335 condomínios, "espelhada do cadastro de condomínios do portal".
 
