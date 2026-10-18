@@ -99,7 +99,7 @@ function cardUnidade(u, r, dev, rid, opts){
           <label style="margin-top:8px">Taxas no Vouch (manual)</label><input type="number" min="0" data-manual="vouch" value="${u.manual.vouch??''}" placeholder="automático" ${travada?'disabled':''}></div>
         ${semAnt ? '' : `<div><label>Casamento na anterior</label><select data-esc="ant" ${travada?'disabled':''}>${opcoesDevedor(dev.ant, u.esc.ant)}</select><div style="margin-top:4px">${cas('ant')}</div>
           <label style="margin-top:8px">Taxas anteriores (manual)</label><input type="number" min="0" data-manual="ant" value="${u.manual.ant??''}" placeholder="automático" ${travada?'disabled':''}></div>`}
-        <div><label>Ajuste do analista</label><select data-campo="override" ${travada?'disabled':''}><option value="">Automático</option><option value="__base__" ${u.override && u.override!=='EXCLUIR'?'selected':''}>Sob análise</option><option value="EXCLUIR" ${u.override==='EXCLUIR'?'selected':''}>Excluir</option></select>
+        <div><label>Ajuste do analista</label><select data-campo="override" ${travada?'disabled':''}><option value="">Automático</option><option value="__base__" ${u.override && u.override!=='EXCLUIR'?'selected':''}>Mantida · em acompanhamento</option><option value="EXCLUIR" ${u.override==='EXCLUIR'?'selected':''}>Excluir</option></select>
           <label style="margin-top:8px">Motivo do ajuste ${u.override?'<span style="color:var(--red)">(obrigatório)</span>':''}</label><input type="text" data-campo="motivoAjuste" value="${esc(u.motivoAjuste||'')}" placeholder="ex.: alvará judicial apresentado" ${travada?'disabled':''}></div>
       </div>
       ${provas('vouch')}${semAnt?'':provas('ant')}
@@ -157,8 +157,7 @@ function fichaHTML(r){
   const vig = (r.idadeGarantia === null || r.idadeGarantia === undefined || r.idadeGarantia === '') ? null : +r.idadeGarantia;
   const inicioTxt = vig !== null ? `${vig} ${vig===1?'mês':'meses'}` : '—';
   const nE = grupo('EXCLUIR').length, nR = grupo('REANÁLISE').length, nP = grupo('PREVENTIVO').length, nEnc = grupo('ENCERRADA').length;
-  const tipoSob = r.tipo === 'acompanhamento' ? 'reanálise' : 'preventivo';
-  const classif = res.length ? [nE?`Excluir da garantia (${nE})`:null, (nR+nP)?`Sob análise · ${tipoSob} (${nR+nP})`:null, nEnc?`Encerradas (${nEnc})`:null].filter(Boolean).join('  ·  ') : '—';
+  const classif = res.length ? [nE?`Excluir da garantia (${nE})`:null, (nR+nP)?`Mantida · em acompanhamento (${nR+nP})`:null, nEnc?`Encerradas (${nEnc})`:null].filter(Boolean).join('  ·  ') : '—';
   const sit = n => n === null || n === undefined ? 'Não informado' : (n > 0 ? `Inadimplente (${n} taxa${n>1?'s':''})` : 'Sem cobrança');
   const tipoTxt = r.tipo === 'acompanhamento' ? 'Acompanhamento (reanálise)' : r.tipo === 'carga' ? 'Carga inicial' : r.tipo === 'avulso' ? 'Avulso (sinalização da Cobrança)' : 'Implantação (1ª análise)';
   const semColAnt = r.tipo === 'acompanhamento';   // reanálise: só o Vouch entra
@@ -186,8 +185,7 @@ function fichaHTML(r){
     : `<tr><td colspan="6" style="text-align:center;color:#6b7f88">Sem unidades sinalizadas.</td></tr>`}
   </tbody></table>
   <div class="f-legenda">
-    <span><i style="background:#199CB1"></i> Sob análise · Preventivo (implantação)</span>
-    <span><i style="background:#F2A93B"></i> Sob análise · Reanálise (acompanhamento)</span>
+    <span><i style="background:#199CB1"></i> Mantida · em acompanhamento</span>
     <span><i style="background:#C0392B"></i> Excluir da garantia</span>
   </div>
   <div class="f-rodape-tab">Inadimplência anterior = débito antes da garantia MyBlue. Vouch = sistema interno MyBlue. • Classificação conforme a Política de Análise de Espólio.</div>

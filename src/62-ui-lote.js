@@ -98,7 +98,7 @@ function renderLoteAndamento(){
     const concluida = r.status === 'concluida';
     return `<tr><td><b>${esc(fi.condominio.nome)}</b><div class="ajuda" style="margin:0">${esc(it.arquivo)}</div></td>
       <td>${it.leitura.conferido ? `<span class="selo s-ok">leitura conferida</span>` : `<span class="selo s-exc">leitura divergente</span>`}<div class="ajuda" style="margin:2px 0 0">até ${esc(it.leitura.corte||'?')}${it.ident && it.ident.modo !== 'CNPJ' ? ' · identificado pelo nome' + (it.ident.ambiguo ? ', confira' : '') : ''}</div></td>
-      <td>${s.excluir ? `<span class="selo s-exc">${s.excluir} excluir</span> ` : ''}<span class="selo s-rean">${s.rean + s.prev} permanece(m)</span>${s.enc ? ` <span class="selo s-enc">${s.enc} encerrada(s)</span>` : ''}</td>
+      <td>${s.excluir ? `<span class="selo s-exc">${s.excluir} excluir</span> ` : ''}<span class="selo s-prev">${s.rean + s.prev} mantida(s)</span>${s.enc ? ` <span class="selo s-enc">${s.enc} encerrada(s)</span>` : ''}</td>
       <td>${exc ? `<span class="selo s-rean">${exc} a revisar</span>` : '<span class="ajuda" style="margin:0">sem exceções</span>'}</td>
       <td>${s.total}</td>
       <td class="acoes">${concluida ? `<span class="selo s-ok">${esc(r.protocolo)}</span><button class="btn sec mini" data-ficha="${i}">Baixar ficha</button><button class="btn sec mini" data-ticket="${i}">Ticket</button>`
@@ -123,7 +123,7 @@ function renderLoteAndamento(){
 }
 async function concluirItemLote(i){
   const it = S.lote.itens[i]; const r = it.rodada; const s = resumoRodada(r);
-  if(!(await confirmar(`Concluir a reanálise de ${r.condominio.nome}?\n${s.excluir} a excluir · ${s.rean + s.prev} permanecem.\nDepois de concluída, a rodada não pode ser editada.`))) return;
+  if(!(await confirmar(`Concluir a reanálise de ${r.condominio.nome}?\n${s.excluir} a excluir · ${s.rean + s.prev} mantida(s) em acompanhamento.\nDepois de concluída, a rodada não pode ser editada.`))) return;
   try{ await concluirRodada(r); await salvarEvidencias(r.id, { textos: it.textos, dev: it.dev }); if(S.lote.modalIdx === i){ S.lote.modalIdx = null; fecharModal(); } renderLote();
     // ficha só baixa sozinha quando há exclusão da garantia (para formalizar)
     if(s.excluir){ toast('Rodada ' + r.protocolo + ' concluída. Baixando a ficha para formalizar a exclusão.', 5000); await baixarFichaPDF(r); }
@@ -139,7 +139,7 @@ function renderLoteModal(i){
   S.lote.modalIdx = i;
   const cards = r.unidades.map(u => { const exc = ehExcecao(it, u); return cardUnidade(u, r, it.dev, 'lote:' + i, { destaque: exc, aberto: primeira ? exc : abertos.has(u.id), anterior: resultadoAnterior(it, u) }); }).join('');
   const html = `<p class="ajuda" style="margin:0 0 10px">${esc(it.arquivo)} · Vouch até ${esc(it.leitura.corte||'?')} · ${it.leitura.conferido ? 'leitura conferida com o total do relatório' : '<b style="color:var(--red)">leitura divergente do total impresso</b>'} · em destaque: mudou de status, não localizado, casamento só por nome, pendência ou cadastro a completar.</p>
-    <div class="resumo"><span class="pill">Unidades <b>${s.total}</b></span><span class="pill">Excluir <b>${s.excluir}</b></span><span class="pill">Permanecem <b>${s.rean + s.prev}</b></span>${s.enc?`<span class="pill">Encerradas <b>${s.enc}</b></span>`:''}</div>${cards}`;
+    <div class="resumo"><span class="pill">Unidades <b>${s.total}</b></span><span class="pill">Excluir <b>${s.excluir}</b></span><span class="pill">Mantidas <b>${s.rean + s.prev}</b></span>${s.enc?`<span class="pill">Encerradas <b>${s.enc}</b></span>`:''}</div>${cards}`;
   const acoes = concluida ? `<span class="selo s-ok">${esc(r.protocolo)}</span><button class="btn mini" id="mLoteFicha">Baixar ficha</button>` : `<button class="btn mini" id="mLoteConcluir" ${!CAN_WRITE?'disabled':''}>${s.excluir ? 'Concluir e baixar ficha' : 'Concluir'}</button>`;
   const m = $('#modal');
   if(m.hidden || !m.querySelector('.caixa')){ abrirModal(r.condominio.nome + ' · reanálise', html, acoes); m.querySelector('[data-fechar]').addEventListener('click', () => { S.lote.modalIdx = null; }); }

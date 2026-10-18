@@ -38,7 +38,7 @@ function excelData(v){
 
 /* ---------- ticket para quem guarda a ficha na pasta ---------- */
 function textoTicket(r, sol){
-  const linhas = (r.unidades||[]).map(u => `• ${u.unid || 's/ unid.'} — ${u.titular || '(titular a completar)'}${u.cpf ? ' · ' + u.cpf : ''}: ${u.resultado === 'EXCLUIR' ? 'Excluída da garantia' : u.resultado === 'ENCERRADA' ? 'Acompanhamento encerrado' : 'Permanece sob análise'}${u.obs ? ' · ' + u.obs : ''}`).join('\n');
+  const linhas = (r.unidades||[]).map(u => `• ${u.unid || 's/ unid.'} — ${u.titular || '(titular a completar)'}${u.cpf ? ' · ' + u.cpf : ''}: ${u.resultado === 'EXCLUIR' ? 'Excluída da garantia' : u.resultado === 'ENCERRADA' ? 'Acompanhamento encerrado' : 'Mantida · em acompanhamento'}${u.obs ? ' · ' + u.obs : ''}`).join('\n');
   return `Análise de espólio ${r.protocolo} · ${r.condominio.nome}${r.condominio.cnpj ? ' · CNPJ ' + r.condominio.cnpj : ''}\nTipo: ${r.tipo === 'acompanhamento' ? 'Acompanhamento (reanálise)' : r.tipo === 'avulso' ? 'Avulso' : 'Implantação'} · Data: ${fmtData(r.dataAnalise)}${sol ? ' · Solicitação de ' + (sol.solicitanteNome||'') : ''}\n\nUnidades:\n${linhas}\n\nFicha em anexo. Favor guardar na pasta do condomínio.${r.proximaReanalise && seguemEmAcompanhamento(r) ? '\nPróxima reanálise: ' + fmtData(r.proximaReanalise) : ''}`;
 }
 function abrirTicketModal(r, sol){
