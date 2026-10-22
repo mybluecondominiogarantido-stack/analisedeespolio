@@ -45,7 +45,8 @@ Bibliotecas externas (cdnjs): pdf.js 3.11.174, SheetJS 0.18.5 e html2pdf.js 0.10
 | `carteira/atual` | Cópia automática de `public.condominios`, mantida por gatilho no banco (`docs/sql/carteira-e-modulo.sql`) |
 | `perfis/{id}` | Papéis de cada pessoa (gestão, implantação, solicitante avulso) e nome na carteira |
 | `vistos/{id}` | Último acesso de cada pessoa ao módulo |
-| `meta/acesso` | Rota e setor do ticket |
+| `tickets/{id}` | Pedidos de ticket: a regra `espolio_ticket` do banco cria o ticket no portal e devolve o número (`docs/sql/ticket-pelo-modulo.sql`) |
+| `meta/acesso` | Setor padrão do ticket |
 
 A fila de acompanhamento é derivada: última rodada concluída de cada condomínio, unidades ativas (não excluídas, não encerradas), prazo = data da análise + 90 dias.
 

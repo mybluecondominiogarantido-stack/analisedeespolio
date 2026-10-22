@@ -81,7 +81,7 @@ O módulo funciona sem estes itens. Eles só completam a automação.
 
 | Item | O que é preciso | Enquanto não existir |
 |---|---|---|
-| **Ticket da ficha** | Uma rota do portal que crie ticket pelo módulo, recebendo título, descrição, setor, responsável e condomínio, mais uma rota para anexar o PDF. O módulo chama `/api/tickets` e `/api/tickets/{id}/anexos`, e o caminho pode ser trocado em Configurações. | O botão "Copiar texto" deixa o ticket pronto para abrir à mão no portal. |
+| **Logins das assistentes de crédito** | Evelyne Bezerra, Grazielly Soares, Naiara Sousa e Sofia Matos ainda não têm usuário no portal. | O ticket dos condomínios delas fica na fila do setor Crédito, com aviso à liderança. |
 
 **Aviso no sino: aplicado em 16/10/2026.** O gatilho de `docs/sql/notificacoes-trigger.sql` avisa no sino quem tem o papel Gestão a cada solicitação nova, e avisa quem pediu quando a análise é concluída ou devolvida. Para desfazer, use o comando de reversão no topo do arquivo.
 

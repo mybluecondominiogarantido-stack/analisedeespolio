@@ -270,7 +270,30 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   ok(!/Próxima reanálise/.test(await p.inputValue('#tkTexto')), 'ticket sem "Próxima reanálise" quando todas as unidades foram excluídas');
   if(shots){ fs.writeFileSync(path.join(shots, 'ticket-exemplo.txt'), 'Título: ' + await p.inputValue('#tkTitulo') + '\nPara: ' + await p.inputValue('#tkResp') + '\n\n' + await p.inputValue('#tkTexto')); await shot('ticket-modal'); }
   ok(/Coordenação de Cobrança/.test(await p.inputValue('#tkResp')) && /A - 101/.test(await p.inputValue('#tkTexto')), 'ticket vai para a assistente de implantação que solicitou quando a carteira não tem assistente de crédito');
-  await p.click('#modal [data-fechar]'); await p.click('#btnFecharEditor'); await p.waitForTimeout(300);
+  ok(await p.$eval('#tkEnviar', b => b.disabled), 'fora do portal o botão de abrir ticket fica desligado');
+  await p.click('#modal [data-fechar]'); await p.waitForTimeout(200);
+  // envio do ticket: simula o portal e a regra espolio_ticket do banco (docs/sql/ticket-pelo-modulo.sql)
+  await p.evaluate(() => {
+    window.__docOrig = DB.doc; window.claude = window.claude || {}; DB._local = false;
+    DB.doc = caminho => { const ref = window.__docOrig(caminho); if(!caminho.startsWith('tickets/')) return ref;
+      const set0 = ref.set.bind(ref);
+      ref.set = async d => { window.__pedido = d; const t = { ...d }; delete t.anexo; return set0({ ...t, status: 'aberto', ticketId: 42, anexado: !!d.anexo, responsavelId: null }); };
+      return ref; };
+  });
+  await p.click('#btnTicketEditor'); await p.waitForTimeout(300);
+  ok(!(await p.$eval('#tkEnviar', b => b.disabled)), 'no portal, a gestão pode abrir o ticket');
+  await p.click('#tkEnviar');
+  await p.waitForSelector('#tkStatus .ok, #tkStatus .erro', { timeout: 60000 });
+  const tk = await p.evaluate(() => ({ txt: document.querySelector('#tkStatus').innerText, ped: { ...window.__pedido, anexo: window.__pedido.anexo && { nome: window.__pedido.anexo.nome, tam: window.__pedido.anexo.base64.length, ini: window.__pedido.anexo.base64.slice(0, 8) } }, rod: S.rodada && S.rodada.ticket }));
+  ok(/Ticket #42 aberto para a fila do setor Implantação/.test(tk.txt) && /Ficha anexada/.test(tk.txt) && /não tem login/.test(tk.txt), `ticket aberto pelo pedido no banco, sem login vai para a fila do setor da solicitante (${tk.txt.replace(/\s+/g, ' ')})`);
+  ok(tk.ped.status === 'pedido' && tk.ped.setor === 'Implantação' && /^AE-2026-\d{4}$/.test(tk.ped.protocolo) && tk.ped.anexo && tk.ped.anexo.ini.startsWith('JVBER') && /\.pdf$/.test(tk.ped.anexo.nome), `pedido leva a ficha em PDF (${tk.ped.anexo && Math.round(tk.ped.anexo.tam * 3 / 4 / 1024)} KB, ${tk.ped.protocolo}, ${tk.ped.anexo && tk.ped.anexo.nome}, ${tk.ped.anexo && tk.ped.anexo.ini})`);
+  ok(tk.rod && tk.rod.id === 42, 'número do ticket fica gravado na análise');
+  await p.click('#modal [data-fechar]'); await p.waitForTimeout(200);
+  await p.click('#btnTicketEditor'); await p.waitForTimeout(300);
+  ok(/já tem o ticket #42/.test(await p.innerText('#modal')), 'análise mostra que já tem ticket aberto');
+  await p.click('#modal [data-fechar]');
+  await p.evaluate(() => { DB.doc = window.__docOrig; DB._local = true; delete window.claude; });
+  await p.click('#btnFecharEditor'); await p.waitForTimeout(300);
   // solicitante vê o resultado e baixa a ficha
   await papeisLocal('implantacao');
   await p.click('[data-tab="minhas"]'); await p.waitForTimeout(200);

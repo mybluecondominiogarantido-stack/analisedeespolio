@@ -7,7 +7,7 @@
      DB.doc('c/id').set(obj) / .update(patch) / .delete() / .get() / .onSnapshot(cb, err)
      snapshot: .docs[] (id, data()), .exists, .data(), .docChanges()
    ====================================================================== */
-const COLECOES = { rodadas:'rodadas', evidencias:'evidencias', verificacoes:'verificacoes', meta:'meta', bi:'bi_base', historico:'historico', solicitacoes:'solicitacoes', carteira:'carteira', perfis:'perfis', vistos:'vistos' };
+const COLECOES = { rodadas:'rodadas', evidencias:'evidencias', verificacoes:'verificacoes', meta:'meta', bi:'bi_base', historico:'historico', solicitacoes:'solicitacoes', carteira:'carteira', perfis:'perfis', vistos:'vistos', tickets:'tickets' };
 
 function LocalDB(prefixo){
   const KEY = prefixo || 'myblue_espolio_local';

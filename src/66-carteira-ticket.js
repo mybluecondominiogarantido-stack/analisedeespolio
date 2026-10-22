@@ -44,43 +44,50 @@ function textoTicket(r, sol){
 function abrirTicketModal(r, sol){
   const resp = responsavelDoCondominio(r.condominio.chave, sol);
   const texto = textoTicket(r, sol);
-  abrirModal('Abrir ticket · ' + r.protocolo, `
+  const ja = r.ticket && r.ticket.id ? `<div class="aviso" style="margin-bottom:10px">Esta análise já tem o ticket #${esc(r.ticket.id)}, aberto em ${fmtDataHora(r.ticket.em)} para ${esc(r.ticket.para || 'o setor')}.</div>` : '';
+  abrirModal('Abrir ticket · ' + r.protocolo, `${ja}
     <div class="grade" style="margin-bottom:12px">
-      <div><label>Para</label><input type="text" id="tkResp" class="campo" value="${esc(resp.nome)}" placeholder="nome da responsável"><p class="ajuda">${resp.nome ? esc(resp.papel) : 'sem assistente de crédito na carteira: informe quem recebe'}</p></div>
+      <div><label>Para</label><input type="text" id="tkResp" class="campo" value="${esc(resp.nome)}" placeholder="nome da responsável"><p class="ajuda">${resp.nome ? esc(resp.papel) + '. ' : 'Sem assistente de crédito na carteira. '}Se a pessoa não tiver login no portal, o ticket fica na fila do setor.</p></div>
       <div><label>Setor</label><input type="text" id="tkSetor" class="campo" value="${esc(resp.setor)}"></div>
       <div><label>Prioridade</label><select id="tkPrio" class="campo"><option value="baixa">Baixa</option><option value="media" selected>Média</option><option value="alta">Alta</option></select></div>
     </div>
     <div><label>Título</label><input type="text" id="tkTitulo" class="campo" value="${esc('Análise de espólio ' + r.protocolo + ' · ' + r.condominio.nome)}"></div>
     <div style="margin-top:10px"><label>Descrição</label><textarea id="tkTexto" style="min-height:180px;font-family:var(--font);font-size:13px">${esc(texto)}</textarea></div>
+    <p class="ajuda">A ficha em PDF vai anexada ao ticket.</p>
     <div id="tkStatus"></div>`,
-    `<button class="btn sec mini" id="tkCopiar">Copiar texto</button><button class="btn mini" id="tkEnviar" ${!window.claude || DB._local ? 'disabled title="só pelo portal"' : ''}>Abrir ticket no portal</button>`);
+    `<button class="btn sec mini" id="tkCopiar">Copiar texto</button><button class="btn mini" id="tkEnviar" ${!window.claude || DB._local ? 'disabled title="só pelo portal"' : !ehGestao() ? 'disabled title="só a gestão abre ticket"' : ''}>Abrir ticket no portal</button>`);
   $('#tkCopiar').onclick = async () => { try{ await navigator.clipboard.writeText($('#tkTitulo').value + '\n\n' + $('#tkTexto').value); toast('Texto copiado.'); }catch(_){ toast('Selecione e copie o texto manualmente.'); } };
   $('#tkEnviar').onclick = () => enviarTicket(r, sol);
 }
+/* O módulo não grava nas tabelas de tickets do portal. Ele grava um pedido em tickets/{id} e a regra
+   espolio_ticket do banco (docs/sql/ticket-pelo-modulo.sql) cria o ticket, anexa a ficha, avisa no sino
+   e devolve no mesmo documento o número (status "aberto") ou o motivo (status "erro"). */
+const blobBase64 = blob => new Promise((ok, falha) => { const fr = new FileReader(); fr.onload = () => ok(String(fr.result).replace(/^data:[^,]*,/, '')); fr.onerror = () => falha(fr.error); fr.readAsDataURL(blob); });
 async function enviarTicket(r, sol){
-  const st = $('#tkStatus'); st.innerHTML = '<p class="ajuda">Enviando…</p>';
-  const rota = S.acesso.ticketRota || '/api/tickets';
-  const corpo = { titulo: $('#tkTitulo').value.trim(), descricao: $('#tkTexto').value, setor: $('#tkSetor').value.trim(), prioridade: $('#tkPrio').value, responsavel_nome: $('#tkResp').value.trim(),
-                  condominio_nome: r.condominio.nome, condominio_cnpj: r.condominio.cnpj, origem: 'analise-espolio', protocolo: r.protocolo, rodadaId: r.id };
+  const st = $('#tkStatus'), bt = $('#tkEnviar');
+  if(r.ticket && r.ticket.id && !(await confirmar(`Esta análise já tem o ticket #${r.ticket.id}. Abrir outro?`))) return;
+  bt.disabled = true; st.innerHTML = '<p class="ajuda">Gerando a ficha e abrindo o ticket…</p>';
+  const pedido = { status: 'pedido', titulo: $('#tkTitulo').value.trim(), descricao: $('#tkTexto').value, setor: $('#tkSetor').value.trim() || S.acesso.ticketSetor || 'Crédito',
+                   prioridade: $('#tkPrio').value, responsavelNome: $('#tkResp').value.trim(), condominio: { nome: r.condominio.nome, cnpj: r.condominio.cnpj || '' },
+                   protocolo: r.protocolo, rodadaId: r.id || null, solicitacaoId: sol ? sol.id : (r.solicitacaoId || null), pedidoPor: ME.name, pedidoEm: nowISO() };
+  const id = (r.protocolo || 'AE') + '-' + Date.now().toString(36);
+  const ref = DB.doc(COLECOES.tickets + '/' + id);
   try{
-    const resp = await fetch(rota, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) });
-    if(!resp.ok) throw new Error('o portal respondeu ' + resp.status);
-    const j = await resp.json().catch(() => ({}));
-    const id = j.id || (j.ticket && j.ticket.id);
-    let anexo = '';
-    if(id && typeof html2pdf !== 'undefined'){
-      try{
-        const blob = await fichaPDFBlob(r);
-        const fd = new FormData(); fd.append('arquivo', blob, nomeFicha(r));
-        const ra = await fetch(`${rota}/${id}/anexos`, { method: 'POST', credentials: 'same-origin', body: fd });
-        anexo = ra.ok ? ' Ficha anexada.' : ' O ticket foi aberto, mas a ficha não pôde ser anexada: anexe o PDF à mão.';
-      }catch(_){ anexo = ' O ticket foi aberto, mas a ficha não pôde ser anexada: anexe o PDF à mão.'; }
-    }
-    registrarHistorico('ticket', { rodadaId: r.id, protocolo: r.protocolo, ticketId: id || null, para: corpo.responsavel_nome });
-    if(r.id) gravarDoc(COLECOES.rodadas + '/' + r.id, { ticket: { id: id || null, para: corpo.responsavel_nome, em: nowISO() } });
-    st.innerHTML = `<div class="ok">Ticket ${id ? '#' + id + ' ' : ''}aberto para ${esc(corpo.responsavel_nome || corpo.setor)}.${anexo}</div>`;
+    try{ pedido.anexo = { nome: nomeFicha(r), base64: await blobBase64(await fichaPDFBlob(r)) }; }catch(_){ /* sem a ficha, o ticket sai sem anexo */ }
+    try{ await ref.set(pedido); }
+    catch(e){ if(!pedido.anexo) throw e; delete pedido.anexo; await ref.set(pedido); } /* ficha grande demais para a base: abre sem anexo */
+    let d = null;
+    for(let i = 0; i < 8; i++){ const snap = await ref.get(); d = snap.exists ? snap.data() : null; if(d && d.status !== 'pedido') break; await new Promise(res => setTimeout(res, 500)); }
+    if(!d || d.status === 'pedido') throw new Error('o portal não confirmou o ticket. A regra do banco pode não estar ligada');
+    if(d.status === 'erro') throw new Error(d.erro || 'recusado pelo banco');
+    const para = d.responsavelId ? pedido.responsavelNome : 'a fila do setor ' + pedido.setor;
+    registrarHistorico('ticket', { rodadaId: r.id, protocolo: r.protocolo, ticketId: d.ticketId, para });
+    if(r.id){ r.ticket = { id: d.ticketId, para, em: nowISO() }; gravarDoc(COLECOES.rodadas + '/' + r.id, { ticket: r.ticket }); }
+    st.innerHTML = `<div class="ok">Ticket #${esc(d.ticketId)} aberto para ${esc(para)}.${d.anexado ? ' Ficha anexada.' : ' A ficha não foi anexada: anexe o PDF pelo portal.'}${!d.responsavelId && pedido.responsavelNome ? ` ${esc(pedido.responsavelNome)} não tem login no portal, então o ticket ficou com a liderança do setor.` : ''}</div>`;
+    bt.textContent = 'Aberto';
   }catch(e){
-    st.innerHTML = `<div class="erro">Não foi possível abrir o ticket pelo módulo (${esc(e.message)}). Use "Copiar texto" e abra o ticket no portal; a ficha você baixa pelo botão da rodada. Se a rota do portal for outra, ajuste em Configurações.</div>`;
+    bt.disabled = false;
+    st.innerHTML = `<div class="erro">Não foi possível abrir o ticket (${esc(dbErr(e).replace(/^Falha ao acessar a base: /, ''))}). Use "Copiar texto" e abra o ticket no portal; a ficha você baixa pelo botão da análise.</div>`;
   }
 }
 async function fichaPDFBlob(r){
