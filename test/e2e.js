@@ -137,6 +137,20 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   const b3 = await p.$eval('#loteFila', e => e.textContent);
   await p.fill('#loteBusca', ''); await p.waitForTimeout(150);
   ok(b1 === 1 && /ESMERALDA/.test(b2) && !/\|/.test(b2) && /Nenhum condomínio/.test(b3) && (await p.$$eval('#loteFila tbody tr', t => t.length)) === 36, `pesquisa da fila por nome e por CNPJ (${b1}, ${b2.slice(0,40)})`);
+  // filtros da fila
+  const espera = await p.evaluate(() => { const f = fila(); return { venc: f.filter(i => i.vencida).length, carga: f.filter(i => i.rodada.origem === 'carga').length, modulo: f.filter(i => i.rodada.origem !== 'carga').length, mes: String(f[0].prazo).slice(0, 7), nMes: f.filter(i => String(i.prazo).slice(0, 7) === String(f[0].prazo).slice(0, 7)).length }; });
+  await p.selectOption('#fPrazo', 'vencidos'); await p.waitForTimeout(150);
+  const fv = await p.$$eval('#loteFila tbody tr', t => t.length);
+  ok(fv === espera.venc && /de 36/.test(await p.innerText('#loteContagem')) && !(await p.$eval('#fLimpar', e => e.hidden)), `filtro de prazo mostra só os vencidos (${fv} de ${espera.venc})`);
+  await p.click('#btnSelVencidos'); await p.waitForTimeout(100);
+  const selV = await p.evaluate(() => S.lote.selecionados.size); await p.click('#btnSelNenhum');
+  await p.selectOption('#fPrazo', ''); await p.selectOption('#fOrigem', 'modulo'); await p.waitForTimeout(150);
+  const fo = await p.$$eval('#loteFila tbody tr', t => t.length);
+  await p.selectOption('#fOrigem', ''); await p.selectOption('#fMes', espera.mes); await p.waitForTimeout(150);
+  const fm = await p.$$eval('#loteFila tbody tr', t => t.length);
+  ok(selV === espera.venc && fo === espera.modulo && fm === espera.nMes, `filtros de origem e mês da reanálise (${fo} do módulo, ${fm} em ${espera.mes}); "Selecionar vencidos" respeita os filtros`);
+  await p.click('#fLimpar'); await p.waitForTimeout(150);
+  ok((await p.$$eval('#loteFila tbody tr', t => t.length)) === 36 && await p.$eval('#fLimpar', e => e.hidden), 'Limpar filtros volta a fila inteira');
   const chaveEsm = await p.evaluate(() => fila().find(i => i.condominio.nome === 'CONDOMINIO ESMERALDA IV').chave);
   await p.check(`[data-sel="${chaveEsm}"]`);
   ok(!(await p.$eval('#btnReanalisarSel', e => e.hidden)), 'botão Reanalisar aparece após selecionar');

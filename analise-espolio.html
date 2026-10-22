@@ -127,6 +127,7 @@ tr.clic{cursor:pointer}
 .venc{color:var(--red);font-weight:800}
 .campo.invalido,input.invalido,select.invalido{border-color:var(--red)!important;box-shadow:0 0 0 3px rgba(216,70,59,.18)!important}
 .busca-fila{padding:12px 18px;border-bottom:1px solid var(--linha)}.busca-fila input{max-width:420px}
+.filtros-fila{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;align-items:center}.filtros-fila select{width:auto;max-width:260px;font-size:12.5px;padding:7px 10px}.filtros-fila select.ativo{border-color:var(--teal);background:var(--teal-bg)}
 .sub-quadro{font-size:13px;color:var(--ink-2);padding:12px 18px 6px;display:flex;align-items:center;gap:8px}
 .pill{background:var(--surface);border:1px solid var(--borda);border-radius:999px;padding:5px 12px;font-size:12px;font-weight:700;color:var(--muted);box-shadow:var(--shadow-sm)}
 .pill b{color:var(--petrol);font-family:var(--display);font-size:13.5px}
@@ -394,7 +395,16 @@ tr.clic{cursor:pointer}
   <div class="nota"><b>Fila de acompanhamento:</b> clique no nome do condomínio para ver as análises, as fichas e a evolução das unidades, ou para abrir uma reanálise individual. Para reanalisar vários, selecione-os e clique em “Reanalisar selecionados”: o módulo pede os relatórios do Vouch e identifica cada condomínio pelo cabeçalho. Só o Vouch entra; as unidades vêm da análise anterior.</div>
   <div class="card">
     <header><h2>Fila de acompanhamento</h2><div class="acoes"><span class="pill" id="loteContagem"></span><button class="btn sec mini" id="btnSelVencidos">Selecionar vencidos</button><button class="btn sec mini" id="btnSelNenhum">Limpar seleção</button><button class="btn sec mini" id="btnPlanilhaAcomp" title="Exporta a fila em CSV">Planilha (CSV)</button><button class="btn mini" id="btnReanalisarSel" hidden>Reanalisar selecionados</button></div></header>
-    <div class="busca-fila"><input type="search" id="loteBusca" class="campo" placeholder="Pesquisar condomínio ou CNPJ" autocomplete="off"></div>
+    <div class="busca-fila"><input type="search" id="loteBusca" class="campo" placeholder="Pesquisar condomínio ou CNPJ" autocomplete="off">
+      <div class="filtros-fila" id="filaFiltros">
+        <select class="campo" id="fPrazo" title="Prazo da reanálise"><option value="">Prazo: todos</option><option value="vencidos">Vencidos</option><option value="30">Vencem em até 30 dias</option><option value="prazo">No prazo (mais de 30 dias)</option></select>
+        <select class="campo" id="fMes" title="Mês da próxima reanálise"><option value="">Mês da reanálise: todos</option></select>
+        <select class="campo" id="fCobranca" title="Analista de cobrança na carteira"><option value="">Analista de cobrança: todos</option></select>
+        <select class="campo" id="fCredito" title="Assistente de crédito na carteira"><option value="">Assistente de crédito: todos</option></select>
+        <select class="campo" id="fOrigem" title="Origem da última análise"><option value="">Origem: todas</option><option value="carga">Carga inicial (planilha antiga)</option><option value="modulo">Análises do módulo</option></select>
+        <select class="campo" id="fPend" title="Pendências"><option value="">Pendências: todas</option><option value="completar">Cadastro a completar</option><option value="rascunho">Rascunho em aberto</option></select>
+        <button class="btn sec mini" id="fLimpar" hidden>Limpar filtros</button>
+      </div></div>
     <div class="tabela-wrap" id="loteFila"></div>
     <div id="loteFora"></div>
   </div>
@@ -2284,8 +2294,41 @@ $('#btnBaixarFicha').onclick = () => { if(S.rodada) baixarFichaPDF(S.rodada); };
 function renderLote(){ renderLoteFila(); renderLoteAndamento(); if(S.lote.modalIdx !== null && S.lote.modalIdx !== undefined) renderLoteModal(S.lote.modalIdx); }
 S.lote.modalIdx = null;
 
+/* filtros da fila: prazo, mês da reanálise, analista de cobrança, assistente de crédito, origem e pendências */
+S.lote.filtros = { prazo: '', mes: '', cobranca: '', credito: '', origem: '', pend: '' };
+const FILTROS_FILA = { prazo: '#fPrazo', mes: '#fMes', cobranca: '#fCobranca', credito: '#fCredito', origem: '#fOrigem', pend: '#fPend' };
+const filtrosAtivos = () => Object.values(S.lote.filtros).some(Boolean);
+function casaFiltros(i){
+  const f = S.lote.filtros, c = carteiraDe(i.condominio) || {};
+  if(f.prazo === 'vencidos' && !i.vencida) return false;
+  if(f.prazo === '30' && (i.vencida || i.dias > 30)) return false;
+  if(f.prazo === 'prazo' && (i.vencida || i.dias <= 30)) return false;
+  if(f.mes && String(i.prazo).slice(0, 7) !== f.mes) return false;
+  if(f.cobranca && normNome(c.analistaCobranca || '') !== f.cobranca) return false;
+  if(f.credito && normNome(c.assistenteCredito || '') !== f.credito) return false;
+  if(f.origem === 'carga' && i.rodada.origem !== 'carga') return false;
+  if(f.origem === 'modulo' && i.rodada.origem === 'carga') return false;
+  if(f.pend === 'completar' && !i.completar) return false;
+  if(f.pend === 'rascunho' && !i.rascunho) return false;
+  return true;
+}
+/* opções dos filtros a partir da fila atual (mantém a escolha feita) */
+function renderFiltrosFila(todos){
+  const opcoes = (sel, itens, rotuloTodos) => { const el = $(sel), atual = el.value;
+    el.innerHTML = `<option value="">${rotuloTodos}</option>` + itens.map(([v, t]) => `<option value="${esc(v)}">${esc(t)}</option>`).join('');
+    el.value = itens.some(([v]) => v === atual) ? atual : ''; };
+  const MES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  const meses = [...new Set(todos.map(i => String(i.prazo).slice(0, 7)))].sort().map(m => [m, `${MES[+m.slice(5, 7) - 1]}/${m.slice(0, 4)}`]);
+  const nomes = campo => { const m = new Map(); todos.forEach(i => { const n = (carteiraDe(i.condominio) || {})[campo]; if(n) m.set(normNome(n), n); }); return [...m].sort((a, b) => a[1].localeCompare(b[1], 'pt-BR')); };
+  opcoes('#fMes', meses, 'Mês da reanálise: todos');
+  opcoes('#fCobranca', nomes('analistaCobranca'), 'Analista de cobrança: todos');
+  opcoes('#fCredito', nomes('assistenteCredito'), 'Assistente de crédito: todos');
+  Object.entries(FILTROS_FILA).forEach(([k, sel]) => { S.lote.filtros[k] = $(sel).value; $(sel).classList.toggle('ativo', !!$(sel).value); });
+  $('#fLimpar').hidden = !filtrosAtivos();
+}
 /* pesquisa da fila: nome do condomínio (sem acento, por palavras) ou CNPJ */
 function casaBusca(i){
+  if(!casaFiltros(i)) return false;
   const q = String(S.lote.busca || '').trim(); if(!q) return true;
   const d = soDigitos(q);
   if(d.length >= 3 && soDigitos(i.condominio.cnpj).includes(d)) return true;
@@ -2293,13 +2336,13 @@ function casaBusca(i){
   return normCond(q).split(' ').filter(Boolean).every(t => alvo.includes(t));
 }
 function renderLoteFila(){
-  const todos = fila(); const f = todos.filter(casaBusca);
+  const todos = fila(); renderFiltrosFila(todos); const f = todos.filter(casaBusca);
   const venc = f.filter(i => i.vencida).length;
   const sel = S.lote.selecionados.size;
-  $('#loteContagem').innerHTML = `${S.lote.busca ? `${f.length} de ${todos.length}` : f.length} condomínio(s) · <b>${venc}</b> vencido(s)${sel ? ` · <b>${sel}</b> selecionado(s)` : ''}`;
+  $('#loteContagem').innerHTML = `${S.lote.busca || filtrosAtivos() ? `${f.length} de ${todos.length}` : f.length} condomínio(s) · <b>${venc}</b> vencido(s)${sel ? ` · <b>${sel}</b> selecionado(s)` : ''}`;
   const btn = $('#btnReanalisarSel'); btn.hidden = !sel; btn.textContent = `Reanalisar ${sel} selecionado(s)`;
   const wrap = $('#loteFila');
-  if(!f.length && todos.length){ wrap.innerHTML = '<div class="corpo"><div class="vazio">Nenhum condomínio da fila encontrado para essa pesquisa.</div></div>'; renderLoteFora(); return; }
+  if(!f.length && todos.length){ wrap.innerHTML = '<div class="corpo"><div class="vazio">Nenhum condomínio da fila encontrado para essa pesquisa ou esses filtros.</div></div>'; renderLoteFora(); return; }
   if(!f.length){ wrap.innerHTML = '<div class="corpo"><div class="vazio">A fila está vazia. Conclua análises de implantação ou importe a planilha de controle em Configurações.</div></div>'; renderLoteFora(); return; }
   wrap.innerHTML = `<table><thead><tr><th></th><th>Condomínio</th><th>Unidades</th><th>Última análise</th><th>Prazo</th><th>Situação</th></tr></thead><tbody>${
     f.map(i => { const emLote = S.lote.itens.find(x => x.fila && x.fila.chave === i.chave);
@@ -2314,13 +2357,15 @@ function renderLoteFila(){
   renderLoteFora();
 }
 function renderLoteFora(){
-  const fora = foraDaFila().filter(casaBusca); const el = $('#loteFora');
+  const fora = filtrosAtivos() ? [] : foraDaFila().filter(casaBusca); const el = $('#loteFora');   /* os filtros valem para quem está na fila */
   if(!fora.length){ el.innerHTML = ''; return; }
   el.innerHTML = `<details style="border-top:1px solid var(--linha)" ${S.lote.busca ? 'open' : ''}><summary style="cursor:pointer;padding:11px 18px;font-size:13px;color:var(--muted);font-weight:700">Fora do acompanhamento · ${fora.length} condomínio(s) com todas as unidades excluídas ou encerradas</summary>
     <div class="tabela-wrap"><table><thead><tr><th>Condomínio</th><th>Unidades</th><th>Excluídas</th><th>Última análise</th></tr></thead><tbody>${fora.map(i => `<tr><td><button class="link" data-hist="${esc(i.chave)}" style="text-decoration:none;color:var(--ink)"><b>${esc(i.condominio.nome)}</b></button></td><td>${i.unidades.length}</td><td>${i.unidades.filter(u=>u.resultado==='EXCLUIR').length}</td><td>${esc(i.rodada.protocolo||'carga inicial')} · ${fmtData(i.rodada.dataAnalise)}</td></tr>`).join('')}</tbody></table></div></details>`;
   el.querySelectorAll('[data-hist]').forEach(b => b.onclick = () => abrirCondominioModal(b.dataset.hist));
 }
 $('#loteBusca').addEventListener('input', e => { S.lote.busca = e.target.value; renderLoteFila(); });
+Object.values(FILTROS_FILA).forEach(sel => $(sel).addEventListener('change', () => renderLoteFila()));
+$('#fLimpar').onclick = () => { Object.values(FILTROS_FILA).forEach(sel => $(sel).value = ''); renderLoteFila(); };
 $('#btnSelVencidos').onclick = () => { fila().filter(i => i.vencida && casaBusca(i)).forEach(i => S.lote.selecionados.add(i.chave)); renderLoteFila(); };
 $('#btnSelNenhum').onclick = () => { S.lote.selecionados.clear(); renderLoteFila(); };
 $('#btnReanalisarSel').onclick = () => { S.lote.emAndamento = true; renderLoteAndamento(); $('#loteArquivos').click(); };

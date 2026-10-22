@@ -148,7 +148,16 @@
   <div class="nota"><b>Fila de acompanhamento:</b> clique no nome do condomínio para ver as análises, as fichas e a evolução das unidades, ou para abrir uma reanálise individual. Para reanalisar vários, selecione-os e clique em “Reanalisar selecionados”: o módulo pede os relatórios do Vouch e identifica cada condomínio pelo cabeçalho. Só o Vouch entra; as unidades vêm da análise anterior.</div>
   <div class="card">
     <header><h2>Fila de acompanhamento</h2><div class="acoes"><span class="pill" id="loteContagem"></span><button class="btn sec mini" id="btnSelVencidos">Selecionar vencidos</button><button class="btn sec mini" id="btnSelNenhum">Limpar seleção</button><button class="btn sec mini" id="btnPlanilhaAcomp" title="Exporta a fila em CSV">Planilha (CSV)</button><button class="btn mini" id="btnReanalisarSel" hidden>Reanalisar selecionados</button></div></header>
-    <div class="busca-fila"><input type="search" id="loteBusca" class="campo" placeholder="Pesquisar condomínio ou CNPJ" autocomplete="off"></div>
+    <div class="busca-fila"><input type="search" id="loteBusca" class="campo" placeholder="Pesquisar condomínio ou CNPJ" autocomplete="off">
+      <div class="filtros-fila" id="filaFiltros">
+        <select class="campo" id="fPrazo" title="Prazo da reanálise"><option value="">Prazo: todos</option><option value="vencidos">Vencidos</option><option value="30">Vencem em até 30 dias</option><option value="prazo">No prazo (mais de 30 dias)</option></select>
+        <select class="campo" id="fMes" title="Mês da próxima reanálise"><option value="">Mês da reanálise: todos</option></select>
+        <select class="campo" id="fCobranca" title="Analista de cobrança na carteira"><option value="">Analista de cobrança: todos</option></select>
+        <select class="campo" id="fCredito" title="Assistente de crédito na carteira"><option value="">Assistente de crédito: todos</option></select>
+        <select class="campo" id="fOrigem" title="Origem da última análise"><option value="">Origem: todas</option><option value="carga">Carga inicial (planilha antiga)</option><option value="modulo">Análises do módulo</option></select>
+        <select class="campo" id="fPend" title="Pendências"><option value="">Pendências: todas</option><option value="completar">Cadastro a completar</option><option value="rascunho">Rascunho em aberto</option></select>
+        <button class="btn sec mini" id="fLimpar" hidden>Limpar filtros</button>
+      </div></div>
     <div class="tabela-wrap" id="loteFila"></div>
     <div id="loteFora"></div>
   </div>
