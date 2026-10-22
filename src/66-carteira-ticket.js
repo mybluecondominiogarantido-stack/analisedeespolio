@@ -39,7 +39,7 @@ function excelData(v){
 /* ---------- ticket para quem guarda a ficha na pasta ---------- */
 function textoTicket(r, sol){
   const linhas = (r.unidades||[]).map(u => `• ${u.unid || 's/ unid.'} — ${u.titular || '(titular a completar)'}${u.cpf ? ' · ' + u.cpf : ''}: ${u.resultado === 'EXCLUIR' ? 'Excluir' : u.resultado === 'ENCERRADA' ? 'Encerrada' : 'Em acompanhamento'}${u.obs ? ' · ' + u.obs : ''}`).join('\n');
-  return `Análise de espólio ${r.protocolo} · ${r.condominio.nome}${r.condominio.cnpj ? ' · CNPJ ' + r.condominio.cnpj : ''}\nTipo: ${r.tipo === 'acompanhamento' ? 'Acompanhamento (reanálise)' : r.tipo === 'avulso' ? 'Avulso' : 'Implantação'} · Data: ${fmtData(r.dataAnalise)}${sol ? ' · Solicitação de ' + (sol.solicitanteNome||'') : ''}\n\nUnidades:\n${linhas}\n\nFicha em anexo. Favor guardar na pasta do condomínio.${r.proximaReanalise && seguemEmAcompanhamento(r) ? '\nPróxima reanálise: ' + fmtData(r.proximaReanalise) : ''}`;
+  return `Análise de espólio ${r.protocolo} · ${r.condominio.nome}${r.condominio.cnpj ? ' · CNPJ ' + r.condominio.cnpj : ''}\nTipo: ${r.tipo === 'acompanhamento' ? 'Reanálise' : r.tipo === 'avulso' ? 'Avulso' : 'Implantação'} · Data: ${fmtData(r.dataAnalise)}${sol ? ' · Solicitação de ' + (sol.solicitanteNome||'') : ''}\n\nUnidades:\n${linhas}\n\nFicha em anexo. Favor guardar na pasta do condomínio.${r.proximaReanalise && seguemEmAcompanhamento(r) ? '\nPróxima reanálise: ' + fmtData(r.proximaReanalise) : ''}`;
 }
 function abrirTicketModal(r, sol){
   const resp = responsavelDoCondominio(r.condominio.chave, sol);

@@ -408,6 +408,24 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   const fEco = await filtros('eco_way', '2026-10-10');
   ok(['CPF do morador', 'Telefone do morador', 'Apresentar unidades adimplentes', 'Apresentar vencimento para N.V'].every(x => fEco.includes(x)) && !fEco.includes('Nome do morador') && !fEco.includes('Mostrar valor total'), `relatório sem CPF, telefone, adimplentes e N.V é sinalizado nesses quatro (${fEco.join('; ')})`);
 
+  /* 10 · ficha da reanálise: tipo "Reanálise" e coluna de inadimplência anterior vinda da 1ª análise */
+  const fr = await p.evaluate(() => {
+    const imp = novaRodada('implantacao', { nome: 'CONDOMINIO TESTE ANTERIOR', cnpj: '', chave: 'teste-ant' }); imp.id = 'imp-teste'; imp.status = 'concluida';
+    const a = novaUnidade('A - 1', 'FULANO UM', ''); a.ant = 4; a.vouch = 1; a.resultado = 'PREVENTIVO'; a.situacao = 'ativa';
+    const b = novaUnidade('A - 2', 'FULANO DOIS', ''); b.ant = 0; b.vouch = 0; b.resultado = 'PREVENTIVO'; b.situacao = 'ativa';
+    imp.unidades = [a, b];
+    const car = novaRodada('carga', { nome: 'CONDOMINIO TESTE CARGA', cnpj: '', chave: 'teste-carga' }); car.origem = 'carga'; car.id = 'carga-teste'; car.status = 'concluida';
+    const c = novaUnidade('B - 1', 'FULANO TRES', ''); c.debAnterior = 'SIM'; c.resultado = 'REANÁLISE'; c.situacao = 'ativa'; car.unidades = [c];
+    S.rodadas.push(imp, car);
+    const re1 = rodadaDeAcompanhamento(imp); re1.id = 're1-teste'; re1.status = 'concluida'; re1.unidades.forEach(u => { u.resultado = 'REANÁLISE'; u.situacao = 'ativa'; delete u.antOrigem; }); S.rodadas.push(re1);
+    const re2 = rodadaDeAcompanhamento(re1);   // re1 sem antOrigem gravado: busca na 1ª análise pela cadeia
+    const reC = rodadaDeAcompanhamento(car);
+    const h2 = fichaHTML(re2), hC = fichaHTML(reC);
+    S.rodadas = S.rodadas.filter(x => !['imp-teste', 'carga-teste', 're1-teste'].includes(x.id));
+    return { tipo: /Reanálise/.test(h2) && !/Acompanhamento \(reanálise\)/.test(h2), col: /INADIMPLÊNCIA ANTERIOR/.test(h2), a4: /Inadimplente \(4 taxas\)/.test(h2), b0: />Sem cobrança</.test(h2), rodape: /conforme a 1ª análise/.test(h2), deb: /Com débito anterior/.test(hC) };
+  });
+  ok(fr.tipo && fr.col && fr.a4 && fr.b0 && fr.rodape && fr.deb, `ficha da reanálise: tipo "Reanálise" e inadimplência anterior da 1ª análise ou da planilha antiga (${JSON.stringify(fr)})`);
+
   fs.unlinkSync(tmp); await b.close();
   if(erros.length){ console.log('\nerros de console/página:'); erros.forEach(e => console.log('  -', e.slice(0, 300))); }
   console.log(process.exitCode ? '\nHÁ FALHAS' : '\nTodos os passos passaram.');

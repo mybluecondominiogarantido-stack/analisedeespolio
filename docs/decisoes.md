@@ -100,3 +100,8 @@ Registro do que foi decidido com a Coordenação de Cobrança (out/2026) para a 
   - **Só sinaliza, não bloqueia**: cartão do Vouch em amarelo com "N informação(ões) faltando" e a lista do que marcar na emissão; na reanálise em lote, selo "informações faltando".
 - **Cartão Pendentes (22/10)**: passa a somar as solicitações sem análise concluída (nova, vista ou em análise), igual ao número da aba, mais as reanálises vencidas.
 - **Resultados com nomes curtos (22/10)**: **Excluir** e **Em acompanhamento**, iguais na análise e na reanálise e em todos os lugares (tela, ficha: quadro Resultado, coluna e legenda; ticket; dashboard; reanálise em lote). Substitui "Mantida · em acompanhamento", "Excluir da garantia" e "Excluída da garantia". Só muda a exibição: regras e dados gravados são os mesmos.
+- **Ficha da reanálise (22/10)**:
+  - O tipo aparece como **"Reanálise"** (antes "Acompanhamento (reanálise)"), também na tela, no histórico e no ticket.
+  - A coluna **Inadimplência anterior** passa a aparecer na reanálise, com o que foi apurado na 1ª análise do condomínio ("Inadimplente (N taxas)", "Sem cobrança" ou "Sem relatório anterior"). Nas unidades da carga inicial, vem o "Déb. anterior" da planilha antiga ("Com/Sem débito anterior"). Sem informação: "Não informado".
+  - O valor é guardado em cada nova reanálise e, nas antigas, buscado pela cadeia de análises.
+  - Continua só informativo: a regra da reanálise segue usando só o Vouch.

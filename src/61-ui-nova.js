@@ -21,9 +21,9 @@ function renderEditor(){
   set('#inicio', r.idadeGarantia, r.idadeAuto); set('#analista', r.analista, r.analistaAuto);
   set('#bi', r.bi ? r.bi.valor : '', r.biAuto); set('#dataAnalise', r.dataAnalise); set('#nota', r.nota);
   $$('#sinalBi button').forEach(b => b.classList.toggle('ativo', b.dataset.sinal === ((r.bi && r.bi.sinal) || '-')));
-  $('#tipoRotulo').textContent = r.tipo === 'acompanhamento' ? 'Acompanhamento · reanálise' : r.tipo === 'avulso' ? 'Avulso · sinalização da Cobrança' : 'Implantação · 1ª análise';
+  $('#tipoRotulo').textContent = r.tipo === 'acompanhamento' ? 'Reanálise' : r.tipo === 'avulso' ? 'Avulso · sinalização da Cobrança' : 'Implantação · 1ª análise';
   $('#tipoRotulo').className = 'selo ' + (r.tipo === 'acompanhamento' ? 's-rean' : 's-prev');
-  $('#tipoAjuda').textContent = r.tipo === 'acompanhamento' ? 'Acompanhamento: reanálise, só o Vouch entra (3+ taxas exclui; abaixo disso, em acompanhamento).' : r.tipo === 'avulso' ? 'Avulso: condomínio já em carteira, regras 1 a 5; sem relatório anterior por padrão.' : 'Implantação: 1ª análise, regras 1 a 5.';
+  $('#tipoAjuda').textContent = r.tipo === 'acompanhamento' ? 'Reanálise: só o Vouch entra (3+ taxas exclui; abaixo disso, em acompanhamento).' : r.tipo === 'avulso' ? 'Avulso: condomínio já em carteira, regras 1 a 5; sem relatório anterior por padrão.' : 'Implantação: 1ª análise, regras 1 a 5.';
   $('#semAnterior').checked = !!r.semAnterior; $('#semBi').checked = !!r.semBi; $('#semVouch').checked = !!r.semVouch;
   $('#relVouch').value = S.textos.vouch; $('#relAdmin').value = S.textos.ant;
   $('#sinal').value = '';

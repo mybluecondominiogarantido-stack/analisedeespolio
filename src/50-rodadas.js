@@ -266,13 +266,26 @@ function informacaoReanalise(r){
   else if(m && m.item.meses !== null && m.item.meses !== undefined) r.idadeGarantia = m.item.meses;
   if(m){ r.bi = { valor: m.item.resultado, sinal: m.item.sinal }; r.biAuto = 'bi'; r.semBi = false; }
 }
+/* inadimplência anterior de uma unidade para a ficha da reanálise: vem da 1ª análise (implantação ou avulso) ou,
+   nas unidades da carga inicial, do "Déb. anterior" SIM/NÃO da planilha antiga. Volta {n} | {sem} | {deb} | null */
+function antOrigemDe(u, r, prof){
+  if(!u || !r || (prof || 0) > 20) return null;
+  if(u.antOrigem) return u.antOrigem;
+  if(r.origem === 'carga' || r.tipo === 'carga') return u.debAnterior ? { deb: u.debAnterior } : null;
+  if(r.tipo !== 'acompanhamento') return r.semAnterior ? { sem: true } : (u.ant === null || u.ant === undefined ? null : { n: u.ant });
+  if(u.debAnterior) return { deb: u.debAnterior };
+  const ant = r.anterior && (S.rodadas || []).find(x => x.id === r.anterior); if(!ant) return null;
+  const mesma = (ant.unidades || []).filter(x => normUnid(x.unid) === normUnid(u.unid));
+  const x = mesma.length === 1 ? mesma[0] : mesma.find(x => (soDigitos(x.cpf) && soDigitos(x.cpf) === soDigitos(u.cpf)) || normNome(x.titular) === normNome(u.titular));
+  return x ? antOrigemDe(x, ant, (prof || 0) + 1) : null;
+}
 function rodadaDeAcompanhamento(anterior){
   const r = novaRodada('acompanhamento', { ...anterior.condominio });
   r.anterior = anterior.id; r.idadeGarantia = null; r.analista = anterior.analista || '';
   r.semAnterior = true; r.semBi = true;
   informacaoReanalise(r);
   r.unidades = (anterior.unidades || []).filter(u => u.situacao === 'ativa' && u.resultado !== 'EXCLUIR').map(u => {
-    const n = novaUnidade(u.unid, u.titular, u.cpf); n.obs = u.obs || ''; if(u.debAnterior) n.debAnterior = u.debAnterior; n.completar = !!u.completar; n.historicoVouch = (u.historicoVouch || []).concat([{ rodada: anterior.protocolo || anterior.id, data: anterior.dataAnalise, vouch: u.vouch }]); return n; });
+    const n = novaUnidade(u.unid, u.titular, u.cpf); n.obs = u.obs || ''; if(u.debAnterior) n.debAnterior = u.debAnterior; const ao = antOrigemDe(u, anterior); if(ao) n.antOrigem = ao; n.completar = !!u.completar; n.historicoVouch = (u.historicoVouch || []).concat([{ rodada: anterior.protocolo || anterior.id, data: anterior.dataAnalise, vouch: u.vouch }]); return n; });
   return r;
 }
 

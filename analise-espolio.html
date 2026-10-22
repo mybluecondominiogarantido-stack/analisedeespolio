@@ -1651,13 +1651,26 @@ function informacaoReanalise(r){
   else if(m && m.item.meses !== null && m.item.meses !== undefined) r.idadeGarantia = m.item.meses;
   if(m){ r.bi = { valor: m.item.resultado, sinal: m.item.sinal }; r.biAuto = 'bi'; r.semBi = false; }
 }
+/* inadimplência anterior de uma unidade para a ficha da reanálise: vem da 1ª análise (implantação ou avulso) ou,
+   nas unidades da carga inicial, do "Déb. anterior" SIM/NÃO da planilha antiga. Volta {n} | {sem} | {deb} | null */
+function antOrigemDe(u, r, prof){
+  if(!u || !r || (prof || 0) > 20) return null;
+  if(u.antOrigem) return u.antOrigem;
+  if(r.origem === 'carga' || r.tipo === 'carga') return u.debAnterior ? { deb: u.debAnterior } : null;
+  if(r.tipo !== 'acompanhamento') return r.semAnterior ? { sem: true } : (u.ant === null || u.ant === undefined ? null : { n: u.ant });
+  if(u.debAnterior) return { deb: u.debAnterior };
+  const ant = r.anterior && (S.rodadas || []).find(x => x.id === r.anterior); if(!ant) return null;
+  const mesma = (ant.unidades || []).filter(x => normUnid(x.unid) === normUnid(u.unid));
+  const x = mesma.length === 1 ? mesma[0] : mesma.find(x => (soDigitos(x.cpf) && soDigitos(x.cpf) === soDigitos(u.cpf)) || normNome(x.titular) === normNome(u.titular));
+  return x ? antOrigemDe(x, ant, (prof || 0) + 1) : null;
+}
 function rodadaDeAcompanhamento(anterior){
   const r = novaRodada('acompanhamento', { ...anterior.condominio });
   r.anterior = anterior.id; r.idadeGarantia = null; r.analista = anterior.analista || '';
   r.semAnterior = true; r.semBi = true;
   informacaoReanalise(r);
   r.unidades = (anterior.unidades || []).filter(u => u.situacao === 'ativa' && u.resultado !== 'EXCLUIR').map(u => {
-    const n = novaUnidade(u.unid, u.titular, u.cpf); n.obs = u.obs || ''; if(u.debAnterior) n.debAnterior = u.debAnterior; n.completar = !!u.completar; n.historicoVouch = (u.historicoVouch || []).concat([{ rodada: anterior.protocolo || anterior.id, data: anterior.dataAnalise, vouch: u.vouch }]); return n; });
+    const n = novaUnidade(u.unid, u.titular, u.cpf); n.obs = u.obs || ''; if(u.debAnterior) n.debAnterior = u.debAnterior; const ao = antOrigemDe(u, anterior); if(ao) n.antOrigem = ao; n.completar = !!u.completar; n.historicoVouch = (u.historicoVouch || []).concat([{ rodada: anterior.protocolo || anterior.id, data: anterior.dataAnalise, vouch: u.vouch }]); return n; });
   return r;
 }
 
@@ -1917,9 +1930,13 @@ function fichaHTML(r){
   const nE = grupo('EXCLUIR').length, nR = grupo('REANÁLISE').length, nP = grupo('PREVENTIVO').length, nEnc = grupo('ENCERRADA').length;
   const classif = res.length ? [nE?`Excluir (${nE})`:null, (nR+nP)?`Em acompanhamento (${nR+nP})`:null, nEnc?`Encerradas (${nEnc})`:null].filter(Boolean).join('  ·  ') : '—';
   const sit = n => n === null || n === undefined ? 'Não informado' : (n > 0 ? `Inadimplente (${n} taxa${n>1?'s':''})` : 'Sem cobrança');
-  const tipoTxt = r.tipo === 'acompanhamento' ? 'Acompanhamento (reanálise)' : r.tipo === 'carga' ? 'Carga inicial' : r.tipo === 'avulso' ? 'Avulso (sinalização da Cobrança)' : 'Implantação (1ª análise)';
-  const semColAnt = r.tipo === 'acompanhamento';   // reanálise: só o Vouch entra
-  const antTxt = u => r.semAnterior ? 'Sem relatório anterior' : sit(u.ant);
+  const tipoTxt = r.tipo === 'acompanhamento' ? 'Reanálise' : r.tipo === 'carga' ? 'Carga inicial' : r.tipo === 'avulso' ? 'Avulso (sinalização da Cobrança)' : 'Implantação (1ª análise)';
+  const reanalise = r.tipo === 'acompanhamento';   // reanálise: só o Vouch entra; a coluna anterior repete a da 1ª análise
+  const antTxt = u => {
+    if(!reanalise) return r.semAnterior ? 'Sem relatório anterior' : sit(u.ant);
+    const o = antOrigemDe(u, r);
+    return !o ? 'Não informado' : o.sem ? 'Sem relatório anterior' : o.deb ? (o.deb === 'SIM' ? 'Com débito anterior' : 'Sem débito anterior') : sit(o.n);
+  };
   const logo = $('.brand img') ? $('.brand img').getAttribute('src') : '';
   return `
   ${logo ? `<img src="${logo}" class="f-logo" alt="MyBlue">` : ''}
@@ -1937,8 +1954,8 @@ function fichaHTML(r){
   </div>
   ${r.nota ? `<div class="f-nota">${esc(r.nota)}</div>` : ''}
   <div class="f-secao">Unidades sinalizadas × relatórios de inadimplência</div>
-  <table class="f-tab"><thead><tr><th style="width:11%">UNID.</th><th style="width:23%">TITULAR</th><th style="width:14%">CPF</th>${semColAnt?'':'<th style="width:18%">INADIMPLÊNCIA ANTERIOR</th>'}<th style="width:16%">VOUCH</th><th style="width:18%">RESULTADO</th></tr></thead><tbody>${
-    res.length ? res.map(u => `<tr><td><b>${esc(u.unid||'—')}</b></td><td>${esc(u.titular||'(a completar)')}</td><td>${esc(u.cpf||'—')}</td>${semColAnt?'':`<td>${antTxt(u)}</td>`}<td>${sit(u.vouch)}</td>
+  <table class="f-tab"><thead><tr><th style="width:11%">UNID.</th><th style="width:23%">TITULAR</th><th style="width:14%">CPF</th><th style="width:18%">INADIMPLÊNCIA ANTERIOR</th><th style="width:16%">VOUCH</th><th style="width:18%">RESULTADO</th></tr></thead><tbody>${
+    res.length ? res.map(u => `<tr><td><b>${esc(u.unid||'—')}</b></td><td>${esc(u.titular||'(a completar)')}</td><td>${esc(u.cpf||'—')}</td><td>${antTxt(u)}</td><td>${sit(u.vouch)}</td>
       <td class="res ${classeRes(u.resultado)}">${esc(rotuloStatus(u.resultado))}${motivoCurto(u, r) ? `<small>${esc(motivoCurto(u, r))}</small>` : ''}</td></tr>`).join('')
     : `<tr><td colspan="6" style="text-align:center;color:#6b7f88">Sem unidades sinalizadas.</td></tr>`}
   </tbody></table>
@@ -1946,7 +1963,7 @@ function fichaHTML(r){
     <span><i style="background:#199CB1"></i> Em acompanhamento</span>
     <span><i style="background:#C0392B"></i> Excluir</span>
   </div>
-  <div class="f-rodape-tab">Inadimplência anterior = débito antes da garantia MyBlue. Vouch = sistema interno MyBlue. • Classificação conforme a Política de Análise de Espólio.</div>
+  <div class="f-rodape-tab">Inadimplência anterior = débito antes da garantia MyBlue${reanalise ? ', conforme a 1ª análise' : ''}. Vouch = sistema interno MyBlue. • Classificação conforme a Política de Análise de Espólio.</div>
   ${obs ? `<div class="f-nota" style="margin-top:8px"><b>Observações:</b> ${esc(obs)}</div>` : ''}
   <div class="f-rodape"><span>MyBlue Condomínio Garantido | contato@myblue.com.br | www.myblue.com.br | 0800 085 9277</span><span>${esc(r.protocolo||'rascunho')} · gerada em ${fmtData(hojeISO())}</span></div>`;
 }
@@ -2021,9 +2038,9 @@ function renderEditor(){
   set('#inicio', r.idadeGarantia, r.idadeAuto); set('#analista', r.analista, r.analistaAuto);
   set('#bi', r.bi ? r.bi.valor : '', r.biAuto); set('#dataAnalise', r.dataAnalise); set('#nota', r.nota);
   $$('#sinalBi button').forEach(b => b.classList.toggle('ativo', b.dataset.sinal === ((r.bi && r.bi.sinal) || '-')));
-  $('#tipoRotulo').textContent = r.tipo === 'acompanhamento' ? 'Acompanhamento · reanálise' : r.tipo === 'avulso' ? 'Avulso · sinalização da Cobrança' : 'Implantação · 1ª análise';
+  $('#tipoRotulo').textContent = r.tipo === 'acompanhamento' ? 'Reanálise' : r.tipo === 'avulso' ? 'Avulso · sinalização da Cobrança' : 'Implantação · 1ª análise';
   $('#tipoRotulo').className = 'selo ' + (r.tipo === 'acompanhamento' ? 's-rean' : 's-prev');
-  $('#tipoAjuda').textContent = r.tipo === 'acompanhamento' ? 'Acompanhamento: reanálise, só o Vouch entra (3+ taxas exclui; abaixo disso, em acompanhamento).' : r.tipo === 'avulso' ? 'Avulso: condomínio já em carteira, regras 1 a 5; sem relatório anterior por padrão.' : 'Implantação: 1ª análise, regras 1 a 5.';
+  $('#tipoAjuda').textContent = r.tipo === 'acompanhamento' ? 'Reanálise: só o Vouch entra (3+ taxas exclui; abaixo disso, em acompanhamento).' : r.tipo === 'avulso' ? 'Avulso: condomínio já em carteira, regras 1 a 5; sem relatório anterior por padrão.' : 'Implantação: 1ª análise, regras 1 a 5.';
   $('#semAnterior').checked = !!r.semAnterior; $('#semBi').checked = !!r.semBi; $('#semVouch').checked = !!r.semVouch;
   $('#relVouch').value = S.textos.vouch; $('#relAdmin').value = S.textos.ant;
   $('#sinal').value = '';
@@ -2414,7 +2431,7 @@ function renderLoteModal(i){
 /* ======================================================================
    Histórico por condomínio (modal aberto a partir da fila) e ficha de uma rodada
    ====================================================================== */
-const tipoRodadaTxt = r => r.origem === 'carga' ? 'Carga inicial' : r.tipo === 'acompanhamento' ? 'Acompanhamento' : r.tipo === 'avulso' ? 'Avulso' : 'Implantação';
+const tipoRodadaTxt = r => r.origem === 'carga' ? 'Carga inicial' : r.tipo === 'acompanhamento' ? 'Reanálise' : r.tipo === 'avulso' ? 'Avulso' : 'Implantação';
 
 /* condomínios com rodada concluída que não estão mais na fila (tudo excluído ou encerrado) */
 function foraDaFila(){
@@ -2845,7 +2862,7 @@ function excelData(v){
 /* ---------- ticket para quem guarda a ficha na pasta ---------- */
 function textoTicket(r, sol){
   const linhas = (r.unidades||[]).map(u => `• ${u.unid || 's/ unid.'} — ${u.titular || '(titular a completar)'}${u.cpf ? ' · ' + u.cpf : ''}: ${u.resultado === 'EXCLUIR' ? 'Excluir' : u.resultado === 'ENCERRADA' ? 'Encerrada' : 'Em acompanhamento'}${u.obs ? ' · ' + u.obs : ''}`).join('\n');
-  return `Análise de espólio ${r.protocolo} · ${r.condominio.nome}${r.condominio.cnpj ? ' · CNPJ ' + r.condominio.cnpj : ''}\nTipo: ${r.tipo === 'acompanhamento' ? 'Acompanhamento (reanálise)' : r.tipo === 'avulso' ? 'Avulso' : 'Implantação'} · Data: ${fmtData(r.dataAnalise)}${sol ? ' · Solicitação de ' + (sol.solicitanteNome||'') : ''}\n\nUnidades:\n${linhas}\n\nFicha em anexo. Favor guardar na pasta do condomínio.${r.proximaReanalise && seguemEmAcompanhamento(r) ? '\nPróxima reanálise: ' + fmtData(r.proximaReanalise) : ''}`;
+  return `Análise de espólio ${r.protocolo} · ${r.condominio.nome}${r.condominio.cnpj ? ' · CNPJ ' + r.condominio.cnpj : ''}\nTipo: ${r.tipo === 'acompanhamento' ? 'Reanálise' : r.tipo === 'avulso' ? 'Avulso' : 'Implantação'} · Data: ${fmtData(r.dataAnalise)}${sol ? ' · Solicitação de ' + (sol.solicitanteNome||'') : ''}\n\nUnidades:\n${linhas}\n\nFicha em anexo. Favor guardar na pasta do condomínio.${r.proximaReanalise && seguemEmAcompanhamento(r) ? '\nPróxima reanálise: ' + fmtData(r.proximaReanalise) : ''}`;
 }
 function abrirTicketModal(r, sol){
   const resp = responsavelDoCondominio(r.condominio.chave, sol);

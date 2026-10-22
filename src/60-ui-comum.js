@@ -190,9 +190,13 @@ function fichaHTML(r){
   const nE = grupo('EXCLUIR').length, nR = grupo('REANÁLISE').length, nP = grupo('PREVENTIVO').length, nEnc = grupo('ENCERRADA').length;
   const classif = res.length ? [nE?`Excluir (${nE})`:null, (nR+nP)?`Em acompanhamento (${nR+nP})`:null, nEnc?`Encerradas (${nEnc})`:null].filter(Boolean).join('  ·  ') : '—';
   const sit = n => n === null || n === undefined ? 'Não informado' : (n > 0 ? `Inadimplente (${n} taxa${n>1?'s':''})` : 'Sem cobrança');
-  const tipoTxt = r.tipo === 'acompanhamento' ? 'Acompanhamento (reanálise)' : r.tipo === 'carga' ? 'Carga inicial' : r.tipo === 'avulso' ? 'Avulso (sinalização da Cobrança)' : 'Implantação (1ª análise)';
-  const semColAnt = r.tipo === 'acompanhamento';   // reanálise: só o Vouch entra
-  const antTxt = u => r.semAnterior ? 'Sem relatório anterior' : sit(u.ant);
+  const tipoTxt = r.tipo === 'acompanhamento' ? 'Reanálise' : r.tipo === 'carga' ? 'Carga inicial' : r.tipo === 'avulso' ? 'Avulso (sinalização da Cobrança)' : 'Implantação (1ª análise)';
+  const reanalise = r.tipo === 'acompanhamento';   // reanálise: só o Vouch entra; a coluna anterior repete a da 1ª análise
+  const antTxt = u => {
+    if(!reanalise) return r.semAnterior ? 'Sem relatório anterior' : sit(u.ant);
+    const o = antOrigemDe(u, r);
+    return !o ? 'Não informado' : o.sem ? 'Sem relatório anterior' : o.deb ? (o.deb === 'SIM' ? 'Com débito anterior' : 'Sem débito anterior') : sit(o.n);
+  };
   const logo = $('.brand img') ? $('.brand img').getAttribute('src') : '';
   return `
   ${logo ? `<img src="${logo}" class="f-logo" alt="MyBlue">` : ''}
@@ -210,8 +214,8 @@ function fichaHTML(r){
   </div>
   ${r.nota ? `<div class="f-nota">${esc(r.nota)}</div>` : ''}
   <div class="f-secao">Unidades sinalizadas × relatórios de inadimplência</div>
-  <table class="f-tab"><thead><tr><th style="width:11%">UNID.</th><th style="width:23%">TITULAR</th><th style="width:14%">CPF</th>${semColAnt?'':'<th style="width:18%">INADIMPLÊNCIA ANTERIOR</th>'}<th style="width:16%">VOUCH</th><th style="width:18%">RESULTADO</th></tr></thead><tbody>${
-    res.length ? res.map(u => `<tr><td><b>${esc(u.unid||'—')}</b></td><td>${esc(u.titular||'(a completar)')}</td><td>${esc(u.cpf||'—')}</td>${semColAnt?'':`<td>${antTxt(u)}</td>`}<td>${sit(u.vouch)}</td>
+  <table class="f-tab"><thead><tr><th style="width:11%">UNID.</th><th style="width:23%">TITULAR</th><th style="width:14%">CPF</th><th style="width:18%">INADIMPLÊNCIA ANTERIOR</th><th style="width:16%">VOUCH</th><th style="width:18%">RESULTADO</th></tr></thead><tbody>${
+    res.length ? res.map(u => `<tr><td><b>${esc(u.unid||'—')}</b></td><td>${esc(u.titular||'(a completar)')}</td><td>${esc(u.cpf||'—')}</td><td>${antTxt(u)}</td><td>${sit(u.vouch)}</td>
       <td class="res ${classeRes(u.resultado)}">${esc(rotuloStatus(u.resultado))}${motivoCurto(u, r) ? `<small>${esc(motivoCurto(u, r))}</small>` : ''}</td></tr>`).join('')
     : `<tr><td colspan="6" style="text-align:center;color:#6b7f88">Sem unidades sinalizadas.</td></tr>`}
   </tbody></table>
@@ -219,7 +223,7 @@ function fichaHTML(r){
     <span><i style="background:#199CB1"></i> Em acompanhamento</span>
     <span><i style="background:#C0392B"></i> Excluir</span>
   </div>
-  <div class="f-rodape-tab">Inadimplência anterior = débito antes da garantia MyBlue. Vouch = sistema interno MyBlue. • Classificação conforme a Política de Análise de Espólio.</div>
+  <div class="f-rodape-tab">Inadimplência anterior = débito antes da garantia MyBlue${reanalise ? ', conforme a 1ª análise' : ''}. Vouch = sistema interno MyBlue. • Classificação conforme a Política de Análise de Espólio.</div>
   ${obs ? `<div class="f-nota" style="margin-top:8px"><b>Observações:</b> ${esc(obs)}</div>` : ''}
   <div class="f-rodape"><span>MyBlue Condomínio Garantido | contato@myblue.com.br | www.myblue.com.br | 0800 085 9277</span><span>${esc(r.protocolo||'rascunho')} · gerada em ${fmtData(hojeISO())}</span></div>`;
 }

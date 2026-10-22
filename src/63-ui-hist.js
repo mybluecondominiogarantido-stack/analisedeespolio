@@ -1,7 +1,7 @@
 /* ======================================================================
    Histórico por condomínio (modal aberto a partir da fila) e ficha de uma rodada
    ====================================================================== */
-const tipoRodadaTxt = r => r.origem === 'carga' ? 'Carga inicial' : r.tipo === 'acompanhamento' ? 'Acompanhamento' : r.tipo === 'avulso' ? 'Avulso' : 'Implantação';
+const tipoRodadaTxt = r => r.origem === 'carga' ? 'Carga inicial' : r.tipo === 'acompanhamento' ? 'Reanálise' : r.tipo === 'avulso' ? 'Avulso' : 'Implantação';
 
 /* condomínios com rodada concluída que não estão mais na fila (tudo excluído ou encerrado) */
 function foraDaFila(){
