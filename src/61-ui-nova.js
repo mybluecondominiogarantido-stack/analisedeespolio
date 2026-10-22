@@ -158,7 +158,7 @@ function processarTexto(origem, txt, nomeArquivo){
       r.vouch = resumoVouch(v, nomeArquivo);
       if(v.condominio){ autoPreencher('#razao', 'nome', v.condominio, 'vouch', r.condominio, 'auto'); autoPreencher('#cnpj', 'cnpj', v.cnpj, 'vouch', r.condominio, 'auto'); r.condominio.chave = chaveCond(r.condominio.nome, r.condominio.cnpj); }
       const fv = falhasVouch(r.vouch, r).length;
-      span.textContent = `${v.inadimplentes} inadimplente(s) de ${v.unidadesListadas} unidade(s) · ${v.lidas} taxas` + (v.conferido ? ' · conferido' : v.totalTaxas !== null ? ` · divergente do total (${v.totalTaxas})` : '') + (v.corte ? ' · até ' + v.corte : '') + (fv ? ` · ${fv} filtro(s) a conferir` : '');
+      span.textContent = `${v.inadimplentes} inadimplente(s) de ${v.unidadesListadas} unidade(s) · ${v.lidas} taxas` + (v.conferido ? ' · conferido' : v.totalTaxas !== null ? ` · divergente do total (${v.totalTaxas})` : '') + (v.corte ? ' · até ' + v.corte : '') + (fv ? ` · ${fv} informação(ões) faltando` : '');
       st.classList.toggle('erro', !v.conferido); st.classList.toggle('atencao', v.conferido && fv > 0);
     } else {
       S.dev.vouch = extrairDevedores(txt, $('#soValor').checked);

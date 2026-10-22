@@ -89,16 +89,13 @@ Registro do que foi decidido com a Coordenação de Cobrança (out/2026) para a 
   - O **número da aba Solicitações** fica enquanto houver solicitação sem análise concluída (nova, vista ou em análise); as ainda não abertas aparecem como "· N nova(s)".
   - **Prioridade do ticket: alta** por padrão.
 - **Regra do ticket aplicada (22/10)** com aval: ticket de teste #2 criado no setor Crédito, categoria "Análise de Espólio", prioridade alta, condomínio vinculado e PDF anexado. A análise de teste do Rooftop Pacheco (AE-2026-0007) e a solicitação dela foram excluídas a pedido; o registro da exclusão ficou no histórico.
-- **Conferência dos filtros do Vouch (22/10)**: o módulo confere no PDF os filtros combinados e **só sinaliza** (não bloqueia):
-  - relatório Consolidado;
-  - período Fixo até a data de emissão;
-  - emitido até 7 dias antes da data da análise;
-  - todas as unidades listadas, inclusive as em dia ("Apresentar unidades adimplentes", sem seleção de unidades nem intervalo de taxas), conferido pelo percentual impresso no Total;
+- **Conferência do relatório do Vouch (22/10, critérios da coordenação)**: o relatório precisa constar como **Relatório de Inadimplência Consolidado**, com:
+  - Mostrar valor total;
   - CPF do morador;
-  - coluna Antecipado;
-  - linha Total ("Mostrar valor total");
-  - nenhuma taxa com vencimento depois do corte ("Apresentar taxas não vencidas" e "Mostrar parcelas não vencidas (AC)" desligados);
-  - CNPJ do relatório igual ao da análise.
-  - Unidades e taxas amigáveis/em processo e a modalidade (antecipados, não antecipados, não garantidos) não aparecem no PDF e ficam fora da conferência.
-  - Aparece no bloco de documentos da análise e na reanálise em lote ("filtros a conferir").
+  - Nome do morador;
+  - Telefone do morador;
+  - Apresentar unidades adimplentes;
+  - Apresentar vencimento para N.V.
+  - O módulo confere cada item no PDF e também se o CNPJ do relatório é o do condomínio da análise.
+  - **Só sinaliza, não bloqueia**: cartão do Vouch em amarelo com "N informação(ões) faltando" e a lista do que marcar na emissão; na reanálise em lote, selo "informações faltando".
 - **Cartão Pendentes (22/10)**: passa a somar as solicitações sem análise concluída (nova, vista ou em análise), igual ao número da aba, mais as reanálises vencidas.

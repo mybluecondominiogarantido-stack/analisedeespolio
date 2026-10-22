@@ -75,8 +75,10 @@ function ehRelatorioVouch(txt){ return /Relat[óo]rio de Inadimpl[êe]ncias?\s*-
 
 function lerVouch(txt){
   const linhas = String(txt||'').split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-  const r = { condominio:'', cnpj:'', corte:'', emissao:'', totalTaxas:null, totalUnidades:null, pctInadimplentes:null, devedores:[], avisos:[],
-             consolidado: /Relat[óo]rio de Inadimpl[êe]ncias?\s*-\s*Consolidado/i.test(txt), colunaAntecipado: /^Documento\b.*\bAntecipado\b/im.test(txt) };
+  const r = { condominio:'', cnpj:'', corte:'', emissao:'', totalTaxas:null, totalUnidades:null, devedores:[], avisos:[],
+             consolidado: /Relat[óo]rio de Inadimpl[êe]ncias?\s*-\s*Consolidado/i.test(txt),
+             /* "Apresentar vencimento para N.V": cabeçalho com a coluna Novo Vencimento (duas colunas "Vencimento") */
+             colunaNovoVenc: /^Documento\b.*\bVencimento\b.*\bVencimento\b/im.test(txt) || /\bNovo\s*\|?\s*Vencimento\b/i.test(txt) };
   let atual = null, taxa = null;
 
   const fecharDevedor = () => { if(atual){ r.devedores.push(atual); } atual = null; taxa = null; };
@@ -95,7 +97,7 @@ function lerVouch(txt){
     let m;
     if((m = linha.match(/^Condom[íi]nio\s+(.+?)\s+-\s+CNPJ\s+([\d.\/-]{14,18})/i))){ r.condominio = m[1].trim(); r.cnpj = m[2]; continue; }
     if((m = linha.match(/Consolidado\s*\(At[ée]\s+(\d{2}\/\d{2}\/\d{4})\)/i))){ r.corte = m[1]; const e = linha.match(/Emiss[ãa]o:\s*(\d{2}\/\d{2}\/\d{4})/i); if(e) r.emissao = e[1]; continue; }
-    if((m = linha.match(/^Total\s*\((\d+)\s+taxas?\s+em\s+(\d+)\s+unidades?/i))){ if(r.totalTaxas === null){ r.totalTaxas = +m[1]; r.totalUnidades = +m[2]; const pc = linha.match(/([\d.,]+)\s*%\s*das unidades/i); if(pc) r.pctInadimplentes = +pc[1].replace(',', '.'); } fecharDevedor(); continue; }
+    if((m = linha.match(/^Total\s*\((\d+)\s+taxas?\s+em\s+(\d+)\s+unidades?/i))){ if(r.totalTaxas === null){ r.totalTaxas = +m[1]; r.totalUnidades = +m[2]; } fecharDevedor(); continue; }
     if(/^Subtotal\b/i.test(linha)){ fecharDevedor(); continue; }
     if(/^(Documento\b|Valor\b|Relat[óo]rio|FAN R&V|Tel:|Total\b|Nada consta|Em dia|Sem (d[ée]bitos?|pend[êe]ncias?|inadimpl))/i.test(linha)) continue;
 
@@ -128,7 +130,8 @@ function lerVouch(txt){
         fecharDevedor();
         const bloco = m[1] || '', unid = m[2];
         const docm = m[4] ? (soDigitos(m[4]).length === 11 ? completaCpf(m[4]) : fmtCnpj(m[4])) : '';
-        atual = { bloco, unidade: unid, unidadeTxt: bloco ? `${bloco} - ${unid}` : unid, nome, cpf: soDigitos(docm).length === 11 ? docm : '', cnpj: soDigitos(docm).length === 14 ? docm : '', cobrancas: [] };
+        const resto = linha.split('|').slice(2).join('|').replace(/\d{3}\.?\d{3}\.?\d{3}-?\d{2}|\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}/g, '');
+        atual = { bloco, unidade: unid, unidadeTxt: bloco ? `${bloco} - ${unid}` : unid, nome, cpf: soDigitos(docm).length === 11 ? docm : '', cnpj: soDigitos(docm).length === 14 ? docm : '', telefone: /\d{4}-?\d{4}|\d{10,13}/.test(resto), cobrancas: [] };
         continue;
       }
     }
@@ -152,11 +155,11 @@ function lerVouch(txt){
   r.inadimplentes = r.devedores.filter(d => !d.nadaConsta).length;
   r.emDia = r.devedores.length - r.inadimplentes;
   r.conferido = r.totalTaxas !== null && r.lidas === r.totalTaxas && r.inadimplentes === r.totalUnidades;
-  /* evidências dos filtros usados na emissão (conferidas por criteriosVouch) */
-  const isoBR = s => s ? s.slice(6, 10) + s.slice(3, 5) + s.slice(0, 2) : '';
+  /* informações que precisam constar no relatório (conferidas por criteriosVouch) */
   r.unidadesListadas = r.devedores.length;
+  r.comNome = r.devedores.filter(d => /[A-Za-zÀ-ú]{2,}/.test(d.nome || '')).length;
   r.comCpf = r.devedores.filter(d => d.cpf || d.cnpj).length;
-  r.taxasAVencer = r.corte ? r.devedores.reduce((s, d) => s + d.cobrancas.filter(t => isoBR(t.venc) > isoBR(r.corte)).length, 0) : 0;
+  r.comTelefone = r.devedores.filter(d => d.telefone).length;
   if(r.totalTaxas !== null && !r.conferido)
     r.avisos.push(`Leitura divergente: li ${r.lidas} taxas em ${r.inadimplentes} unidades, o relatório informa ${r.totalTaxas} em ${r.totalUnidades}.`);
   if(r.totalTaxas === null) r.avisos.push('Não encontrei a linha "Total (N taxas em M unidades)" — não foi possível conferir a leitura.');

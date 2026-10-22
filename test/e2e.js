@@ -401,12 +401,12 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   }, [fs.readFileSync(path.join(pdfs, arq(nome))).toString('base64'), dataAnalise]);
   if(arq('mister_hull')){
     const fMh = await filtros('mister_hull', '2026-10-22');
-    ok(fMh.length === 0, `relatório emitido com os filtros combinados passa em todos os critérios (${fMh.join('; ') || 'nenhuma falha'})`);
-    const fMhVelho = await filtros('mister_hull', '2026-11-10');
-    ok(fMhVelho.length === 1 && /Emitido/.test(fMhVelho[0]), `relatório emitido há mais de 7 dias da análise é sinalizado (${fMhVelho.join('; ')})`);
+    ok(fMh.length === 0, `relatório emitido com as informações combinadas passa em todos os critérios (${fMh.join('; ') || 'nenhuma falha'})`);
   }
   const fNaz = await filtros('nazare', '2026-10-10');
-  ok(fNaz.some(x => /Todas as unidades/.test(x)), `relatório sem as unidades em dia é sinalizado (${fNaz.join('; ')})`);
+  ok(fNaz.length === 1 && /unidades adimplentes/.test(fNaz[0]), `relatório sem as unidades adimplentes é sinalizado (${fNaz.join('; ')})`);
+  const fEco = await filtros('eco_way', '2026-10-10');
+  ok(['CPF do morador', 'Telefone do morador', 'Apresentar unidades adimplentes', 'Apresentar vencimento para N.V'].every(x => fEco.includes(x)) && !fEco.includes('Nome do morador') && !fEco.includes('Mostrar valor total'), `relatório sem CPF, telefone, adimplentes e N.V é sinalizado nesses quatro (${fEco.join('; ')})`);
 
   fs.unlinkSync(tmp); await b.close();
   if(erros.length){ console.log('\nerros de console/página:'); erros.forEach(e => console.log('  -', e.slice(0, 300))); }
