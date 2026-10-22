@@ -250,8 +250,8 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   // gestão
   await papeisLocal('gestao');
   ok(/1 nova/.test(await p.$eval('#nSol', e => e.textContent)), 'gestão vê o contador de solicitação nova');
-  const pendEsperado = await p.evaluate(() => solicitacoesNovas().length + fila().filter(i => i.vencida).length);
-  ok(new RegExp('Pendentes\\s*' + pendEsperado + '\\s*1 solicitação').test((await p.$eval('#dashTiles', e => e.textContent)).replace(/\s+/g, ' ')), `cartão Pendentes soma a solicitação não vista e as reanálises vencidas (${pendEsperado})`);
+  const pendEsperado = await p.evaluate(() => solicitacoesEmAberto().length + fila().filter(i => i.vencida).length);
+  ok(new RegExp('Pendentes\\s*' + pendEsperado + '\\s*1 solicitação').test((await p.$eval('#dashTiles', e => e.textContent)).replace(/\s+/g, ' ')), `cartão Pendentes soma as solicitações sem análise concluída e as reanálises vencidas (${pendEsperado})`);
   await p.click('[data-tab="sol"]'); await p.waitForTimeout(300);
   await p.click('#p-sol [data-sol]'); await p.waitForTimeout(400);
   ok((await p.evaluate(() => S.solicitacoes.find(x => x.status !== 'concluida').status)) === 'vista', 'abrir a solicitação marca como vista');
@@ -391,6 +391,22 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   await p.reload(); await p.waitForFunction(() => S.pronto.r && S.rodadas.length > 0, { timeout: 20000 }); await p.waitForTimeout(300);
   const nR = await p.evaluate(() => S.rodadas.filter(r => r.status === 'concluida').length);
   ok(nR === 38, `rodadas persistidas após recarregar: ${nR} (35 carga + 3)`);
+
+  /* 9 · conferência dos filtros do relatório do Vouch */
+  const filtros = async (nome, dataAnalise) => p.evaluate(async ([b64, dataAnalise]) => {
+    const bin = atob(b64); const arr = new Uint8Array(bin.length); for(let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    const v = lerVouch(await pdfParaTexto({ arrayBuffer: async () => arr.buffer }));
+    const r = { dataAnalise, condominio: { cnpj: v.cnpj } };
+    return falhasVouch(resumoVouch(v, ''), r).map(x => x.txt);
+  }, [fs.readFileSync(path.join(pdfs, arq(nome))).toString('base64'), dataAnalise]);
+  if(arq('mister_hull')){
+    const fMh = await filtros('mister_hull', '2026-10-22');
+    ok(fMh.length === 0, `relatório emitido com os filtros combinados passa em todos os critérios (${fMh.join('; ') || 'nenhuma falha'})`);
+    const fMhVelho = await filtros('mister_hull', '2026-11-10');
+    ok(fMhVelho.length === 1 && /Emitido/.test(fMhVelho[0]), `relatório emitido há mais de 7 dias da análise é sinalizado (${fMhVelho.join('; ')})`);
+  }
+  const fNaz = await filtros('nazare', '2026-10-10');
+  ok(fNaz.some(x => /Todas as unidades/.test(x)), `relatório sem as unidades em dia é sinalizado (${fNaz.join('; ')})`);
 
   fs.unlinkSync(tmp); await b.close();
   if(erros.length){ console.log('\nerros de console/página:'); erros.forEach(e => console.log('  -', e.slice(0, 300))); }

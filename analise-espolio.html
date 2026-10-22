@@ -146,6 +146,7 @@ tr.clic{cursor:pointer}
 .doc b{display:block;font-size:13px}.doc span{font-size:11.5px;color:var(--muted);font-weight:600;display:block}
 .doc.ok{border-style:solid;border-color:#bfe6d3;background:#f6fcf9}.doc.ok .ico{background:var(--green-bg);color:#16744f}
 .doc.erro .ico{background:var(--red-bg);color:var(--red)}
+.doc.atencao{border-color:#ecd8a8;background:#fffaf0}.doc.atencao .ico{background:var(--amber-bg);color:#7a5a1c}
 .doc input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
 .doc-item{display:flex;flex-direction:column;gap:6px}.doc-dispensa{font-size:12.5px;margin:0 2px;text-transform:none;letter-spacing:0;font-weight:600;color:var(--ink-2)}
 .doc.falta{border-color:#e9b9b1;background:#fdf6f5}.doc.falta .ico{background:var(--red-bg);color:var(--red)}.doc.dispensado{opacity:.6}
@@ -745,7 +746,8 @@ function ehRelatorioVouch(txt){ return /Relat[óo]rio de Inadimpl[êe]ncias?\s*-
 
 function lerVouch(txt){
   const linhas = String(txt||'').split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-  const r = { condominio:'', cnpj:'', corte:'', emissao:'', totalTaxas:null, totalUnidades:null, devedores:[], avisos:[] };
+  const r = { condominio:'', cnpj:'', corte:'', emissao:'', totalTaxas:null, totalUnidades:null, pctInadimplentes:null, devedores:[], avisos:[],
+             consolidado: /Relat[óo]rio de Inadimpl[êe]ncias?\s*-\s*Consolidado/i.test(txt), colunaAntecipado: /^Documento\b.*\bAntecipado\b/im.test(txt) };
   let atual = null, taxa = null;
 
   const fecharDevedor = () => { if(atual){ r.devedores.push(atual); } atual = null; taxa = null; };
@@ -764,7 +766,7 @@ function lerVouch(txt){
     let m;
     if((m = linha.match(/^Condom[íi]nio\s+(.+?)\s+-\s+CNPJ\s+([\d.\/-]{14,18})/i))){ r.condominio = m[1].trim(); r.cnpj = m[2]; continue; }
     if((m = linha.match(/Consolidado\s*\(At[ée]\s+(\d{2}\/\d{2}\/\d{4})\)/i))){ r.corte = m[1]; const e = linha.match(/Emiss[ãa]o:\s*(\d{2}\/\d{2}\/\d{4})/i); if(e) r.emissao = e[1]; continue; }
-    if((m = linha.match(/^Total\s*\((\d+)\s+taxas?\s+em\s+(\d+)\s+unidades?/i))){ if(r.totalTaxas === null){ r.totalTaxas = +m[1]; r.totalUnidades = +m[2]; } fecharDevedor(); continue; }
+    if((m = linha.match(/^Total\s*\((\d+)\s+taxas?\s+em\s+(\d+)\s+unidades?/i))){ if(r.totalTaxas === null){ r.totalTaxas = +m[1]; r.totalUnidades = +m[2]; const pc = linha.match(/([\d.,]+)\s*%\s*das unidades/i); if(pc) r.pctInadimplentes = +pc[1].replace(',', '.'); } fecharDevedor(); continue; }
     if(/^Subtotal\b/i.test(linha)){ fecharDevedor(); continue; }
     if(/^(Documento\b|Valor\b|Relat[óo]rio|FAN R&V|Tel:|Total\b|Nada consta|Em dia|Sem (d[ée]bitos?|pend[êe]ncias?|inadimpl))/i.test(linha)) continue;
 
@@ -821,6 +823,11 @@ function lerVouch(txt){
   r.inadimplentes = r.devedores.filter(d => !d.nadaConsta).length;
   r.emDia = r.devedores.length - r.inadimplentes;
   r.conferido = r.totalTaxas !== null && r.lidas === r.totalTaxas && r.inadimplentes === r.totalUnidades;
+  /* evidências dos filtros usados na emissão (conferidas por criteriosVouch) */
+  const isoBR = s => s ? s.slice(6, 10) + s.slice(3, 5) + s.slice(0, 2) : '';
+  r.unidadesListadas = r.devedores.length;
+  r.comCpf = r.devedores.filter(d => d.cpf || d.cnpj).length;
+  r.taxasAVencer = r.corte ? r.devedores.reduce((s, d) => s + d.cobrancas.filter(t => isoBR(t.venc) > isoBR(r.corte)).length, 0) : 0;
   if(r.totalTaxas !== null && !r.conferido)
     r.avisos.push(`Leitura divergente: li ${r.lidas} taxas em ${r.inadimplentes} unidades, o relatório informa ${r.totalTaxas} em ${r.totalUnidades}.`);
   if(r.totalTaxas === null) r.avisos.push('Não encontrei a linha "Total (N taxas em M unidades)" — não foi possível conferir a leitura.');
@@ -1830,6 +1837,42 @@ function cardUnidade(u, r, dev, rid, opts){
 }
 
 /* relatório só conta como lido se alguma unidade foi reconhecida nele: um formato desconhecido não pode virar "sem débito" (vale a pendência 5.5) */
+/* ---------- conferência do relatório do Vouch com os filtros combinados ----------
+   Consolidado · período Fixo até o mês atual · todas as unidades, com as adimplentes · CPF e nome do morador ·
+   coluna Antecipado · valor total · sem taxas não vencidas. Unidades/taxas amigáveis e em processo e a modalidade
+   (antecipados, não antecipados, não garantidos) não aparecem no PDF e não dá para conferir. Só sinaliza, não bloqueia. */
+const resumoVouch = (v, arquivo) => ({ corte: v.corte, emissao: v.emissao, totalTaxas: v.totalTaxas, totalUnidades: v.totalUnidades, lidas: v.lidas, conferido: v.conferido, arquivo: arquivo || '',
+  cnpj: v.cnpj || '', consolidado: v.consolidado, colunaAntecipado: v.colunaAntecipado, pctInadimplentes: v.pctInadimplentes, unidadesListadas: v.unidadesListadas, emDia: v.emDia, comCpf: v.comCpf, taxasAVencer: v.taxasAVencer });
+const VOUCH_DIAS_EMISSAO = 7;
+function criteriosVouch(rv, r){
+  if(!rv || rv.consolidado === undefined) return null;
+  const iso = s => s ? s.slice(6, 10) + '-' + s.slice(3, 5) + '-' + s.slice(0, 2) : '';
+  const dias = rv.emissao && r && r.dataAnalise ? Math.round((new Date(r.dataAnalise) - new Date(iso(rv.emissao))) / 86400000) : null;
+  const pctOk = rv.pctInadimplentes === null || rv.pctInadimplentes === undefined || !rv.unidadesListadas ? null
+    : Math.abs(Math.round(rv.totalUnidades / rv.unidadesListadas * 1000) / 10 - rv.pctInadimplentes) <= 0.1;
+  const cnpjA = soDigitos((r && r.condominio && r.condominio.cnpj) || ''), cnpjV = soDigitos(rv.cnpj || '');
+  const c = [
+    { ok: !!rv.consolidado, txt: 'Relatório Consolidado', erro: 'não é o relatório Consolidado' },
+    { ok: !!rv.corte && rv.corte === rv.emissao, txt: 'Período fixo até a data de emissão', erro: rv.corte ? `corte em ${rv.corte}, diferente da emissão (${rv.emissao || '?'}): confira o período (Fixo, até o mês atual)` : 'período não identificado: use o período Fixo, até o mês atual' },
+    { ok: dias !== null && dias >= -1 && dias <= VOUCH_DIAS_EMISSAO, txt: `Emitido até ${VOUCH_DIAS_EMISSAO} dias antes da análise`, erro: dias === null ? 'data de emissão não encontrada' : `emitido em ${rv.emissao}, ${dias} dia(s) ${dias < 0 ? 'depois' : 'antes'} da data da análise` },
+    { ok: rv.emDia > 0 && pctOk !== false, txt: 'Todas as unidades listadas, inclusive as em dia', erro: !rv.emDia ? 'nenhuma unidade "Nada Consta": marque "Apresentar unidades adimplentes" e não selecione unidades' : `o relatório lista ${rv.unidadesListadas} unidade(s), mas o total impresso (${rv.totalUnidades} inadimplentes = ${rv.pctInadimplentes}%) indica outro número: confira o filtro de unidades e o intervalo de taxas` },
+    { ok: rv.comCpf > 0 && rv.comCpf >= rv.unidadesListadas / 2, txt: 'CPF do morador', erro: 'poucas unidades com CPF: marque "CPF do morador"' },
+    { ok: !!rv.colunaAntecipado, txt: 'Coluna Antecipado', erro: 'coluna Antecipado ausente: inclua nas colunas' },
+    { ok: rv.totalTaxas !== null && rv.totalTaxas !== undefined, txt: 'Valor total (linha "Total")', erro: 'sem a linha Total: marque "Mostrar valor total"' },
+    { ok: !rv.taxasAVencer, txt: 'Sem taxas não vencidas', erro: `${rv.taxasAVencer} taxa(s) com vencimento depois do corte: desmarque "Apresentar taxas não vencidas" e "Mostrar parcelas não vencidas (AC)"` },
+  ];
+  if(cnpjA.length === 14 && cnpjV.length === 14) c.push({ ok: cnpjA === cnpjV, txt: 'CNPJ do relatório igual ao da análise', erro: `CNPJ do relatório (${rv.cnpj}) diferente do condomínio da análise (${r.condominio.cnpj})` });
+  return c;
+}
+const falhasVouch = (rv, r) => (criteriosVouch(rv, r) || []).filter(x => !x.ok);
+function htmlCriteriosVouch(rv, r){
+  const c = criteriosVouch(rv, r); if(!c) return '';
+  const f = c.filter(x => !x.ok);
+  return `<details style="margin-top:6px" ${f.length ? 'open' : ''}><summary style="cursor:pointer;font-size:12.5px">${f.length ? `<b style="color:#b57a12">Filtros do relatório: ${f.length} ponto(s) a conferir</b>` : 'Filtros do relatório conferidos'}</summary>
+    <ul style="margin:6px 0 0;padding-left:2px;list-style:none;font-size:12.5px">${c.map(x => `<li>${x.ok ? '✓ ' + esc(x.txt) : `<b style="color:#b57a12">⚠ ${esc(x.txt)}</b>: ${esc(x.erro)}`}</li>`).join('')}</ul>
+    <p class="ajuda" style="margin:4px 0 0">Unidades e taxas amigáveis/em processo e a modalidade (antecipados, não antecipados, não garantidos) não aparecem no PDF: confira na emissão.</p></details>`;
+}
+
 /* "Ainda não há inadimplência no Vouch" (implantação/avulso) conta como Vouch lido sem débito */
 const relatoriosLidos = () => ({ vouch: (!!S.textos.vouch.trim() && (S.dev.vouch || []).length > 0) || !!(S.rodada && S.rodada.semVouch && S.rodada.tipo !== 'acompanhamento' && !S.textos.vouch.trim()), ant: !!S.textos.ant.trim() && (S.dev.ant || []).length > 0 });
 /* localiza a rodada de um cartão pelo rid: 'nova' = editor; 'lote:i' = item do lote */
@@ -2073,7 +2116,8 @@ function renderDiagnostico(){
     const casados = r.unidades.filter(u => u.esc[campo] !== null && u.esc[campo] !== undefined).length;
     const conf = campo === 'vouch' && r.vouch ? (r.vouch.conferido ? ` · conferido com o total do relatório (${r.vouch.totalTaxas} taxas em ${r.vouch.totalUnidades} unidades)` : ` · <b style="color:var(--red)">leitura divergente do total impresso (${r.vouch.lidas} lidas de ${r.vouch.totalTaxas})</b>`) : '';
     const emDia = lista.filter(b => b.nadaConsta).length;
-    return `<div class="${campo==='vouch' && r.vouch && !r.vouch.conferido ? 'aviso' : 'ok'}"><b>${titulo}:</b> ${lista.length - emDia} devedor(es) com cobrança em aberto${emDia ? ` · ${emDia} unidade(s) em dia (nada consta)` : ''} · ${casados} de ${r.unidades.length} espólios casados${conf}${r.vouch && r.vouch.corte && campo==='vouch' ? ' · consolidado até ' + esc(r.vouch.corte) : ''}
+    const fv = campo === 'vouch' ? falhasVouch(r.vouch, r).length : 0;
+    return `<div class="${campo==='vouch' && r.vouch && (!r.vouch.conferido || fv) ? 'aviso' : 'ok'}"><b>${titulo}:</b> ${lista.length - emDia} devedor(es) com cobrança em aberto${emDia ? ` · ${emDia} unidade(s) em dia (nada consta)` : ''} · ${casados} de ${r.unidades.length} espólios casados${conf}${r.vouch && r.vouch.corte && campo==='vouch' ? ' · consolidado até ' + esc(r.vouch.corte) : ''}${campo === 'vouch' ? htmlCriteriosVouch(r.vouch, r) : ''}
       <details style="margin-top:6px"><summary style="cursor:pointer;font-size:12.5px">Ver devedores encontrados</summary><ul style="margin:6px 0 0;padding-left:18px;font-size:12.5px">${lista.map(b => `<li>${esc(b.nome)}${b.unidadeTxt||b.unidade?' — '+esc(b.unidadeTxt||b.unidade):''}${b.cpf?' — '+esc(b.cpf):''} — <b>${b.cobrancas.filter(c=>c.incluir!==false).length}</b> taxa(s)</li>`).join('')}</ul></details></div>`;
   };
   $('#diagnostico').innerHTML = item('Vouch','vouch') + (r.tipo === 'acompanhamento' ? '' : item('Administradora anterior','ant'));
@@ -2115,10 +2159,11 @@ function processarTexto(origem, txt, nomeArquivo){
     if(ehRelatorioVouch(txt)){
       const v = lerVouch(txt);
       S.dev.vouch = v.devedores;
-      r.vouch = { corte: v.corte, emissao: v.emissao, totalTaxas: v.totalTaxas, totalUnidades: v.totalUnidades, lidas: v.lidas, conferido: v.conferido, arquivo: nomeArquivo || '' };
+      r.vouch = resumoVouch(v, nomeArquivo);
       if(v.condominio){ autoPreencher('#razao', 'nome', v.condominio, 'vouch', r.condominio, 'auto'); autoPreencher('#cnpj', 'cnpj', v.cnpj, 'vouch', r.condominio, 'auto'); r.condominio.chave = chaveCond(r.condominio.nome, r.condominio.cnpj); }
-      span.textContent = `${v.devedores.length} devedor(es) · ${v.lidas} taxas` + (v.conferido ? ' · conferido' : v.totalTaxas !== null ? ` · divergente do total (${v.totalTaxas})` : '') + (v.corte ? ' · até ' + v.corte : '');
-      st.classList.toggle('erro', !v.conferido);
+      const fv = falhasVouch(r.vouch, r).length;
+      span.textContent = `${v.inadimplentes} inadimplente(s) de ${v.unidadesListadas} unidade(s) · ${v.lidas} taxas` + (v.conferido ? ' · conferido' : v.totalTaxas !== null ? ` · divergente do total (${v.totalTaxas})` : '') + (v.corte ? ' · até ' + v.corte : '') + (fv ? ` · ${fv} filtro(s) a conferir` : '');
+      st.classList.toggle('erro', !v.conferido); st.classList.toggle('atencao', v.conferido && fv > 0);
     } else {
       S.dev.vouch = extrairDevedores(txt, $('#soValor').checked);
       const cab = lerCabecalhoGenerico(txt);
@@ -2297,7 +2342,7 @@ function montarRodadaDoItem(item, filaItem){
   const r = rodadaDeAcompanhamento(filaItem.rodada);
   r.condominio = { ...filaItem.condominio };
   if(!r.condominio.cnpj && item.leitura.cnpj){ r.condominio.cnpj = item.leitura.cnpj; r.condominio.chave = filaItem.chave; }
-  r.vouch = { corte: item.leitura.corte, emissao: item.leitura.emissao, totalTaxas: item.leitura.totalTaxas, totalUnidades: item.leitura.totalUnidades, lidas: item.leitura.lidas, conferido: item.leitura.conferido, arquivo: item.arquivo };
+  r.vouch = resumoVouch(item.leitura, item.arquivo);
   item.fila = filaItem; item.rodada = r;
   recalcular(r, item.dev, { vouch: true, ant: false });
 }
@@ -2318,7 +2363,7 @@ function renderLoteAndamento(){
     const exc = r.unidades.filter(u => ehExcecao(it, u)).length;
     const concluida = r.status === 'concluida';
     return `<tr><td><b>${esc(fi.condominio.nome)}</b><div class="ajuda" style="margin:0">${esc(it.arquivo)}</div></td>
-      <td>${it.leitura.conferido ? `<span class="selo s-ok">leitura conferida</span>` : `<span class="selo s-exc">leitura divergente</span>`}<div class="ajuda" style="margin:2px 0 0">até ${esc(it.leitura.corte||'?')}${it.ident && it.ident.modo !== 'CNPJ' ? ' · identificado pelo nome' + (it.ident.ambiguo ? ', confira' : '') : ''}</div></td>
+      <td>${it.leitura.conferido ? `<span class="selo s-ok">leitura conferida</span>` : `<span class="selo s-exc">leitura divergente</span>`}${it.rodada && falhasVouch(it.rodada.vouch, it.rodada).length ? ` <span class="selo s-prev" title="${esc(falhasVouch(it.rodada.vouch, it.rodada).map(x => x.txt + ': ' + x.erro).join('\n'))}">filtros a conferir</span>` : ''}<div class="ajuda" style="margin:2px 0 0">até ${esc(it.leitura.corte||'?')}${it.ident && it.ident.modo !== 'CNPJ' ? ' · identificado pelo nome' + (it.ident.ambiguo ? ', confira' : '') : ''}</div></td>
       <td>${s.excluir ? `<span class="selo s-exc">${s.excluir} excluir</span> ` : ''}<span class="selo s-prev">${s.rean + s.prev} mantida(s)</span>${s.enc ? ` <span class="selo s-enc">${s.enc} encerrada(s)</span>` : ''}</td>
       <td>${exc ? `<span class="selo s-rean">${exc} a revisar</span>` : '<span class="ajuda" style="margin:0">sem exceções</span>'}</td>
       <td>${s.total}</td>
@@ -2359,7 +2404,7 @@ function renderLoteModal(i){
   const primeira = S.lote.modalIdx !== i;
   S.lote.modalIdx = i;
   const cards = r.unidades.map(u => { const exc = ehExcecao(it, u); return cardUnidade(u, r, it.dev, 'lote:' + i, { destaque: exc, aberto: primeira ? exc : abertos.has(u.id), anterior: resultadoAnterior(it, u) }); }).join('');
-  const html = `<p class="ajuda" style="margin:0 0 10px">${esc(it.arquivo)} · Vouch até ${esc(it.leitura.corte||'?')} · ${it.leitura.conferido ? 'leitura conferida com o total do relatório' : '<b style="color:var(--red)">leitura divergente do total impresso</b>'} · em destaque: mudou de status, não localizado, casamento só por nome, pendência ou cadastro a completar.</p>
+  const html = `<p class="ajuda" style="margin:0 0 10px">${esc(it.arquivo)} · Vouch até ${esc(it.leitura.corte||'?')} · ${it.leitura.conferido ? 'leitura conferida com o total do relatório' : '<b style="color:var(--red)">leitura divergente do total impresso</b>'} · em destaque: mudou de status, não localizado, casamento só por nome, pendência ou cadastro a completar.</p>${it.rodada ? htmlCriteriosVouch(it.rodada.vouch, it.rodada) : ''}
     <div class="resumo"><span class="pill">Unidades <b>${s.total}</b></span><span class="pill">Excluir <b>${s.excluir}</b></span><span class="pill">Mantidas <b>${s.rean + s.prev}</b></span>${s.enc?`<span class="pill">Encerradas <b>${s.enc}</b></span>`:''}</div>${cards}`;
   const acoes = concluida ? `<span class="selo s-ok">${esc(r.protocolo)}</span><button class="btn mini" id="mLoteFicha">Baixar ficha</button>` : `<button class="btn mini" id="mLoteConcluir" ${!CAN_WRITE?'disabled':''}>${s.excluir ? 'Concluir e baixar ficha' : 'Concluir'}</button>`;
   const m = $('#modal');
@@ -2445,7 +2490,7 @@ function renderDashboard(){
   $('#dashTiles').innerHTML = `
     <div class="tile hero"><small>Espólios sinalizados</small><strong>${pan.total}</strong><em>total de unidades desde o início</em></div>
     <div class="tile"><small>Análises do mês</small><strong>${doMes.length}</strong><em>${doMes.filter(r=>r.tipo==='implantacao').length} implantação · ${doMes.filter(r=>r.tipo==='avulso').length} avulso · ${doMes.filter(r=>r.tipo==='acompanhamento').length} acompanhamento</em></div>
-    <div class="tile ${solicitacoesNovas().length + venc.length ? 'alerta' : ''}"><small>Pendentes</small><strong>${solicitacoesNovas().length + venc.length}</strong><em>${solicitacoesNovas().length} solicitação(ões) não vista(s) · ${venc.length} reanálise(s) vencida(s) na fila</em></div>
+    <div class="tile ${solicitacoesEmAberto().length + venc.length ? 'alerta' : ''}"><small>Pendentes</small><strong>${solicitacoesEmAberto().length + venc.length}</strong><em>${solicitacoesEmAberto().length} solicitação(ões) sem análise concluída · ${venc.length} reanálise(s) vencida(s) na fila</em></div>
     <div class="tile"><small>Excluídas</small><strong>${pan.excluidas}</strong><em>da garantia · acumulado</em></div>
     <div class="tile ${impl.atrasados?'alerta':''}"><small>Implantação atrasada</small><strong>${impl.atrasados}</strong><em>de meses anteriores, sem verificação · ${impl.doMes} do mês aguardando</em></div>`;
   renderGraficoMensal(conc);

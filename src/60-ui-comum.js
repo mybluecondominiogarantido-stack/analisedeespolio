@@ -113,6 +113,42 @@ function cardUnidade(u, r, dev, rid, opts){
 }
 
 /* relatório só conta como lido se alguma unidade foi reconhecida nele: um formato desconhecido não pode virar "sem débito" (vale a pendência 5.5) */
+/* ---------- conferência do relatório do Vouch com os filtros combinados ----------
+   Consolidado · período Fixo até o mês atual · todas as unidades, com as adimplentes · CPF e nome do morador ·
+   coluna Antecipado · valor total · sem taxas não vencidas. Unidades/taxas amigáveis e em processo e a modalidade
+   (antecipados, não antecipados, não garantidos) não aparecem no PDF e não dá para conferir. Só sinaliza, não bloqueia. */
+const resumoVouch = (v, arquivo) => ({ corte: v.corte, emissao: v.emissao, totalTaxas: v.totalTaxas, totalUnidades: v.totalUnidades, lidas: v.lidas, conferido: v.conferido, arquivo: arquivo || '',
+  cnpj: v.cnpj || '', consolidado: v.consolidado, colunaAntecipado: v.colunaAntecipado, pctInadimplentes: v.pctInadimplentes, unidadesListadas: v.unidadesListadas, emDia: v.emDia, comCpf: v.comCpf, taxasAVencer: v.taxasAVencer });
+const VOUCH_DIAS_EMISSAO = 7;
+function criteriosVouch(rv, r){
+  if(!rv || rv.consolidado === undefined) return null;
+  const iso = s => s ? s.slice(6, 10) + '-' + s.slice(3, 5) + '-' + s.slice(0, 2) : '';
+  const dias = rv.emissao && r && r.dataAnalise ? Math.round((new Date(r.dataAnalise) - new Date(iso(rv.emissao))) / 86400000) : null;
+  const pctOk = rv.pctInadimplentes === null || rv.pctInadimplentes === undefined || !rv.unidadesListadas ? null
+    : Math.abs(Math.round(rv.totalUnidades / rv.unidadesListadas * 1000) / 10 - rv.pctInadimplentes) <= 0.1;
+  const cnpjA = soDigitos((r && r.condominio && r.condominio.cnpj) || ''), cnpjV = soDigitos(rv.cnpj || '');
+  const c = [
+    { ok: !!rv.consolidado, txt: 'Relatório Consolidado', erro: 'não é o relatório Consolidado' },
+    { ok: !!rv.corte && rv.corte === rv.emissao, txt: 'Período fixo até a data de emissão', erro: rv.corte ? `corte em ${rv.corte}, diferente da emissão (${rv.emissao || '?'}): confira o período (Fixo, até o mês atual)` : 'período não identificado: use o período Fixo, até o mês atual' },
+    { ok: dias !== null && dias >= -1 && dias <= VOUCH_DIAS_EMISSAO, txt: `Emitido até ${VOUCH_DIAS_EMISSAO} dias antes da análise`, erro: dias === null ? 'data de emissão não encontrada' : `emitido em ${rv.emissao}, ${dias} dia(s) ${dias < 0 ? 'depois' : 'antes'} da data da análise` },
+    { ok: rv.emDia > 0 && pctOk !== false, txt: 'Todas as unidades listadas, inclusive as em dia', erro: !rv.emDia ? 'nenhuma unidade "Nada Consta": marque "Apresentar unidades adimplentes" e não selecione unidades' : `o relatório lista ${rv.unidadesListadas} unidade(s), mas o total impresso (${rv.totalUnidades} inadimplentes = ${rv.pctInadimplentes}%) indica outro número: confira o filtro de unidades e o intervalo de taxas` },
+    { ok: rv.comCpf > 0 && rv.comCpf >= rv.unidadesListadas / 2, txt: 'CPF do morador', erro: 'poucas unidades com CPF: marque "CPF do morador"' },
+    { ok: !!rv.colunaAntecipado, txt: 'Coluna Antecipado', erro: 'coluna Antecipado ausente: inclua nas colunas' },
+    { ok: rv.totalTaxas !== null && rv.totalTaxas !== undefined, txt: 'Valor total (linha "Total")', erro: 'sem a linha Total: marque "Mostrar valor total"' },
+    { ok: !rv.taxasAVencer, txt: 'Sem taxas não vencidas', erro: `${rv.taxasAVencer} taxa(s) com vencimento depois do corte: desmarque "Apresentar taxas não vencidas" e "Mostrar parcelas não vencidas (AC)"` },
+  ];
+  if(cnpjA.length === 14 && cnpjV.length === 14) c.push({ ok: cnpjA === cnpjV, txt: 'CNPJ do relatório igual ao da análise', erro: `CNPJ do relatório (${rv.cnpj}) diferente do condomínio da análise (${r.condominio.cnpj})` });
+  return c;
+}
+const falhasVouch = (rv, r) => (criteriosVouch(rv, r) || []).filter(x => !x.ok);
+function htmlCriteriosVouch(rv, r){
+  const c = criteriosVouch(rv, r); if(!c) return '';
+  const f = c.filter(x => !x.ok);
+  return `<details style="margin-top:6px" ${f.length ? 'open' : ''}><summary style="cursor:pointer;font-size:12.5px">${f.length ? `<b style="color:#b57a12">Filtros do relatório: ${f.length} ponto(s) a conferir</b>` : 'Filtros do relatório conferidos'}</summary>
+    <ul style="margin:6px 0 0;padding-left:2px;list-style:none;font-size:12.5px">${c.map(x => `<li>${x.ok ? '✓ ' + esc(x.txt) : `<b style="color:#b57a12">⚠ ${esc(x.txt)}</b>: ${esc(x.erro)}`}</li>`).join('')}</ul>
+    <p class="ajuda" style="margin:4px 0 0">Unidades e taxas amigáveis/em processo e a modalidade (antecipados, não antecipados, não garantidos) não aparecem no PDF: confira na emissão.</p></details>`;
+}
+
 /* "Ainda não há inadimplência no Vouch" (implantação/avulso) conta como Vouch lido sem débito */
 const relatoriosLidos = () => ({ vouch: (!!S.textos.vouch.trim() && (S.dev.vouch || []).length > 0) || !!(S.rodada && S.rodada.semVouch && S.rodada.tipo !== 'acompanhamento' && !S.textos.vouch.trim()), ant: !!S.textos.ant.trim() && (S.dev.ant || []).length > 0 });
 /* localiza a rodada de um cartão pelo rid: 'nova' = editor; 'lote:i' = item do lote */

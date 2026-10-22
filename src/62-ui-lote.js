@@ -76,7 +76,7 @@ function montarRodadaDoItem(item, filaItem){
   const r = rodadaDeAcompanhamento(filaItem.rodada);
   r.condominio = { ...filaItem.condominio };
   if(!r.condominio.cnpj && item.leitura.cnpj){ r.condominio.cnpj = item.leitura.cnpj; r.condominio.chave = filaItem.chave; }
-  r.vouch = { corte: item.leitura.corte, emissao: item.leitura.emissao, totalTaxas: item.leitura.totalTaxas, totalUnidades: item.leitura.totalUnidades, lidas: item.leitura.lidas, conferido: item.leitura.conferido, arquivo: item.arquivo };
+  r.vouch = resumoVouch(item.leitura, item.arquivo);
   item.fila = filaItem; item.rodada = r;
   recalcular(r, item.dev, { vouch: true, ant: false });
 }
@@ -97,7 +97,7 @@ function renderLoteAndamento(){
     const exc = r.unidades.filter(u => ehExcecao(it, u)).length;
     const concluida = r.status === 'concluida';
     return `<tr><td><b>${esc(fi.condominio.nome)}</b><div class="ajuda" style="margin:0">${esc(it.arquivo)}</div></td>
-      <td>${it.leitura.conferido ? `<span class="selo s-ok">leitura conferida</span>` : `<span class="selo s-exc">leitura divergente</span>`}<div class="ajuda" style="margin:2px 0 0">até ${esc(it.leitura.corte||'?')}${it.ident && it.ident.modo !== 'CNPJ' ? ' · identificado pelo nome' + (it.ident.ambiguo ? ', confira' : '') : ''}</div></td>
+      <td>${it.leitura.conferido ? `<span class="selo s-ok">leitura conferida</span>` : `<span class="selo s-exc">leitura divergente</span>`}${it.rodada && falhasVouch(it.rodada.vouch, it.rodada).length ? ` <span class="selo s-prev" title="${esc(falhasVouch(it.rodada.vouch, it.rodada).map(x => x.txt + ': ' + x.erro).join('\n'))}">filtros a conferir</span>` : ''}<div class="ajuda" style="margin:2px 0 0">até ${esc(it.leitura.corte||'?')}${it.ident && it.ident.modo !== 'CNPJ' ? ' · identificado pelo nome' + (it.ident.ambiguo ? ', confira' : '') : ''}</div></td>
       <td>${s.excluir ? `<span class="selo s-exc">${s.excluir} excluir</span> ` : ''}<span class="selo s-prev">${s.rean + s.prev} mantida(s)</span>${s.enc ? ` <span class="selo s-enc">${s.enc} encerrada(s)</span>` : ''}</td>
       <td>${exc ? `<span class="selo s-rean">${exc} a revisar</span>` : '<span class="ajuda" style="margin:0">sem exceções</span>'}</td>
       <td>${s.total}</td>
@@ -138,7 +138,7 @@ function renderLoteModal(i){
   const primeira = S.lote.modalIdx !== i;
   S.lote.modalIdx = i;
   const cards = r.unidades.map(u => { const exc = ehExcecao(it, u); return cardUnidade(u, r, it.dev, 'lote:' + i, { destaque: exc, aberto: primeira ? exc : abertos.has(u.id), anterior: resultadoAnterior(it, u) }); }).join('');
-  const html = `<p class="ajuda" style="margin:0 0 10px">${esc(it.arquivo)} · Vouch até ${esc(it.leitura.corte||'?')} · ${it.leitura.conferido ? 'leitura conferida com o total do relatório' : '<b style="color:var(--red)">leitura divergente do total impresso</b>'} · em destaque: mudou de status, não localizado, casamento só por nome, pendência ou cadastro a completar.</p>
+  const html = `<p class="ajuda" style="margin:0 0 10px">${esc(it.arquivo)} · Vouch até ${esc(it.leitura.corte||'?')} · ${it.leitura.conferido ? 'leitura conferida com o total do relatório' : '<b style="color:var(--red)">leitura divergente do total impresso</b>'} · em destaque: mudou de status, não localizado, casamento só por nome, pendência ou cadastro a completar.</p>${it.rodada ? htmlCriteriosVouch(it.rodada.vouch, it.rodada) : ''}
     <div class="resumo"><span class="pill">Unidades <b>${s.total}</b></span><span class="pill">Excluir <b>${s.excluir}</b></span><span class="pill">Mantidas <b>${s.rean + s.prev}</b></span>${s.enc?`<span class="pill">Encerradas <b>${s.enc}</b></span>`:''}</div>${cards}`;
   const acoes = concluida ? `<span class="selo s-ok">${esc(r.protocolo)}</span><button class="btn mini" id="mLoteFicha">Baixar ficha</button>` : `<button class="btn mini" id="mLoteConcluir" ${!CAN_WRITE?'disabled':''}>${s.excluir ? 'Concluir e baixar ficha' : 'Concluir'}</button>`;
   const m = $('#modal');

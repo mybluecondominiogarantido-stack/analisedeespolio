@@ -112,7 +112,8 @@ function renderDiagnostico(){
     const casados = r.unidades.filter(u => u.esc[campo] !== null && u.esc[campo] !== undefined).length;
     const conf = campo === 'vouch' && r.vouch ? (r.vouch.conferido ? ` · conferido com o total do relatório (${r.vouch.totalTaxas} taxas em ${r.vouch.totalUnidades} unidades)` : ` · <b style="color:var(--red)">leitura divergente do total impresso (${r.vouch.lidas} lidas de ${r.vouch.totalTaxas})</b>`) : '';
     const emDia = lista.filter(b => b.nadaConsta).length;
-    return `<div class="${campo==='vouch' && r.vouch && !r.vouch.conferido ? 'aviso' : 'ok'}"><b>${titulo}:</b> ${lista.length - emDia} devedor(es) com cobrança em aberto${emDia ? ` · ${emDia} unidade(s) em dia (nada consta)` : ''} · ${casados} de ${r.unidades.length} espólios casados${conf}${r.vouch && r.vouch.corte && campo==='vouch' ? ' · consolidado até ' + esc(r.vouch.corte) : ''}
+    const fv = campo === 'vouch' ? falhasVouch(r.vouch, r).length : 0;
+    return `<div class="${campo==='vouch' && r.vouch && (!r.vouch.conferido || fv) ? 'aviso' : 'ok'}"><b>${titulo}:</b> ${lista.length - emDia} devedor(es) com cobrança em aberto${emDia ? ` · ${emDia} unidade(s) em dia (nada consta)` : ''} · ${casados} de ${r.unidades.length} espólios casados${conf}${r.vouch && r.vouch.corte && campo==='vouch' ? ' · consolidado até ' + esc(r.vouch.corte) : ''}${campo === 'vouch' ? htmlCriteriosVouch(r.vouch, r) : ''}
       <details style="margin-top:6px"><summary style="cursor:pointer;font-size:12.5px">Ver devedores encontrados</summary><ul style="margin:6px 0 0;padding-left:18px;font-size:12.5px">${lista.map(b => `<li>${esc(b.nome)}${b.unidadeTxt||b.unidade?' — '+esc(b.unidadeTxt||b.unidade):''}${b.cpf?' — '+esc(b.cpf):''} — <b>${b.cobrancas.filter(c=>c.incluir!==false).length}</b> taxa(s)</li>`).join('')}</ul></details></div>`;
   };
   $('#diagnostico').innerHTML = item('Vouch','vouch') + (r.tipo === 'acompanhamento' ? '' : item('Administradora anterior','ant'));
@@ -154,10 +155,11 @@ function processarTexto(origem, txt, nomeArquivo){
     if(ehRelatorioVouch(txt)){
       const v = lerVouch(txt);
       S.dev.vouch = v.devedores;
-      r.vouch = { corte: v.corte, emissao: v.emissao, totalTaxas: v.totalTaxas, totalUnidades: v.totalUnidades, lidas: v.lidas, conferido: v.conferido, arquivo: nomeArquivo || '' };
+      r.vouch = resumoVouch(v, nomeArquivo);
       if(v.condominio){ autoPreencher('#razao', 'nome', v.condominio, 'vouch', r.condominio, 'auto'); autoPreencher('#cnpj', 'cnpj', v.cnpj, 'vouch', r.condominio, 'auto'); r.condominio.chave = chaveCond(r.condominio.nome, r.condominio.cnpj); }
-      span.textContent = `${v.devedores.length} devedor(es) · ${v.lidas} taxas` + (v.conferido ? ' · conferido' : v.totalTaxas !== null ? ` · divergente do total (${v.totalTaxas})` : '') + (v.corte ? ' · até ' + v.corte : '');
-      st.classList.toggle('erro', !v.conferido);
+      const fv = falhasVouch(r.vouch, r).length;
+      span.textContent = `${v.inadimplentes} inadimplente(s) de ${v.unidadesListadas} unidade(s) · ${v.lidas} taxas` + (v.conferido ? ' · conferido' : v.totalTaxas !== null ? ` · divergente do total (${v.totalTaxas})` : '') + (v.corte ? ' · até ' + v.corte : '') + (fv ? ` · ${fv} filtro(s) a conferir` : '');
+      st.classList.toggle('erro', !v.conferido); st.classList.toggle('atencao', v.conferido && fv > 0);
     } else {
       S.dev.vouch = extrairDevedores(txt, $('#soValor').checked);
       const cab = lerCabecalhoGenerico(txt);
