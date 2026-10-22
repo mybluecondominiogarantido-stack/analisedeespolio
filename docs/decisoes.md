@@ -88,3 +88,4 @@ Registro do que foi decidido com a Coordenação de Cobrança (out/2026) para a 
   - **"Rodada" passa a "análise"** em todos os textos da tela ("Abrir análise").
   - O **número da aba Solicitações** fica enquanto houver solicitação sem análise concluída (nova, vista ou em análise); as ainda não abertas aparecem como "· N nova(s)".
   - **Prioridade do ticket: alta** por padrão.
+- **Regra do ticket aplicada (22/10)** com aval: ticket de teste #2 criado no setor Crédito, categoria "Análise de Espólio", prioridade alta, condomínio vinculado e PDF anexado. A análise de teste do Rooftop Pacheco (AE-2026-0007) e a solicitação dela foram excluídas a pedido; o registro da exclusão ficou no histórico.

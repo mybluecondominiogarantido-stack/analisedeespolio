@@ -1,4 +1,4 @@
--- Ticket da ficha aberto pelo módulo Análise de Espólio
+-- Ticket da ficha aberto pelo módulo Análise de Espólio · APLICADO em 22/10/2026 com aval da coordenação
 -- O módulo não alcança as tabelas de tickets do portal (RLS sem política: só o servidor do portal grava).
 -- Por isso, como no aviso do sino, o módulo grava um pedido em documentos (coleção "tickets") e esta regra
 -- cria o ticket de verdade: tickets + ticket_eventos ("criado") + ticket_anexos (ficha em PDF) + aviso no sino.
@@ -88,8 +88,7 @@ BEGIN
   RETURN new;
 END $function$;
 
-DROP TRIGGER IF EXISTS espolio_ticket ON public.documentos;
-CREATE TRIGGER espolio_ticket BEFORE INSERT OR UPDATE ON public.documentos
+CREATE OR REPLACE TRIGGER espolio_ticket BEFORE INSERT OR UPDATE ON public.documentos
   FOR EACH ROW EXECUTE FUNCTION public.espolio_ticket();
 
 -- Para desfazer:

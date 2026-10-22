@@ -12,7 +12,7 @@ Feito em 16/10/2026, com aval da coordenação de Cobrança. O SQL está em `doc
 | Carteira de condomínios | Espelhada do cadastro do portal: 335 condomínios, 332 com assistente de crédito |
 | Atualização da carteira | Automática: um gatilho no cadastro de condomínios refaz a cópia a cada inclusão, alteração ou exclusão |
 
-Em 16/10/2026 também foram ligados o aviso no sino (seção 6) e a proteção do contador de protocolos (`docs/sql/protocolo-contador.sql`), que impede dois pedidos simultâneos de receberem o mesmo número AE. Nada além disso foi alterado no banco. Usuários, tickets, notificações e os demais módulos não foram tocados.
+Em 16/10/2026 também foram ligados o aviso no sino (seção 6) e a proteção do contador de protocolos (`docs/sql/protocolo-contador.sql`), que impede dois pedidos simultâneos de receberem o mesmo número AE. Em 22/10/2026 foi ligada a regra do ticket da ficha (`docs/sql/ticket-pelo-modulo.sql`), que cria o ticket no sistema de tickets do portal a partir do pedido do módulo, e foi criada a categoria "Análise de Espólio" no setor Crédito. Nada além disso foi alterado no banco. Usuários, tickets, notificações e os demais módulos não foram tocados.
 
 ## 2. Publicar o arquivo do módulo
 
