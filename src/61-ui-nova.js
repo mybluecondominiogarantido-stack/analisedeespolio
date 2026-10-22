@@ -23,7 +23,7 @@ function renderEditor(){
   $$('#sinalBi button').forEach(b => b.classList.toggle('ativo', b.dataset.sinal === ((r.bi && r.bi.sinal) || '-')));
   $('#tipoRotulo').textContent = r.tipo === 'acompanhamento' ? 'Acompanhamento · reanálise' : r.tipo === 'avulso' ? 'Avulso · sinalização da Cobrança' : 'Implantação · 1ª análise';
   $('#tipoRotulo').className = 'selo ' + (r.tipo === 'acompanhamento' ? 's-rean' : 's-prev');
-  $('#tipoAjuda').textContent = r.tipo === 'acompanhamento' ? 'Acompanhamento: reanálise, só o Vouch entra (3+ taxas exclui; abaixo disso, mantida).' : r.tipo === 'avulso' ? 'Avulso: condomínio já em carteira, regras 1 a 5; sem relatório anterior por padrão.' : 'Implantação: 1ª análise, regras 1 a 5.';
+  $('#tipoAjuda').textContent = r.tipo === 'acompanhamento' ? 'Acompanhamento: reanálise, só o Vouch entra (3+ taxas exclui; abaixo disso, em acompanhamento).' : r.tipo === 'avulso' ? 'Avulso: condomínio já em carteira, regras 1 a 5; sem relatório anterior por padrão.' : 'Implantação: 1ª análise, regras 1 a 5.';
   $('#semAnterior').checked = !!r.semAnterior; $('#semBi').checked = !!r.semBi; $('#semVouch').checked = !!r.semVouch;
   $('#relVouch').value = S.textos.vouch; $('#relAdmin').value = S.textos.ant;
   $('#sinal').value = '';
@@ -58,7 +58,7 @@ function renderEditorResumo(){
   const s = resumoRodada(r);
   const travada = r.status === 'concluida';
   $('#novaResumo').innerHTML = `<span class="pill">${esc(r.protocolo || 'sem protocolo')}</span><span class="pill">${tipoRodadaTxt(r)}</span>
-    <span class="pill">Sinalizados <b>${s.total}</b></span><span class="pill">Mantidas <b>${s.prev + s.rean}</b></span><span class="pill">Excluir <b>${s.excluir}</b></span>${s.pendentes?`<span class="pill" style="color:#b57a12">Pendências <b>${s.pendentes}</b></span>`:''}
+    <span class="pill">Sinalizados <b>${s.total}</b></span><span class="pill">Em acompanhamento <b>${s.prev + s.rean}</b></span><span class="pill">Excluir <b>${s.excluir}</b></span>${s.pendentes?`<span class="pill" style="color:#b57a12">Pendências <b>${s.pendentes}</b></span>`:''}
     <span style="flex:1"></span>
     ${travada ? `<button class="btn sec mini" id="btnTicketEditor">Abrir ticket</button>` : ''}
     <button class="btn sec mini" id="btnFecharEditor">${travada?'Fechar':'Salvar e fechar'}</button>
@@ -79,7 +79,7 @@ function renderEditorResumo(){
         const falta = documentosFaltando(r);
         if(falta.length){ renderSteps(); toast('Falta documento obrigatório: ' + falta.map(x => x.nome).join(', ') + '. Anexe ou marque que o condomínio não tem.', 7000); return; }
         const s2 = resumoRodada(r);
-        if(!(await confirmar(`Concluir a análise de ${r.condominio.nome}?\n${s2.excluir} a excluir · ${s2.prev + s2.rean} mantida(s) em acompanhamento.\nDepois de concluída, a análise não pode ser editada.`))) return;
+        if(!(await confirmar(`Concluir a análise de ${r.condominio.nome}?\n${s2.excluir} a excluir · ${s2.prev + s2.rean} em acompanhamento.\nDepois de concluída, a análise não pode ser editada.`))) return;
         await concluirRodada(r); await salvarEvidencias(r.id, { textos: S.textos, dev: S.dev });
         renderEditor();
         // a ficha só é necessária para formalizar exclusão da garantia; sem exclusão, fica disponível em "Baixar ficha"

@@ -1310,7 +1310,7 @@ function classificar(u, ctx, vouch, ant){
   if(u.situacao === 'encerrada') return { r:'ENCERRADA', regra:'—', motivo: u.encerramento && u.encerramento.motivo ? u.encerramento.motivo : 'Acompanhamento encerrado.' };
   if(u.override){
     if(u.override === 'EXCLUIR') return { r:'EXCLUIR', regra:'Manual', motivo:'Excluída manualmente pelo analista.' + (u.motivoAjuste ? ' ' + u.motivoAjuste : '') };
-    return { r:base, regra:'Manual', motivo:'Mantida em acompanhamento por ajuste manual.' + (u.motivoAjuste ? ' ' + u.motivoAjuste : '') };
+    return { r:base, regra:'Manual', motivo:'Em acompanhamento por ajuste manual.' + (u.motivoAjuste ? ' ' + u.motivoAjuste : '') };
   }
   if(ctx.semAnt) ant = 0;
   if(vouch === null)
@@ -1365,20 +1365,20 @@ function motivoCurto(u, r){
 const sufStatus = r => (r === 'PREVENTIVO' || r === 'REANÁLISE') ? 'PREV' : r === 'EXCLUIR' ? 'EXCLUIR' : r === 'ENCERRADA' ? 'ENC' : 'REAN';
 const classeSelo = r => r === 'EXCLUIR' ? 's-exc' : (r === 'PREVENTIVO' || r === 'REANÁLISE') ? 's-prev' : r === 'ENCERRADA' ? 's-enc' : 's-rean';
 const classeRes  = r => 'res-' + sufStatus(r);
-const rotuloStatus = r => r === 'EXCLUIR' ? 'Excluir' : (r === 'PREVENTIVO' || r === 'REANÁLISE') ? 'Mantida · em acompanhamento' : r === 'ENCERRADA' ? 'Encerrada' : r;
+const rotuloStatus = r => r === 'EXCLUIR' ? 'Excluir' : (r === 'PREVENTIVO' || r === 'REANÁLISE') ? 'Em acompanhamento' : r === 'ENCERRADA' ? 'Encerrada' : r;
 
 const TEXTO_REGRAS = `
-<p>Cada unidade recebe um de dois resultados: <b>Excluir</b> (sai da garantia) ou <b>Mantida · em acompanhamento</b> (continua garantida e volta a ser analisada a cada ~3 meses).</p>
+<p>Cada unidade recebe um de dois resultados: <b>Excluir</b> (sai da garantia) ou <b>Em acompanhamento</b> (continua garantida e volta a ser analisada a cada ~3 meses).</p>
 <p><b>Implantação e avulso (1ª análise).</b> Regras 1 a 5, aplicadas na ordem; a primeira que se confirmar define o resultado:</p>
 <ol style="padding-left:18px">
 <li><b>Vouch + débito anterior → Excluir.</b> Cobrança no Vouch <i>e</i> débito na administradora anterior.</li>
-<li><b>Sem Vouch + anterior recorrente (3+) → Mantida · em acompanhamento.</b></li>
-<li><b>Sem Vouch (sem anterior ou pontual) → Mantida · em acompanhamento.</b></li>
-<li><b>Só Vouch + BI positivo.</b> 3 ou mais → Excluir; menos de 3 → Mantida · em acompanhamento.</li>
-<li><b>Só Vouch + BI negativo.</b> Mantida só se vigência &lt; 6 meses <i>e</i> menos de 3 cobranças; caso contrário → Excluir.</li>
+<li><b>Sem Vouch + anterior recorrente (3+) → Em acompanhamento.</b></li>
+<li><b>Sem Vouch (sem anterior ou pontual) → Em acompanhamento.</b></li>
+<li><b>Só Vouch + BI positivo.</b> 3 ou mais → Excluir; menos de 3 → Em acompanhamento.</li>
+<li><b>Só Vouch + BI negativo.</b> Em acompanhamento só se vigência &lt; 6 meses <i>e</i> menos de 3 cobranças; caso contrário → Excluir.</li>
 </ol>
-<p><b>Reanálise (acompanhamento).</b> Só o Vouch entra: <b>3 ou mais</b> taxas em aberto → Excluir; abaixo de 3 → continua Mantida · em acompanhamento.</p>
-<p><b>Item 5.5</b> — faltando insumo, a unidade fica mantida em acompanhamento e a pendência é registrada, sem inferência. Relatório lido sem casamento = sem cobrança (0).</p>
+<p><b>Reanálise (acompanhamento).</b> Só o Vouch entra: <b>3 ou mais</b> taxas em aberto → Excluir; abaixo de 3 → continua Em acompanhamento.</p>
+<p><b>Item 5.5</b> — faltando insumo, a unidade fica em acompanhamento e a pendência é registrada, sem inferência. Relatório lido sem casamento = sem cobrança (0).</p>
 <p>Toda linha de taxa conta igual (arrecadação, rateio, parcela de acordo). Marcadores como "Jurídico" ficam só como informação na evidência.</p>
 <p>Saída do acompanhamento: exclusão da garantia ou troca de titularidade concluída. Regra de saída por tempo ou por reanálises zeradas: pendente de definição.</p>`;
 
@@ -1827,7 +1827,7 @@ function cardUnidade(u, r, dev, rid, opts){
           <label style="margin-top:8px">Taxas no Vouch (manual)</label><input type="number" min="0" data-manual="vouch" value="${u.manual.vouch??''}" placeholder="automático" ${travada?'disabled':''}></div>
         ${semAnt ? '' : `<div><label>Casamento na anterior</label><select data-esc="ant" ${travada?'disabled':''}>${opcoesDevedor(dev.ant, u.esc.ant)}</select><div style="margin-top:4px">${cas('ant')}</div>
           <label style="margin-top:8px">Taxas anteriores (manual)</label><input type="number" min="0" data-manual="ant" value="${u.manual.ant??''}" placeholder="automático" ${travada?'disabled':''}></div>`}
-        <div><label>Ajuste do analista</label><select data-campo="override" ${travada?'disabled':''}><option value="">Automático</option><option value="__base__" ${u.override && u.override!=='EXCLUIR'?'selected':''}>Mantida · em acompanhamento</option><option value="EXCLUIR" ${u.override==='EXCLUIR'?'selected':''}>Excluir</option></select>
+        <div><label>Ajuste do analista</label><select data-campo="override" ${travada?'disabled':''}><option value="">Automático</option><option value="__base__" ${u.override && u.override!=='EXCLUIR'?'selected':''}>Em acompanhamento</option><option value="EXCLUIR" ${u.override==='EXCLUIR'?'selected':''}>Excluir</option></select>
           <label style="margin-top:8px">Motivo do ajuste ${u.override?'<span style="color:var(--red)">(obrigatório)</span>':''}</label><input type="text" data-campo="motivoAjuste" value="${esc(u.motivoAjuste||'')}" placeholder="ex.: alvará judicial apresentado" ${travada?'disabled':''}></div>
       </div>
       ${provas('vouch')}${semAnt?'':provas('ant')}
@@ -1915,7 +1915,7 @@ function fichaHTML(r){
   const vig = (r.idadeGarantia === null || r.idadeGarantia === undefined || r.idadeGarantia === '') ? null : +r.idadeGarantia;
   const inicioTxt = vig !== null ? `${vig} ${vig===1?'mês':'meses'}` : '—';
   const nE = grupo('EXCLUIR').length, nR = grupo('REANÁLISE').length, nP = grupo('PREVENTIVO').length, nEnc = grupo('ENCERRADA').length;
-  const classif = res.length ? [nE?`Excluir da garantia (${nE})`:null, (nR+nP)?`Mantida · em acompanhamento (${nR+nP})`:null, nEnc?`Encerradas (${nEnc})`:null].filter(Boolean).join('  ·  ') : '—';
+  const classif = res.length ? [nE?`Excluir (${nE})`:null, (nR+nP)?`Em acompanhamento (${nR+nP})`:null, nEnc?`Encerradas (${nEnc})`:null].filter(Boolean).join('  ·  ') : '—';
   const sit = n => n === null || n === undefined ? 'Não informado' : (n > 0 ? `Inadimplente (${n} taxa${n>1?'s':''})` : 'Sem cobrança');
   const tipoTxt = r.tipo === 'acompanhamento' ? 'Acompanhamento (reanálise)' : r.tipo === 'carga' ? 'Carga inicial' : r.tipo === 'avulso' ? 'Avulso (sinalização da Cobrança)' : 'Implantação (1ª análise)';
   const semColAnt = r.tipo === 'acompanhamento';   // reanálise: só o Vouch entra
@@ -1943,8 +1943,8 @@ function fichaHTML(r){
     : `<tr><td colspan="6" style="text-align:center;color:#6b7f88">Sem unidades sinalizadas.</td></tr>`}
   </tbody></table>
   <div class="f-legenda">
-    <span><i style="background:#199CB1"></i> Mantida · em acompanhamento</span>
-    <span><i style="background:#C0392B"></i> Excluir da garantia</span>
+    <span><i style="background:#199CB1"></i> Em acompanhamento</span>
+    <span><i style="background:#C0392B"></i> Excluir</span>
   </div>
   <div class="f-rodape-tab">Inadimplência anterior = débito antes da garantia MyBlue. Vouch = sistema interno MyBlue. • Classificação conforme a Política de Análise de Espólio.</div>
   ${obs ? `<div class="f-nota" style="margin-top:8px"><b>Observações:</b> ${esc(obs)}</div>` : ''}
@@ -2023,7 +2023,7 @@ function renderEditor(){
   $$('#sinalBi button').forEach(b => b.classList.toggle('ativo', b.dataset.sinal === ((r.bi && r.bi.sinal) || '-')));
   $('#tipoRotulo').textContent = r.tipo === 'acompanhamento' ? 'Acompanhamento · reanálise' : r.tipo === 'avulso' ? 'Avulso · sinalização da Cobrança' : 'Implantação · 1ª análise';
   $('#tipoRotulo').className = 'selo ' + (r.tipo === 'acompanhamento' ? 's-rean' : 's-prev');
-  $('#tipoAjuda').textContent = r.tipo === 'acompanhamento' ? 'Acompanhamento: reanálise, só o Vouch entra (3+ taxas exclui; abaixo disso, mantida).' : r.tipo === 'avulso' ? 'Avulso: condomínio já em carteira, regras 1 a 5; sem relatório anterior por padrão.' : 'Implantação: 1ª análise, regras 1 a 5.';
+  $('#tipoAjuda').textContent = r.tipo === 'acompanhamento' ? 'Acompanhamento: reanálise, só o Vouch entra (3+ taxas exclui; abaixo disso, em acompanhamento).' : r.tipo === 'avulso' ? 'Avulso: condomínio já em carteira, regras 1 a 5; sem relatório anterior por padrão.' : 'Implantação: 1ª análise, regras 1 a 5.';
   $('#semAnterior').checked = !!r.semAnterior; $('#semBi').checked = !!r.semBi; $('#semVouch').checked = !!r.semVouch;
   $('#relVouch').value = S.textos.vouch; $('#relAdmin').value = S.textos.ant;
   $('#sinal').value = '';
@@ -2058,7 +2058,7 @@ function renderEditorResumo(){
   const s = resumoRodada(r);
   const travada = r.status === 'concluida';
   $('#novaResumo').innerHTML = `<span class="pill">${esc(r.protocolo || 'sem protocolo')}</span><span class="pill">${tipoRodadaTxt(r)}</span>
-    <span class="pill">Sinalizados <b>${s.total}</b></span><span class="pill">Mantidas <b>${s.prev + s.rean}</b></span><span class="pill">Excluir <b>${s.excluir}</b></span>${s.pendentes?`<span class="pill" style="color:#b57a12">Pendências <b>${s.pendentes}</b></span>`:''}
+    <span class="pill">Sinalizados <b>${s.total}</b></span><span class="pill">Em acompanhamento <b>${s.prev + s.rean}</b></span><span class="pill">Excluir <b>${s.excluir}</b></span>${s.pendentes?`<span class="pill" style="color:#b57a12">Pendências <b>${s.pendentes}</b></span>`:''}
     <span style="flex:1"></span>
     ${travada ? `<button class="btn sec mini" id="btnTicketEditor">Abrir ticket</button>` : ''}
     <button class="btn sec mini" id="btnFecharEditor">${travada?'Fechar':'Salvar e fechar'}</button>
@@ -2079,7 +2079,7 @@ function renderEditorResumo(){
         const falta = documentosFaltando(r);
         if(falta.length){ renderSteps(); toast('Falta documento obrigatório: ' + falta.map(x => x.nome).join(', ') + '. Anexe ou marque que o condomínio não tem.', 7000); return; }
         const s2 = resumoRodada(r);
-        if(!(await confirmar(`Concluir a análise de ${r.condominio.nome}?\n${s2.excluir} a excluir · ${s2.prev + s2.rean} mantida(s) em acompanhamento.\nDepois de concluída, a análise não pode ser editada.`))) return;
+        if(!(await confirmar(`Concluir a análise de ${r.condominio.nome}?\n${s2.excluir} a excluir · ${s2.prev + s2.rean} em acompanhamento.\nDepois de concluída, a análise não pode ser editada.`))) return;
         await concluirRodada(r); await salvarEvidencias(r.id, { textos: S.textos, dev: S.dev });
         renderEditor();
         // a ficha só é necessária para formalizar exclusão da garantia; sem exclusão, fica disponível em "Baixar ficha"
@@ -2360,7 +2360,7 @@ function renderLoteAndamento(){
     const concluida = r.status === 'concluida';
     return `<tr><td><b>${esc(fi.condominio.nome)}</b><div class="ajuda" style="margin:0">${esc(it.arquivo)}</div></td>
       <td>${it.leitura.conferido ? `<span class="selo s-ok">leitura conferida</span>` : `<span class="selo s-exc">leitura divergente</span>`}${it.rodada && falhasVouch(it.rodada.vouch, it.rodada).length ? ` <span class="selo s-prev" title="${esc(falhasVouch(it.rodada.vouch, it.rodada).map(x => x.txt + ': ' + x.erro).join('\n'))}">informações faltando</span>` : ''}<div class="ajuda" style="margin:2px 0 0">até ${esc(it.leitura.corte||'?')}${it.ident && it.ident.modo !== 'CNPJ' ? ' · identificado pelo nome' + (it.ident.ambiguo ? ', confira' : '') : ''}</div></td>
-      <td>${s.excluir ? `<span class="selo s-exc">${s.excluir} excluir</span> ` : ''}<span class="selo s-prev">${s.rean + s.prev} mantida(s)</span>${s.enc ? ` <span class="selo s-enc">${s.enc} encerrada(s)</span>` : ''}</td>
+      <td>${s.excluir ? `<span class="selo s-exc">${s.excluir} excluir</span> ` : ''}<span class="selo s-prev">${s.rean + s.prev} em acompanhamento</span>${s.enc ? ` <span class="selo s-enc">${s.enc} encerrada(s)</span>` : ''}</td>
       <td>${exc ? `<span class="selo s-rean">${exc} a revisar</span>` : '<span class="ajuda" style="margin:0">sem exceções</span>'}</td>
       <td>${s.total}</td>
       <td class="acoes">${concluida ? `<span class="selo s-ok">${esc(r.protocolo)}</span><button class="btn sec mini" data-ficha="${i}">Baixar ficha</button><button class="btn sec mini" data-ticket="${i}">Ticket</button>`
@@ -2385,7 +2385,7 @@ function renderLoteAndamento(){
 }
 async function concluirItemLote(i){
   const it = S.lote.itens[i]; const r = it.rodada; const s = resumoRodada(r);
-  if(!(await confirmar(`Concluir a reanálise de ${r.condominio.nome}?\n${s.excluir} a excluir · ${s.rean + s.prev} mantida(s) em acompanhamento.\nDepois de concluída, a análise não pode ser editada.`))) return;
+  if(!(await confirmar(`Concluir a reanálise de ${r.condominio.nome}?\n${s.excluir} a excluir · ${s.rean + s.prev} em acompanhamento.\nDepois de concluída, a análise não pode ser editada.`))) return;
   try{ await concluirRodada(r); await salvarEvidencias(r.id, { textos: it.textos, dev: it.dev }); if(S.lote.modalIdx === i){ S.lote.modalIdx = null; fecharModal(); } renderLote();
     // ficha só baixa sozinha quando há exclusão da garantia (para formalizar)
     if(s.excluir){ toast('Análise ' + r.protocolo + ' concluída. Baixando a ficha para formalizar a exclusão.', 5000); await baixarFichaPDF(r); }
@@ -2401,7 +2401,7 @@ function renderLoteModal(i){
   S.lote.modalIdx = i;
   const cards = r.unidades.map(u => { const exc = ehExcecao(it, u); return cardUnidade(u, r, it.dev, 'lote:' + i, { destaque: exc, aberto: primeira ? exc : abertos.has(u.id), anterior: resultadoAnterior(it, u) }); }).join('');
   const html = `<p class="ajuda" style="margin:0 0 10px">${esc(it.arquivo)} · Vouch até ${esc(it.leitura.corte||'?')} · ${it.leitura.conferido ? 'leitura conferida com o total do relatório' : '<b style="color:var(--red)">leitura divergente do total impresso</b>'} · em destaque: mudou de status, não localizado, casamento só por nome, pendência ou cadastro a completar.</p>${it.rodada ? htmlCriteriosVouch(it.rodada.vouch, it.rodada) : ''}
-    <div class="resumo"><span class="pill">Unidades <b>${s.total}</b></span><span class="pill">Excluir <b>${s.excluir}</b></span><span class="pill">Mantidas <b>${s.rean + s.prev}</b></span>${s.enc?`<span class="pill">Encerradas <b>${s.enc}</b></span>`:''}</div>${cards}`;
+    <div class="resumo"><span class="pill">Unidades <b>${s.total}</b></span><span class="pill">Excluir <b>${s.excluir}</b></span><span class="pill">Em acompanhamento <b>${s.rean + s.prev}</b></span>${s.enc?`<span class="pill">Encerradas <b>${s.enc}</b></span>`:''}</div>${cards}`;
   const acoes = concluida ? `<span class="selo s-ok">${esc(r.protocolo)}</span><button class="btn mini" id="mLoteFicha">Baixar ficha</button>` : `<button class="btn mini" id="mLoteConcluir" ${!CAN_WRITE?'disabled':''}>${s.excluir ? 'Concluir e baixar ficha' : 'Concluir'}</button>`;
   const m = $('#modal');
   if(m.hidden || !m.querySelector('.caixa')){ abrirModal(r.condominio.nome + ' · reanálise', html, acoes); m.querySelector('[data-fechar]').addEventListener('click', () => { S.lote.modalIdx = null; }); }
@@ -2515,7 +2515,7 @@ function renderGraficoMensal(conc){
     const seg = (v, y0, cor, rx) => v ? `<rect x="${x0}" y="${y(y0+v)}" width="${bw}" height="${Math.max(0, y(y0) - y(y0+v) - 2)}" fill="${cor}" ${rx?'rx="4"':''}><title>${MESES[+x.m.slice(5)-1]}/${x.m.slice(0,4)}: ${v}</title></rect>` : '';
     return `<g>${seg(x.prev, 0, '#199cb1')}${seg(x.rean, x.prev, '#d98a1b')}${seg(x.exc, x.prev + x.rean, '#d8463b', true)}<text x="${x0+bw/2}" y="${base+18}" text-anchor="middle">${MESES[+x.m.slice(5)-1]}</text>${tot?`<text x="${x0+bw/2}" y="${y(tot)-6}" text-anchor="middle" fill="#3c5660" font-weight="700">${tot}</text>`:''}</g>`;
   }).join('');
-  $('#dashGrafico').innerHTML = `<div class="legenda"><span><i style="background:#d8463b"></i>Excluir</span><span><i style="background:#199cb1"></i>Mantida · em acompanhamento</span></div>
+  $('#dashGrafico').innerHTML = `<div class="legenda"><span><i style="background:#d8463b"></i>Excluir</span><span><i style="background:#199cb1"></i>Em acompanhamento</span></div>
     <svg class="graf" viewBox="0 0 ${W} ${H}" width="100%" aria-label="Unidades classificadas por mês"><g stroke="#e4ecef">${grade.map(v => `<line x1="${lw}" x2="${W-10}" y1="${y(v)}" y2="${y(v)}"/>`).join('')}</g>${grade.map(v => `<text x="${lw-6}" y="${y(v)+4}" text-anchor="end">${v}</text>`).join('')}${barras}</svg>`;
 }
 $('#btnResumo').onclick = () => {
@@ -2526,8 +2526,8 @@ $('#btnResumo').onclick = () => {
   const n = x => us.filter(u => u.resultado === x).length;
   const html = `<div class="ficha" id="resumoFicha" style="padding:20px 24px"><div class="f-titulo" style="font-size:20px">Resumo mensal · Análise de Espólio · ${MESES_FULL[+mes.slice(5)-1]}/${mes.slice(0,4)}</div><div class="f-sub">Cobrança / Coordenação · gerado em ${fmtData(hojeISO())}</div>
     <div class="f-secao">Análises concluídas no mês</div>
-    <table class="f-tab"><thead><tr><th>Protocolo</th><th>Condomínio</th><th>Tipo</th><th>Data</th><th>Sinalizados</th><th>Excluídos</th><th>Mantidas</th></tr></thead><tbody>${conc.length ? conc.map(r => { const s = r.resumo || resumoRodada(r); return `<tr><td>${esc(r.protocolo)}</td><td>${esc(r.condominio.nome)}</td><td>${tipoRodadaTxt(r)}</td><td>${fmtData(r.dataAnalise)}</td><td>${s.total}</td><td>${s.excluir}</td><td>${s.prev+s.rean}</td></tr>`; }).join('') : '<tr><td colspan="7" style="text-align:center">Nenhuma análise concluída no mês.</td></tr>'}</tbody></table>
-    <div class="f-caixas" style="grid-template-columns:repeat(4,1fr)"><div class="f-caixa"><h4>Análises</h4><p>${conc.length}</p></div><div class="f-caixa cx-EXCLUIR"><h4>Excluídos</h4><p>${n('EXCLUIR')}</p></div><div class="f-caixa"><h4>Mantidas em acompanhamento</h4><p>${n('PREVENTIVO')+n('REANÁLISE')}</p></div><div class="f-caixa cx-REAN"><h4>Fila vencida hoje</h4><p>${venc.length} condomínio(s)</p></div></div>
+    <table class="f-tab"><thead><tr><th>Protocolo</th><th>Condomínio</th><th>Tipo</th><th>Data</th><th>Sinalizados</th><th>Excluídos</th><th>Em acompanhamento</th></tr></thead><tbody>${conc.length ? conc.map(r => { const s = r.resumo || resumoRodada(r); return `<tr><td>${esc(r.protocolo)}</td><td>${esc(r.condominio.nome)}</td><td>${tipoRodadaTxt(r)}</td><td>${fmtData(r.dataAnalise)}</td><td>${s.total}</td><td>${s.excluir}</td><td>${s.prev+s.rean}</td></tr>`; }).join('') : '<tr><td colspan="7" style="text-align:center">Nenhuma análise concluída no mês.</td></tr>'}</tbody></table>
+    <div class="f-caixas" style="grid-template-columns:repeat(4,1fr)"><div class="f-caixa"><h4>Análises</h4><p>${conc.length}</p></div><div class="f-caixa cx-EXCLUIR"><h4>Excluídos</h4><p>${n('EXCLUIR')}</p></div><div class="f-caixa"><h4>Em acompanhamento</h4><p>${n('PREVENTIVO')+n('REANÁLISE')}</p></div><div class="f-caixa cx-REAN"><h4>Fila vencida hoje</h4><p>${venc.length} condomínio(s)</p></div></div>
     ${venc.length ? `<div class="f-secao">Reanálises vencidas</div><p>${venc.map(i => `${esc(i.condominio.nome)} (desde ${fmtData(i.prazo)})`).join('; ')}</p>` : ''}</div>
     <div class="acoes" style="margin-top:10px"><button class="btn sec mini" id="btnResumoPdf">Baixar resumo em PDF</button></div>`;
   $('#resumoMensal').innerHTML = html;
@@ -2844,7 +2844,7 @@ function excelData(v){
 
 /* ---------- ticket para quem guarda a ficha na pasta ---------- */
 function textoTicket(r, sol){
-  const linhas = (r.unidades||[]).map(u => `• ${u.unid || 's/ unid.'} — ${u.titular || '(titular a completar)'}${u.cpf ? ' · ' + u.cpf : ''}: ${u.resultado === 'EXCLUIR' ? 'Excluída da garantia' : u.resultado === 'ENCERRADA' ? 'Acompanhamento encerrado' : 'Mantida · em acompanhamento'}${u.obs ? ' · ' + u.obs : ''}`).join('\n');
+  const linhas = (r.unidades||[]).map(u => `• ${u.unid || 's/ unid.'} — ${u.titular || '(titular a completar)'}${u.cpf ? ' · ' + u.cpf : ''}: ${u.resultado === 'EXCLUIR' ? 'Excluir' : u.resultado === 'ENCERRADA' ? 'Encerrada' : 'Em acompanhamento'}${u.obs ? ' · ' + u.obs : ''}`).join('\n');
   return `Análise de espólio ${r.protocolo} · ${r.condominio.nome}${r.condominio.cnpj ? ' · CNPJ ' + r.condominio.cnpj : ''}\nTipo: ${r.tipo === 'acompanhamento' ? 'Acompanhamento (reanálise)' : r.tipo === 'avulso' ? 'Avulso' : 'Implantação'} · Data: ${fmtData(r.dataAnalise)}${sol ? ' · Solicitação de ' + (sol.solicitanteNome||'') : ''}\n\nUnidades:\n${linhas}\n\nFicha em anexo. Favor guardar na pasta do condomínio.${r.proximaReanalise && seguemEmAcompanhamento(r) ? '\nPróxima reanálise: ' + fmtData(r.proximaReanalise) : ''}`;
 }
 function abrirTicketModal(r, sol){

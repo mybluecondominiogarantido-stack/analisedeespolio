@@ -80,7 +80,7 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   ok(res[2].unid === 'B - 305', 'unidade digitada como "B - 305" é reconhecida');
   ok(res[2].vouch === 0 && res[2].cas === null, 'unidade inexistente fica com 0 (relatório lido, sem casamento)');
   ok(res[0].r === 'EXCLUIR' && res[0].regra === '5', 'BI negativo, 4 meses, 3 taxas → Excluir (regra 5)');
-  ok(res[2].r === 'PREVENTIVO' && res[2].regra === '3', 'sem Vouch → Mantida · em acompanhamento (regra 3)');
+  ok(res[2].r === 'PREVENTIVO' && res[2].regra === '3', 'sem Vouch → Em acompanhamento (regra 3)');
   const formatos = await p.evaluate(() => {
     const rot = ['CONTAS A RECEBER POR CONDÔMINO - COBRANÇA', 'Unidade: SALA 601 - ESPÓLIO DE FULANO DE TAL | Cobrança: Juridico', 'Descrição | Competencia | Vencimento | Emissão | Vlr. Principal',
       'TARIFA BANCÁRIA TARIFA | 05/2026 | 04/05/2026 | 17/04/2026 | 1,99', 'TAXA DE CONDOMINIO | 05/2026 | 04/05/2026 | 17/04/2026 | 483,95', 'TAXA DE CONDOMINIO | 06/2026 | 04/06/2026 | 19/05/2026 | 483,95',
@@ -102,7 +102,7 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   ok(padrao[0] === 'A - 101:3:cpf,SALA 215:1:-' && padrao[1] === 'A - 101:2:cpf,SALA 215:1:-', `planilha padrão do relatório anterior (CSV e modelo Excel): competências distintas, tarifa não conta (${padrao})`);
   const ficha = await p.evaluate(() => fichaHTML(S.rodada));
   ok(!/f-caixa/.test(ficha), 'ficha sem as caixas de resumo por resultado');
-  ok(/Mantida · em acompanhamento/.test(ficha) && !/Sob análise|Preventivo|Reanálise \(/.test(ficha), 'ficha usa os nomes novos: Excluir e Mantida · em acompanhamento');
+  ok(/Em acompanhamento/.test(ficha) && !/Mantida|Sob análise|Preventivo|Reanálise \(|Exclu[ií]\S* da garantia/.test(ficha), 'ficha usa os nomes curtos: Excluir e Em acompanhamento');
   ok(/3 no Vouch · BI negativo · 4 meses</.test(ficha) && /Sem cobrança no Vouch</.test(ficha) && !/Regra \d/.test(ficha), 'ficha traz justificativa curta, sem número de regra');
   const semAnt = await p.evaluate(() => { const u = novaUnidade('X','',''); const base = { tipo:'implantacao', semAnt:true, biPos:true, vig:10 };
     return [classificar(u, base, 1, null), classificar(u, base, 4, null), classificar(u, { ...base, semAnt:false }, 1, 2)].map(c => c.r + '|' + c.regra + '|' + (c.pendente ? 'P' : '-')); });

@@ -99,3 +99,4 @@ Registro do que foi decidido com a Coordenação de Cobrança (out/2026) para a 
   - O módulo confere cada item no PDF e também se o CNPJ do relatório é o do condomínio da análise.
   - **Só sinaliza, não bloqueia**: cartão do Vouch em amarelo com "N informação(ões) faltando" e a lista do que marcar na emissão; na reanálise em lote, selo "informações faltando".
 - **Cartão Pendentes (22/10)**: passa a somar as solicitações sem análise concluída (nova, vista ou em análise), igual ao número da aba, mais as reanálises vencidas.
+- **Resultados com nomes curtos (22/10)**: **Excluir** e **Em acompanhamento**, iguais na análise e na reanálise e em todos os lugares (tela, ficha: quadro Resultado, coluna e legenda; ticket; dashboard; reanálise em lote). Substitui "Mantida · em acompanhamento", "Excluir da garantia" e "Excluída da garantia". Só muda a exibição: regras e dados gravados são os mesmos.
