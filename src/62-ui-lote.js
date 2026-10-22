@@ -22,7 +22,7 @@ function renderLoteFila(){
   const wrap = $('#loteFila');
   if(!f.length && todos.length){ wrap.innerHTML = '<div class="corpo"><div class="vazio">Nenhum condomínio da fila encontrado para essa pesquisa.</div></div>'; renderLoteFora(); return; }
   if(!f.length){ wrap.innerHTML = '<div class="corpo"><div class="vazio">A fila está vazia. Conclua análises de implantação ou importe a planilha de controle em Configurações.</div></div>'; renderLoteFora(); return; }
-  wrap.innerHTML = `<table><thead><tr><th></th><th>Condomínio</th><th>Unidades</th><th>Última rodada</th><th>Prazo</th><th>Situação</th></tr></thead><tbody>${
+  wrap.innerHTML = `<table><thead><tr><th></th><th>Condomínio</th><th>Unidades</th><th>Última análise</th><th>Prazo</th><th>Situação</th></tr></thead><tbody>${
     f.map(i => { const emLote = S.lote.itens.find(x => x.fila && x.fila.chave === i.chave);
       return `<tr data-chave="${esc(i.chave)}"><td><input type="checkbox" data-sel="${esc(i.chave)}" ${S.lote.selecionados.has(i.chave)?'checked':''}></td>
       <td><button class="link" data-hist="${esc(i.chave)}" style="text-decoration:none;color:var(--ink)"><b>${esc(i.condominio.nome)}</b></button>${i.condominio.cnpj?`<div class="ajuda" style="margin:0">${esc(i.condominio.cnpj)}</div>`:''}</td>
@@ -38,7 +38,7 @@ function renderLoteFora(){
   const fora = foraDaFila().filter(casaBusca); const el = $('#loteFora');
   if(!fora.length){ el.innerHTML = ''; return; }
   el.innerHTML = `<details style="border-top:1px solid var(--linha)" ${S.lote.busca ? 'open' : ''}><summary style="cursor:pointer;padding:11px 18px;font-size:13px;color:var(--muted);font-weight:700">Fora do acompanhamento · ${fora.length} condomínio(s) com todas as unidades excluídas ou encerradas</summary>
-    <div class="tabela-wrap"><table><thead><tr><th>Condomínio</th><th>Unidades</th><th>Excluídas</th><th>Última rodada</th></tr></thead><tbody>${fora.map(i => `<tr><td><button class="link" data-hist="${esc(i.chave)}" style="text-decoration:none;color:var(--ink)"><b>${esc(i.condominio.nome)}</b></button></td><td>${i.unidades.length}</td><td>${i.unidades.filter(u=>u.resultado==='EXCLUIR').length}</td><td>${esc(i.rodada.protocolo||'carga inicial')} · ${fmtData(i.rodada.dataAnalise)}</td></tr>`).join('')}</tbody></table></div></details>`;
+    <div class="tabela-wrap"><table><thead><tr><th>Condomínio</th><th>Unidades</th><th>Excluídas</th><th>Última análise</th></tr></thead><tbody>${fora.map(i => `<tr><td><button class="link" data-hist="${esc(i.chave)}" style="text-decoration:none;color:var(--ink)"><b>${esc(i.condominio.nome)}</b></button></td><td>${i.unidades.length}</td><td>${i.unidades.filter(u=>u.resultado==='EXCLUIR').length}</td><td>${esc(i.rodada.protocolo||'carga inicial')} · ${fmtData(i.rodada.dataAnalise)}</td></tr>`).join('')}</tbody></table></div></details>`;
   el.querySelectorAll('[data-hist]').forEach(b => b.onclick = () => abrirCondominioModal(b.dataset.hist));
 }
 $('#loteBusca').addEventListener('input', e => { S.lote.busca = e.target.value; renderLoteFila(); });
@@ -123,11 +123,11 @@ function renderLoteAndamento(){
 }
 async function concluirItemLote(i){
   const it = S.lote.itens[i]; const r = it.rodada; const s = resumoRodada(r);
-  if(!(await confirmar(`Concluir a reanálise de ${r.condominio.nome}?\n${s.excluir} a excluir · ${s.rean + s.prev} mantida(s) em acompanhamento.\nDepois de concluída, a rodada não pode ser editada.`))) return;
+  if(!(await confirmar(`Concluir a reanálise de ${r.condominio.nome}?\n${s.excluir} a excluir · ${s.rean + s.prev} mantida(s) em acompanhamento.\nDepois de concluída, a análise não pode ser editada.`))) return;
   try{ await concluirRodada(r); await salvarEvidencias(r.id, { textos: it.textos, dev: it.dev }); if(S.lote.modalIdx === i){ S.lote.modalIdx = null; fecharModal(); } renderLote();
     // ficha só baixa sozinha quando há exclusão da garantia (para formalizar)
-    if(s.excluir){ toast('Rodada ' + r.protocolo + ' concluída. Baixando a ficha para formalizar a exclusão.', 5000); await baixarFichaPDF(r); }
-    else toast('Rodada ' + r.protocolo + ' concluída, sem exclusão. A ficha fica disponível em “Baixar ficha”.', 5000); }
+    if(s.excluir){ toast('Análise ' + r.protocolo + ' concluída. Baixando a ficha para formalizar a exclusão.', 5000); await baixarFichaPDF(r); }
+    else toast('Análise ' + r.protocolo + ' concluída, sem exclusão. A ficha fica disponível em “Baixar ficha”.', 5000); }
   catch(e){ toast(e.message || dbErr(e), 6000); }
 }
 /* revisão de um condomínio do lote, em modal com os cartões de unidade */

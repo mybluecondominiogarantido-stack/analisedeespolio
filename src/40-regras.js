@@ -47,7 +47,7 @@ function classificar(u, ctx, vouch, ant){
     if(vouch >= 3) return { r:'EXCLUIR', regra:'Acompanhamento', motivo:`Reanálise — segue inadimplente no Vouch (${vouch} taxas); removida da garantia.` };
     return { r:'REANÁLISE', regra:'Acompanhamento', motivo: vouch > 0
       ? `Reanálise — ${vouch} taxa(s) no Vouch (abaixo de 3); permanece em acompanhamento (revisar em ~3 meses).`
-      : 'Reanálise — sem cobrança no Vouch nesta rodada; permanece em acompanhamento (revisar em ~3 meses).' };
+      : 'Reanálise — sem cobrança no Vouch nesta reanálise; permanece em acompanhamento (revisar em ~3 meses).' };
   }
 
   if(ant === null)
@@ -107,4 +107,4 @@ const TEXTO_REGRAS = `
 <p><b>Reanálise (acompanhamento).</b> Só o Vouch entra: <b>3 ou mais</b> taxas em aberto → Excluir; abaixo de 3 → continua Mantida · em acompanhamento.</p>
 <p><b>Item 5.5</b> — faltando insumo, a unidade fica mantida em acompanhamento e a pendência é registrada, sem inferência. Relatório lido sem casamento = sem cobrança (0).</p>
 <p>Toda linha de taxa conta igual (arrecadação, rateio, parcela de acordo). Marcadores como "Jurídico" ficam só como informação na evidência.</p>
-<p>Saída do acompanhamento: exclusão da garantia ou troca de titularidade concluída. Regra de saída por tempo ou por rodadas zeradas: pendente de definição.</p>`;
+<p>Saída do acompanhamento: exclusão da garantia ou troca de titularidade concluída. Regra de saída por tempo ou por reanálises zeradas: pendente de definição.</p>`;

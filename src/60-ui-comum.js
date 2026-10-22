@@ -50,8 +50,9 @@ function renderTudo(){
 function renderBadges(){
   const f = fila(); const venc = f.filter(i => i.vencida).length;
   const nf = $('#nFila'); nf.hidden = !f.length; nf.textContent = venc ? `${venc} vencida${venc>1?'s':''}` : `${f.length}`; nf.classList.toggle('alerta', venc > 0);
-  const novas = solicitacoesNovas().length;
-  const ns = $('#nSol'); ns.hidden = !novas; ns.textContent = `${novas} nova${novas>1?'s':''}`; ns.classList.add('alerta');
+  const abertas = solicitacoesEmAberto().length, novas = solicitacoesNovas().length;
+  const ns = $('#nSol'); ns.hidden = !abertas; ns.textContent = novas ? `${abertas} · ${novas} nova${novas>1?'s':''}` : `${abertas}`; ns.classList.toggle('alerta', novas > 0);
+  ns.title = `${abertas} solicitação(ões) aguardando análise` + (novas ? `, ${novas} ainda não aberta(s)` : '');
 }
 function renderListaCondominios(){
   const nomes = new Set();
@@ -112,7 +113,8 @@ function cardUnidade(u, r, dev, rid, opts){
 }
 
 /* relatório só conta como lido se alguma unidade foi reconhecida nele: um formato desconhecido não pode virar "sem débito" (vale a pendência 5.5) */
-const relatoriosLidos = () => ({ vouch: !!S.textos.vouch.trim() && (S.dev.vouch || []).length > 0, ant: !!S.textos.ant.trim() && (S.dev.ant || []).length > 0 });
+/* "Ainda não há inadimplência no Vouch" (implantação/avulso) conta como Vouch lido sem débito */
+const relatoriosLidos = () => ({ vouch: (!!S.textos.vouch.trim() && (S.dev.vouch || []).length > 0) || !!(S.rodada && S.rodada.semVouch && S.rodada.tipo !== 'acompanhamento' && !S.textos.vouch.trim()), ant: !!S.textos.ant.trim() && (S.dev.ant || []).length > 0 });
 /* localiza a rodada de um cartão pelo rid: 'nova' = editor; 'lote:i' = item do lote */
 function rodadaPorRid(rid){
   if(rid === 'nova') return { r: S.rodada, dev: S.dev, lidos: relatoriosLidos(), apos: () => renderEditorUnidades(true) };
@@ -138,7 +140,7 @@ async function eventoCartao(e, tipo){
   if(tipo === 'change' && t.dataset.campo === 'override'){ u.override = t.value; recalc = true; }
   if(tipo === 'change' && t.dataset.prova){ const b = ctx.dev[t.dataset.prova][u.esc[t.dataset.prova]]; if(b){ b.cobrancas[+t.dataset.idx].incluir = t.checked; u.manual[t.dataset.prova] = null; recalc = true; } }
   if(tipo === 'click' && t.dataset.acao){
-    if(t.dataset.acao === 'remover'){ if(!(await confirmar('Remover esta unidade da rodada?'))) return; ctx.r.unidades = ctx.r.unidades.filter(x => x.id !== u.id); recalc = true; }
+    if(t.dataset.acao === 'remover'){ if(!(await confirmar('Remover esta unidade da análise?'))) return; ctx.r.unidades = ctx.r.unidades.filter(x => x.id !== u.id); recalc = true; }
     if(t.dataset.acao === 'encerrar'){ const motivo = window.prompt('Motivo do encerramento (ex.: troca de titularidade concluída em dd/mm/aaaa):', 'Troca de titularidade concluída'); if(motivo === null) return; u.situacao = 'encerrada'; u.encerramento = { motivo, data: hojeISO(), por: ME.name }; recalc = true; }
     if(t.dataset.acao === 'reabrir'){ u.situacao = 'ativa'; u.encerramento = null; recalc = true; }
   }

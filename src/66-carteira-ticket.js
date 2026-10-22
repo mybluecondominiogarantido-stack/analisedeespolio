@@ -49,7 +49,7 @@ function abrirTicketModal(r, sol){
     <div class="grade" style="margin-bottom:12px">
       <div><label>Para</label><input type="text" id="tkResp" class="campo" value="${esc(resp.nome)}" placeholder="nome da responsável"><p class="ajuda">${resp.nome ? esc(resp.papel) + '. ' : 'Sem assistente de crédito na carteira. '}Se a pessoa não tiver login no portal, o ticket fica na fila do setor.</p></div>
       <div><label>Setor</label><input type="text" id="tkSetor" class="campo" value="${esc(resp.setor)}"></div>
-      <div><label>Prioridade</label><select id="tkPrio" class="campo"><option value="baixa">Baixa</option><option value="media" selected>Média</option><option value="alta">Alta</option></select></div>
+      <div><label>Prioridade</label><select id="tkPrio" class="campo"><option value="baixa">Baixa</option><option value="media">Média</option><option value="alta" selected>Alta</option></select></div>
     </div>
     <div><label>Título</label><input type="text" id="tkTitulo" class="campo" value="${esc('Análise de espólio ' + r.protocolo + ' · ' + r.condominio.nome)}"></div>
     <div style="margin-top:10px"><label>Descrição</label><textarea id="tkTexto" style="min-height:180px;font-family:var(--font);font-size:13px">${esc(texto)}</textarea></div>

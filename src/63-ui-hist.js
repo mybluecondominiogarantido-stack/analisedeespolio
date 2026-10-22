@@ -12,7 +12,7 @@ function foraDaFila(){
 }
 
 function evolucaoHTML(rods){
-  if(!rods.length) return '<div class="vazio">Sem rodadas concluídas.</div>';
+  if(!rods.length) return '<div class="vazio">Sem análises concluídas.</div>';
   const chaveU = u => soDigitos(u.cpf) || (normUnid(u.unid) + '|' + normNome(u.titular));
   const unidades = new Map();
   rods.forEach(r => (r.unidades||[]).forEach(u => { const k = chaveU(u); if(!unidades.has(k)) unidades.set(k, { unid: u.unid, titular: u.titular, por: {} }); unidades.get(k).por[r.id] = u; if(u.titular) unidades.get(k).titular = u.titular; if(u.unid) unidades.get(k).unid = u.unid; }));
@@ -28,12 +28,12 @@ function abrirCondominioModal(chave){
   const emFila = fila().find(i => i.chave === chave);
   const html = `
     <p class="ajuda" style="margin:0 0 12px">${emFila ? `Em acompanhamento · ${emFila.unidades.length} unidade(s) ativa(s) · próxima reanálise ${fmtData(emFila.prazo)}${emFila.vencida ? ' <b style="color:var(--red)">(vencida)</b>' : ''}` : 'Fora do acompanhamento: todas as unidades foram excluídas ou encerradas.'}</p>
-    <div class="card"><header><h2>Rodadas</h2><span class="dica">${rods.length} no total · clique para ver a ficha</span></header>
+    <div class="card"><header><h2>Análises</h2><span class="dica">${rods.length} no total · clique para ver a ficha</span></header>
       <div class="tabela-wrap"><table><thead><tr><th>Protocolo</th><th>Tipo</th><th>Data</th><th>Sinalizados</th><th>Excluídos</th><th>Status</th><th>Próxima reanálise</th><th></th></tr></thead><tbody>${
         rods.slice().reverse().map(r => { const s = r.resumo || resumoRodada(r); return `<tr class="clic" data-ver="${r.id}"><td><b>${esc(r.protocolo || '—')}</b></td><td>${tipoRodadaTxt(r)}</td><td>${fmtData(r.dataAnalise)}</td><td>${s.total}</td><td>${s.excluir}</td>
           <td><span class="selo ${r.status==='concluida'?'s-ok':'s-rasc'}">${r.status==='concluida'?'Concluída':'Rascunho'}</span></td><td>${r.status==='concluida' ? fmtData(r.proximaReanalise) : '—'}</td>
           <td class="acoes">${r.status==='concluida' ? `<button class="btn sec mini" data-baixar="${r.id}">Baixar ficha</button>` : `<button class="btn sec mini" data-continuar="${r.id}">Continuar</button>`}</td></tr>`; }).join('')}</tbody></table></div></div>
-    <div class="card"><header><h2>Evolução das unidades</h2><span class="dica">resultado e taxas no Vouch, rodada a rodada</span></header><div class="corpo">${evolucaoHTML(concluidas)}</div></div>`;
+    <div class="card"><header><h2>Evolução das unidades</h2><span class="dica">resultado e taxas no Vouch, análise a análise</span></header><div class="corpo">${evolucaoHTML(concluidas)}</div></div>`;
   const acoes = emFila ? `<button class="btn mini" id="mReanalisarCond">Nova reanálise</button>` : '';
   const m = abrirModal(nome, html, acoes);
   m.querySelectorAll('[data-ver]').forEach(tr => tr.addEventListener('click', e => { if(e.target.closest('button')) return; const r = rods.find(x => x.id === tr.dataset.ver); abrirRodadaModal(r, () => abrirCondominioModal(chave)); }));

@@ -24,7 +24,7 @@ function renderDashboard(){
   const porCond = new Map();
   conc.filter(r => r.dataAnalise.startsWith(ano)).forEach(r => { const k = r.condominio.chave; const e = porCond.get(k) || { nome: r.condominio.nome, sin: 0, exc: 0, rod: 0 }; e.rod++; e.sin += (r.unidades||[]).length; e.exc += n(r.unidades||[], 'EXCLUIR'); porCond.set(k, e); });
   const topExc = [...porCond.values()].sort((a,b) => b.exc - a.exc || b.sin - a.sin).slice(0, 8);
-  $('#dashExclusoes').innerHTML = topExc.length ? `<table><thead><tr><th>Condomínio</th><th>Sinalizados</th><th>Excluídos</th><th>Rodadas</th></tr></thead><tbody>${topExc.map(e => `<tr><td>${esc(e.nome)}</td><td>${e.sin}</td><td><b>${e.exc}</b></td><td>${e.rod}</td></tr>`).join('')}</tbody></table>` : '<div class="corpo"><div class="vazio">Sem rodadas concluídas em ' + ano + '.</div></div>';
+  $('#dashExclusoes').innerHTML = topExc.length ? `<table><thead><tr><th>Condomínio</th><th>Sinalizados</th><th>Excluídos</th><th>Análises</th></tr></thead><tbody>${topExc.map(e => `<tr><td>${esc(e.nome)}</td><td>${e.sin}</td><td><b>${e.exc}</b></td><td>${e.rod}</td></tr>`).join('')}</tbody></table>` : '<div class="corpo"><div class="vazio">Sem análises concluídas em ' + ano + '.</div></div>';
   if(!$('#resumoMes').value) $('#resumoMes').value = mes;
 }
 function renderGraficoMensal(conc){
@@ -52,9 +52,9 @@ $('#btnResumo').onclick = () => {
   const f = fila(); const venc = f.filter(i => i.vencida);
   const n = x => us.filter(u => u.resultado === x).length;
   const html = `<div class="ficha" id="resumoFicha" style="padding:20px 24px"><div class="f-titulo" style="font-size:20px">Resumo mensal · Análise de Espólio · ${MESES_FULL[+mes.slice(5)-1]}/${mes.slice(0,4)}</div><div class="f-sub">Cobrança / Coordenação · gerado em ${fmtData(hojeISO())}</div>
-    <div class="f-secao">Rodadas concluídas no mês</div>
-    <table class="f-tab"><thead><tr><th>Protocolo</th><th>Condomínio</th><th>Tipo</th><th>Data</th><th>Sinalizados</th><th>Excluídos</th><th>Mantidas</th></tr></thead><tbody>${conc.length ? conc.map(r => { const s = r.resumo || resumoRodada(r); return `<tr><td>${esc(r.protocolo)}</td><td>${esc(r.condominio.nome)}</td><td>${tipoRodadaTxt(r)}</td><td>${fmtData(r.dataAnalise)}</td><td>${s.total}</td><td>${s.excluir}</td><td>${s.prev+s.rean}</td></tr>`; }).join('') : '<tr><td colspan="7" style="text-align:center">Nenhuma rodada concluída no mês.</td></tr>'}</tbody></table>
-    <div class="f-caixas" style="grid-template-columns:repeat(4,1fr)"><div class="f-caixa"><h4>Rodadas</h4><p>${conc.length}</p></div><div class="f-caixa cx-EXCLUIR"><h4>Excluídos</h4><p>${n('EXCLUIR')}</p></div><div class="f-caixa"><h4>Mantidas em acompanhamento</h4><p>${n('PREVENTIVO')+n('REANÁLISE')}</p></div><div class="f-caixa cx-REAN"><h4>Fila vencida hoje</h4><p>${venc.length} condomínio(s)</p></div></div>
+    <div class="f-secao">Análises concluídas no mês</div>
+    <table class="f-tab"><thead><tr><th>Protocolo</th><th>Condomínio</th><th>Tipo</th><th>Data</th><th>Sinalizados</th><th>Excluídos</th><th>Mantidas</th></tr></thead><tbody>${conc.length ? conc.map(r => { const s = r.resumo || resumoRodada(r); return `<tr><td>${esc(r.protocolo)}</td><td>${esc(r.condominio.nome)}</td><td>${tipoRodadaTxt(r)}</td><td>${fmtData(r.dataAnalise)}</td><td>${s.total}</td><td>${s.excluir}</td><td>${s.prev+s.rean}</td></tr>`; }).join('') : '<tr><td colspan="7" style="text-align:center">Nenhuma análise concluída no mês.</td></tr>'}</tbody></table>
+    <div class="f-caixas" style="grid-template-columns:repeat(4,1fr)"><div class="f-caixa"><h4>Análises</h4><p>${conc.length}</p></div><div class="f-caixa cx-EXCLUIR"><h4>Excluídos</h4><p>${n('EXCLUIR')}</p></div><div class="f-caixa"><h4>Mantidas em acompanhamento</h4><p>${n('PREVENTIVO')+n('REANÁLISE')}</p></div><div class="f-caixa cx-REAN"><h4>Fila vencida hoje</h4><p>${venc.length} condomínio(s)</p></div></div>
     ${venc.length ? `<div class="f-secao">Reanálises vencidas</div><p>${venc.map(i => `${esc(i.condominio.nome)} (desde ${fmtData(i.prazo)})`).join('; ')}</p>` : ''}</div>
     <div class="acoes" style="margin-top:10px"><button class="btn sec mini" id="btnResumoPdf">Baixar resumo em PDF</button></div>`;
   $('#resumoMensal').innerHTML = html;

@@ -7,13 +7,13 @@
 --
 -- Quem pode abrir: só quem tem o papel de gestão no módulo (perfis/mb-<id> com "gestao"),
 -- conferido pelo atualizado_por que o próprio portal grava.
--- Setor: pelo nome (padrão "Crédito"). Categoria: "Análise de Espólio" do setor, se existir. Sem prazo.
+-- Setor: pelo nome (padrão "Crédito"). Categoria: "Análise de Espólio" do setor, se existir. Sem prazo. Prioridade padrão: alta.
 -- Responsável: usuário ativo do portal com o mesmo nome do campo "Para"; sem login, fica na fila do setor
 -- e o aviso vai para a liderança do setor (mesmo comportamento do portal no ticket sem responsável).
 
 -- 1) categoria "Análise de Espólio" no setor Crédito
 INSERT INTO public.ticket_categorias (setor_id, nome, prioridade, ativo)
-SELECT s.id, 'Análise de Espólio', 'media', true FROM public.setores s
+SELECT s.id, 'Análise de Espólio', 'alta', true FROM public.setores s
 WHERE s.nome = 'Crédito'
   AND NOT EXISTS (SELECT 1 FROM public.ticket_categorias c WHERE c.setor_id = s.id AND lower(c.nome) = lower('Análise de Espólio'));
 
@@ -53,7 +53,7 @@ BEGIN
     IF length(v_cnpj) = 14 THEN
       SELECT c.id INTO v_cond FROM public.condominios c WHERE regexp_replace(coalesce(c.cnpj, ''), '\D', '', 'g') = v_cnpj LIMIT 1;
     END IF;
-    v_prio   := CASE WHEN d->>'prioridade' IN ('baixa', 'media', 'alta', 'urgente') THEN d->>'prioridade' ELSE 'media' END;
+    v_prio   := CASE WHEN d->>'prioridade' IN ('baixa', 'media', 'alta', 'urgente') THEN d->>'prioridade' ELSE 'alta' END;
     v_titulo := left(coalesce(nullif(trim(d->>'titulo'), ''), 'Análise de espólio'), 300);
     SELECT u.nome INTO v_nome FROM public.usuarios u WHERE u.id = autor;
 

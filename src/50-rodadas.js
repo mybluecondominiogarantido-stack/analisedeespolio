@@ -1,7 +1,7 @@
 /* ======================================================================
    Estado, assinaturas e operações sobre rodadas
    Rodada: { id, protocolo, tipo, origem, condominio:{nome,cnpj,chave}, dataAnalise, analista, idadeGarantia,
-             bi:{valor,sinal}|null, semAnterior, semBi, nota, status:'rascunho'|'concluida',
+             bi:{valor,sinal}|null, semAnterior, semBi, semVouch, nota, status:'rascunho'|'concluida',
              vouch:{corte, emissao, totalTaxas, totalUnidades, lidas, conferido}|null,
              unidades:[{id, unid, titular, cpf, obs, override, motivoAjuste, manual:{vouch,ant}, esc:{vouch,ant},
                         cas:{vouch:{nome,unid,modo}|null, ant:…}, vouch:n|null, ant:n|null, resultado, regra, motivo,
@@ -46,6 +46,8 @@ function assinarBase(){
      solicitanteId, solicitanteNome, criadaEm, status:'nova'|'vista'|'em_analise'|'concluida'|'devolvida', vistaEm, rodadaId, protocolo,
      resultado:[{unid,titular,resultado,regra}], motivoDevolucao, concluidaEm } */
 const solicitacoesNovas = () => S.solicitacoes.filter(x => x.status === 'nova');
+/* ainda sem análise concluída: nova, vista ou em análise (o número da aba só some quando a análise é concluída ou a solicitação devolvida) */
+const solicitacoesEmAberto = () => S.solicitacoes.filter(x => ['nova', 'vista', 'em_analise'].includes(x.status));
 const minhasSolicitacoes = () => S.solicitacoes.filter(x => String(x.solicitanteId) === String(ME.id)).sort((a,b) => (b.criadaEm||'').localeCompare(a.criadaEm||''));
 /* o protocolo nasce na solicitação e acompanha a análise até a ficha (excluídas e devolvidas deixam o número sem uso) */
 async function criarSolicitacao(dados){
@@ -150,7 +152,7 @@ function novaUnidade(unid, titular, cpf){
 }
 function novaRodada(tipo, cond){
   return { protocolo: '', tipo: tipo || 'implantacao', origem: 'modulo', condominio: cond || { nome:'', cnpj:'', chave:'' },
-           dataAnalise: hojeISO(), analista:'', idadeGarantia: null, bi: null, semAnterior: false, semBi: false, nota:'',
+           dataAnalise: hojeISO(), analista:'', idadeGarantia: null, bi: null, semAnterior: false, semBi: false, semVouch: false, nota:'',
            status:'rascunho', vouch: null, unidades: [], anterior: null, proximaReanalise: null, criadaEm: nowISO(), criadoPor: ME.id, criadoPorNome: ME.name, concluidaEm: null };
 }
 function contextoDe(r){

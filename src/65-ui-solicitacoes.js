@@ -88,7 +88,7 @@ function htmlSolGestao(){
   else if(filtro !== 'todas') lista = lista.filter(x => x.status === filtro);
   const novas = solicitacoesNovas().length;
   return `<div class="filtros"><span class="pill">Novas <b>${novas}</b></span><select id="solFiltro" class="campo"><option value="abertas" ${filtro==='abertas'?'selected':''}>Abertas</option><option value="nova" ${filtro==='nova'?'selected':''}>Novas</option><option value="em_analise" ${filtro==='em_analise'?'selected':''}>Em análise</option><option value="concluida" ${filtro==='concluida'?'selected':''}>Concluídas</option><option value="devolvida" ${filtro==='devolvida'?'selected':''}>Devolvidas</option><option value="todas" ${filtro==='todas'?'selected':''}>Todas</option></select><span style="flex:1"></span><button class="btn mini" id="btnRegistrarSol" ${!CAN_WRITE?'disabled':''}>Registrar solicitação</button></div>
-    ${htmlListaSolicitacoes(lista, 'Solicitações recebidas', 'clique para abrir · "Iniciar análise" cria a rodada já preenchida', 'gestao')}`;
+    ${htmlListaSolicitacoes(lista, 'Solicitações recebidas', 'clique para abrir · "Iniciar análise" abre a análise já preenchida', 'gestao')}`;
 }
 
 /* ---------- eventos ---------- */
@@ -197,7 +197,7 @@ function abrirSolicitacaoModal(x){
   if(gestao){
     if(x.status !== 'concluida' && !(rod && rod.status === 'concluida')) acoes += `<button class="btn perigo mini" id="mSolExcluir">Excluir</button>`;
     if(['nova','vista','devolvida'].includes(x.status)) acoes += `<button class="btn sec mini" id="mSolDevolver">Devolver</button><button class="btn mini" id="mSolIniciar">Iniciar análise</button>`;
-    if(x.status === 'em_analise' && rod) acoes += `<button class="btn mini" id="mSolAbrirRodada">Abrir rodada</button>`;
+    if(x.status === 'em_analise' && rod) acoes += `<button class="btn mini" id="mSolAbrirRodada">Abrir análise</button>`;
     if(x.status === 'concluida' && rod) acoes += `<button class="btn sec mini" id="mSolTicket">Abrir ticket</button>`;
   }
   abrirModal(`Solicitação · ${x.condominio.nome}`, html, acoes);

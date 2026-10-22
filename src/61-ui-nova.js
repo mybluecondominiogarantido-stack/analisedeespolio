@@ -9,7 +9,7 @@ async function abrirEditor(r){
   S.rodada = r; S.dev = { vouch: [], ant: [] }; S.textos = { vouch:'', ant:'', email:'' };
   if(r.id){ try{ const ev = await carregarEvidencias(r.id); if(ev){ S.textos = { vouch:'', ant:'', email:'', ...(ev.textos||{}) }; S.dev = { vouch: [], ant: [], ...(ev.dev||{}) }; } }catch(_){} }
   $$('#docsGrade input[type=file]').forEach(i => i.value = '');
-  ['docVouch','docAnt','docEmail'].forEach(id => { const d = $('#'+id); d.classList.remove('ok','erro'); });
+  ['docVouch','docAnt'].forEach(id => { const d = $('#'+id); d.classList.remove('ok','erro'); });
   mostrarAba('nova'); renderNovaLista(); renderEditor();
 }
 function fecharEditor(){ S.rodada = null; renderNovaLista(); renderBadges(); mostrarAba(S.abaAnterior && S.abaAnterior !== 'nova' ? S.abaAnterior : 'sol'); }
@@ -24,23 +24,34 @@ function renderEditor(){
   $('#tipoRotulo').textContent = r.tipo === 'acompanhamento' ? 'Acompanhamento · reanálise' : r.tipo === 'avulso' ? 'Avulso · sinalização da Cobrança' : 'Implantação · 1ª análise';
   $('#tipoRotulo').className = 'selo ' + (r.tipo === 'acompanhamento' ? 's-rean' : 's-prev');
   $('#tipoAjuda').textContent = r.tipo === 'acompanhamento' ? 'Acompanhamento: reanálise, só o Vouch entra (3+ taxas exclui; abaixo disso, mantida).' : r.tipo === 'avulso' ? 'Avulso: condomínio já em carteira, regras 1 a 5; sem relatório anterior por padrão.' : 'Implantação: 1ª análise, regras 1 a 5.';
-  $('#semAnterior').checked = !!r.semAnterior; $('#semBi').checked = !!r.semBi;
-  $('#relVouch').value = S.textos.vouch; $('#relAdmin').value = S.textos.ant; $('#relEmail').value = S.textos.email;
+  $('#semAnterior').checked = !!r.semAnterior; $('#semBi').checked = !!r.semBi; $('#semVouch').checked = !!r.semVouch;
+  $('#relVouch').value = S.textos.vouch; $('#relAdmin').value = S.textos.ant;
   $('#sinal').value = '';
   $('#textoRegras').innerHTML = TEXTO_REGRAS;
   const acomp = r.tipo === 'acompanhamento';
-  $('#docAnt').style.display = acomp ? 'none' : ''; $('#docEmail').style.display = acomp ? 'none' : ''; $('#docBi').style.display = acomp ? 'none' : '';
-  $('#dicaDocs').textContent = acomp ? 'Anexe só o PDF do Vouch — as unidades vêm da rodada anterior' : 'Anexe os PDFs — os campos preenchem sozinhos';
-  ['docVouch','docAnt','docEmail'].forEach((id, i) => { const t = [S.textos.vouch, S.textos.ant, S.textos.email][i]; $('#'+id).classList.toggle('ok', !!t.trim()); });
+  $('#itemAnt').style.display = acomp ? 'none' : ''; $('#itemBi').style.display = acomp ? 'none' : ''; $('#dispVouch').style.display = acomp ? 'none' : '';
+  $('#dicaDocs').textContent = acomp ? 'Anexe o PDF do Vouch — as unidades vêm da análise anterior' : 'Anexe os relatórios ou marque quando o condomínio não tiver · os campos preenchem sozinhos';
+  ['docVouch','docAnt'].forEach((id, i) => { const t = [S.textos.vouch, S.textos.ant][i]; $('#'+id).classList.toggle('ok', !!t.trim()); });
   renderDocBi();
   recalcular(r, S.dev, relatoriosLidos());
   renderDiagnostico(); renderEditorUnidades(); renderEditorResumo(); renderFichaPreview(); renderSteps();
 }
+/* documentos obrigatórios: Vouch, relatório anterior e BI (na reanálise, só o Vouch); cada um pode ser dispensado pela caixa de marcação */
+function documentosFaltando(r){
+  const acomp = r.tipo === 'acompanhamento', f = [];
+  if(!S.textos.vouch.trim() && !(r.semVouch && !acomp)) f.push({ id: 'docVouch', nome: 'Inadimplência MyBlue (Vouch)' });
+  if(!acomp && !S.textos.ant.trim() && !r.semAnterior) f.push({ id: 'docAnt', nome: 'Inadimplência anterior' });
+  if(!acomp && !r.semBi && !(r.bi && r.bi.valor !== null && r.bi.valor !== undefined && r.bi.valor !== '')) f.push({ id: 'docBi', nome: 'Resultado do Power BI' });
+  return f;
+}
 function renderSteps(){
   const r = S.rodada; if(!r) return;
-  const feitos = [!!(S.textos.vouch.trim() || S.textos.ant.trim() || S.textos.email.trim()), !!r.condominio.nome, r.unidades.length > 0, false];
+  const faltando = documentosFaltando(r);
+  ['docVouch','docAnt','docBi'].forEach(id => { const d = $('#'+id); d.classList.toggle('falta', faltando.some(x => x.id === id) && r.status !== 'concluida');
+    d.classList.toggle('dispensado', (id === 'docVouch' && r.semVouch && !S.textos.vouch.trim()) || (id === 'docAnt' && r.semAnterior && !S.textos.ant.trim()) || (id === 'docBi' && r.semBi)); });
+  const feitos = [!faltando.length, !!r.condominio.nome, r.unidades.length > 0 && !r.unidades.some(u => u.pendente && !u.override)];
   const atual = feitos.findIndex(f => !f);
-  [1,2,3,4].forEach(n => { const s = $('#step'+n); s.classList.toggle('feito', feitos[n-1]); s.classList.toggle('atual', n-1 === (atual < 0 ? 3 : atual)); s.querySelector('.bola').textContent = feitos[n-1] ? '✓' : n; });
+  [1,2,3].forEach(n => { const s = $('#step'+n); s.classList.toggle('feito', feitos[n-1]); s.classList.toggle('atual', n-1 === (atual < 0 ? 2 : atual)); s.querySelector('.bola').textContent = feitos[n-1] ? '✓' : n; });
 }
 function renderEditorResumo(){
   const r = S.rodada; if(!r) return;
@@ -65,13 +76,15 @@ function renderEditorResumo(){
     $('#btnSalvarRasc').onclick = async () => { try{ await salvarRodada(r); await salvarEvidencias(r.id, { textos: S.textos, dev: S.dev }); toast('Rascunho salvo.'); }catch(e){ toast(dbErr(e), 5000); } };
     $('#btnConcluir').onclick = async () => {
       try{
+        const falta = documentosFaltando(r);
+        if(falta.length){ renderSteps(); toast('Falta documento obrigatório: ' + falta.map(x => x.nome).join(', ') + '. Anexe ou marque que o condomínio não tem.', 7000); return; }
         const s2 = resumoRodada(r);
-        if(!(await confirmar(`Concluir a análise de ${r.condominio.nome}?\n${s2.excluir} a excluir · ${s2.prev + s2.rean} mantida(s) em acompanhamento.\nDepois de concluída, a rodada não pode ser editada.`))) return;
+        if(!(await confirmar(`Concluir a análise de ${r.condominio.nome}?\n${s2.excluir} a excluir · ${s2.prev + s2.rean} mantida(s) em acompanhamento.\nDepois de concluída, a análise não pode ser editada.`))) return;
         await concluirRodada(r); await salvarEvidencias(r.id, { textos: S.textos, dev: S.dev });
         renderEditor();
         // a ficha só é necessária para formalizar exclusão da garantia; sem exclusão, fica disponível em "Baixar ficha"
-        if(s2.excluir){ toast('Rodada ' + r.protocolo + ' concluída. Baixando a ficha para formalizar a exclusão.', 5000); await baixarFichaPDF(r); }
-        else toast('Rodada ' + r.protocolo + ' concluída, sem exclusão. A ficha fica disponível em “Baixar ficha” se precisar.', 6000);
+        if(s2.excluir){ toast('Análise ' + r.protocolo + ' concluída. Baixando a ficha para formalizar a exclusão.', 5000); await baixarFichaPDF(r); }
+        else toast('Análise ' + r.protocolo + ' concluída, sem exclusão. A ficha fica disponível em “Baixar ficha” se precisar.', 6000);
         if(window.claude && !DB._local && await confirmar('Abrir o ticket para quem guarda a ficha na pasta?')) abrirTicketModal(r, r.solicitacaoId ? S.solicitacoes.find(x => x.id === r.solicitacaoId) : null);
       }catch(e){ toast(e.message || dbErr(e), 6000); }
     };
@@ -81,7 +94,8 @@ function renderEditorUnidades(preservarAberto){
   const r = S.rodada; if(!r) return;
   const abertos = preservarAberto ? new Set($$('#unidadesWrap details[open]').map(d => d.dataset.uid)) : new Set();
   const wrap = $('#unidadesWrap');
-  if(!r.unidades.length){ wrap.innerHTML = '<div class="vazio">Cadastre os espólios sinalizados no bloco 3.</div>'; renderSteps(); return; }
+  $('#addEspolios').open = !r.unidades.length && r.status !== 'concluida'; $('#addEspolios').style.display = r.status === 'concluida' ? 'none' : '';
+  if(!r.unidades.length){ wrap.innerHTML = '<div class="vazio">Nenhum espólio ainda. Use “Adicionar espólios” logo abaixo.</div>'; renderSteps(); return; }
   wrap.innerHTML = r.unidades.map(u => cardUnidade(u, r, S.dev, 'nova', { aberto: abertos.has(u.id), destaque: u.pendente || u.completar || (u.cas.vouch && u.cas.vouch.modo === 'nome') })).join('');
   const pend = r.unidades.filter(u => u.pendente && !u.override).length;
   if(pend && r.status !== 'concluida') wrap.insertAdjacentHTML('beforeend', `<div class="aviso">${pend} pendência(s) da regra 5.5 impedem a conclusão. Anexe o insumo que falta ou faça o ajuste manual com motivo.</div>`);
@@ -133,8 +147,8 @@ function aplicarBaseBi(){
 /* aplica a extração conforme a origem do documento */
 function processarTexto(origem, txt, nomeArquivo){
   const r = S.rodada; if(!r) return;
-  const st = { vouch: $('#docVouch'), ant: $('#docAnt'), email: $('#docEmail') }[origem];
-  const span = st.querySelector('span');
+  const st = { vouch: $('#docVouch'), ant: $('#docAnt') }[origem];
+  const span = st ? st.querySelector('span') : document.createElement('span');
   if(origem === 'vouch'){
     S.textos.vouch = txt;
     if(ehRelatorioVouch(txt)){
@@ -168,8 +182,8 @@ function processarTexto(origem, txt, nomeArquivo){
     }
     span.textContent = `${e.espolios.length} espólio(s)${e.remetente ? ' · analista: ' + e.remetente : ''}`;
   }
-  st.classList.add('ok');
-  $('#relVouch').value = S.textos.vouch; $('#relAdmin').value = S.textos.ant; $('#relEmail').value = S.textos.email;
+  if(st) st.classList.add('ok');
+  $('#relVouch').value = S.textos.vouch; $('#relAdmin').value = S.textos.ant;
   recalcular(r, S.dev, relatoriosLidos());
   renderDiagnostico(); renderEditorUnidades(true); renderFichaPreview(); renderSteps(); agendarSalvar('nova');
 }
@@ -180,6 +194,9 @@ $('#docsGrade').addEventListener('change', async e => {
   const origem = inp.dataset.doc;
   if(origem === 'bi'){ await subirBaseBi(f); aplicarBaseBi(); renderFichaPreview(); return; }
   const span = inp.parentElement.querySelector('span'); span.textContent = 'Lendo ' + f.name + '…';
+  /* anexou o relatório: desmarca o "não há" do mesmo documento */
+  const disp = { vouch: ['semVouch', '#semVouch'], ant: ['semAnterior', '#semAnterior'] }[origem];
+  if(disp && S.rodada && S.rodada[disp[0]]){ S.rodada[disp[0]] = false; $(disp[1]).checked = false; }
   try{
     if(origem === 'ant' && /\.(xlsx|xls|csv)$/i.test(f.name)){
       const pl = await lerPlanilhaAnterior(f); processarTexto('ant', pl.texto, f.name);
@@ -217,9 +234,9 @@ ligarCampo('#bi', (v, r) => { r.bi = v === '' ? null : { valor: +String(v).repla
 ligarCampo('#dataAnalise', (v, r) => { r.dataAnalise = v || hojeISO(); });
 ligarCampo('#nota', (v, r) => { r.nota = v; });
 $('#sinalBi').addEventListener('click', e => { const b = e.target.closest('button[data-sinal]'); if(!b || !S.rodada) return; $$('#sinalBi button').forEach(x => x.classList.toggle('ativo', x === b)); const r = S.rodada; if(r.bi) r.bi.sinal = b.dataset.sinal; delete r.biAuto; delete $('#bi').dataset.auto; recalcular(r, S.dev, relatoriosLidos()); renderEditorUnidades(true); renderFichaPreview(); agendarSalvar('nova'); });
-['#semAnterior','#semBi'].forEach(id => $(id).addEventListener('change', e => { if(!S.rodada) return; S.rodada[id === '#semAnterior' ? 'semAnterior' : 'semBi'] = e.target.checked; recalcular(S.rodada, S.dev, relatoriosLidos()); renderEditorUnidades(true); renderFichaPreview(); agendarSalvar('nova'); }));
+['#semAnterior','#semBi','#semVouch'].forEach(id => $(id).addEventListener('change', e => { if(!S.rodada) return; S.rodada[id.slice(1)] = e.target.checked; recalcular(S.rodada, S.dev, relatoriosLidos()); renderEditorUnidades(true); renderFichaPreview(); renderSteps(); agendarSalvar('nova'); }));
 
-/* bloco 3 */
+/* bloco 3: espólios */
 $('#btnSinal').onclick = () => {
   const r = S.rodada; if(!r) return;
   const novas = lerSinalizacao($('#sinal').value);
@@ -234,7 +251,6 @@ $('#btnReprocessar').onclick = () => {
   const r = S.rodada; if(!r) return;
   if($('#relVouch').value.trim()) processarTexto('vouch', $('#relVouch').value, r.vouch && r.vouch.arquivo);
   if($('#relAdmin').value.trim()) processarTexto('ant', $('#relAdmin').value);
-  if($('#relEmail').value.trim()) processarTexto('email', $('#relEmail').value);
   toast('Textos reprocessados.');
 };
 $('#soValor').addEventListener('change', () => { if(S.rodada && S.textos.ant.trim()) processarTexto('ant', S.textos.ant); });

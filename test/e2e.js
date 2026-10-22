@@ -255,11 +255,18 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   await p.click('[data-tab="sol"]'); await p.waitForTimeout(300);
   await p.click('#p-sol [data-sol]'); await p.waitForTimeout(400);
   ok((await p.evaluate(() => S.solicitacoes.find(x => x.status !== 'concluida').status)) === 'vista', 'abrir a solicitação marca como vista');
+  ok((await p.$eval('#nSol', e => !e.hidden && e.textContent.trim())) === '1', 'número da aba continua depois de abrir a solicitação, até a análise ser concluída');
   await p.click('#mSolIniciar'); await p.waitForFunction(() => S.rodada && S.rodada.solicitacaoId, { timeout: 10000 }); await p.waitForTimeout(300);
   ok((await p.evaluate(() => S.rodada.unidades.length === 1 && S.rodada.unidades[0].unid === 'A - 101' && S.rodada.condominio.cnpj === '00.116.267/0001-49')), 'Iniciar análise abre a rodada com condomínio e unidade da solicitação');
   await p.setInputFiles('#docVouch input[type=file]', path.join(pdfs, arq('nazare')));
   await p.waitForFunction(() => document.querySelector('#docVouch').classList.contains('ok'), { timeout: 30000 });
-  await p.fill('#inicio', '2'); await p.fill('#bi', '100'); await p.click('#sinalBi [data-sinal="+"]'); await p.check('#semAnterior'); await p.waitForTimeout(300);
+  ok(!(await p.$('#docEmail')) && (await p.$$eval('#docsGrade .doc', d => d.length)) === 3, 'e-mail de sinalização saiu dos documentos; ficam Vouch, anterior e BI');
+  await p.fill('#inicio', '2'); await p.fill('#bi', '100'); await p.click('#sinalBi [data-sinal="+"]'); await p.waitForTimeout(300);
+  ok(await p.$eval('#docAnt', e => e.classList.contains('falta')), 'relatório anterior sem anexo e sem marcação aparece como faltando');
+  await p.click('#btnConcluir'); await p.waitForTimeout(400);
+  ok((await p.evaluate(() => S.rodada.status)) !== 'concluida' && /Falta documento obrigatório: Inadimplência anterior/.test(await p.$eval('#toast', e => e.textContent)), 'não conclui sem o relatório anterior ou a marcação de que não há');
+  await p.check('#semAnterior'); await p.waitForTimeout(300);
+  ok(!(await p.$eval('#docAnt', e => e.classList.contains('falta'))) && await p.$eval('#docAnt', e => e.classList.contains('dispensado')), 'marcar "não há relatório anterior" dispensa o documento');
   const uNaz = await p.evaluate(() => S.rodada.unidades[0]);
   ok(uNaz.vouch === 9 && uNaz.resultado === 'EXCLUIR', `unidade casada pelo número com 9 taxas → Excluir (${uNaz.vouch}, ${uNaz.resultado})`);
   await p.click('#btnConcluir'); await p.waitForFunction(() => S.rodada && S.rodada.status === 'concluida', { timeout: 15000 }); await p.waitForTimeout(500);
@@ -294,6 +301,15 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   await p.click('#modal [data-fechar]');
   await p.evaluate(() => { DB.doc = window.__docOrig; DB._local = true; delete window.claude; });
   await p.click('#btnFecharEditor'); await p.waitForTimeout(300);
+  const semV = await p.evaluate(async () => {
+    const r = novaRodada('implantacao', { nome: 'CONDOMINIO TESTE SEM VOUCH', cnpj: '' }); r.unidades.push(novaUnidade('101', 'MARIA DE SOUZA', '')); r.idadeGarantia = 1; r.semAnterior = true; r.semBi = true;
+    await abrirEditor(r); const antes = { pend: S.rodada.unidades[0].pendente, falta: documentosFaltando(S.rodada).map(x => x.nome).join(',') };
+    document.querySelector('#semVouch').click(); await new Promise(res => setTimeout(res, 200));
+    const u = S.rodada.unidades[0]; const depois = { pend: u.pendente, vouch: u.vouch, falta: documentosFaltando(S.rodada).length, disp: document.querySelector('#docVouch').classList.contains('dispensado') };
+    S.rodada = null; renderNovaLista(); return { antes, depois };
+  });
+  ok(semV.antes.pend && /Vouch/.test(semV.antes.falta) && !semV.depois.pend && semV.depois.vouch === 0 && semV.depois.falta === 0 && semV.depois.disp, `"ainda não há inadimplência no Vouch" conta o Vouch como zero e libera a conclusão (${JSON.stringify(semV)})`);
+  await papeisLocal('gestao');
   // solicitante vê o resultado e baixa a ficha
   await papeisLocal('implantacao');
   await p.click('[data-tab="minhas"]'); await p.waitForTimeout(200);
