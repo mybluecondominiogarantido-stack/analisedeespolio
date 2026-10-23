@@ -305,9 +305,10 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   ok(!(await p.$eval('#tkEnviar', b => b.disabled)), 'no portal, a gestão pode abrir o ticket');
   await p.click('#tkEnviar');
   await p.waitForSelector('#tkStatus .ok, #tkStatus .erro', { timeout: 60000 });
-  const tk = await p.evaluate(() => ({ txt: document.querySelector('#tkStatus').innerText, ped: { ...window.__pedido, anexo: window.__pedido.anexo && { nome: window.__pedido.anexo.nome, tam: window.__pedido.anexo.base64.length, ini: window.__pedido.anexo.base64.slice(0, 8) } }, rod: S.rodada && S.rodada.ticket }));
+  const tk = await p.evaluate(() => ({ txt: document.querySelector('#tkStatus').innerText, ped: { ...window.__pedido, anexo: window.__pedido.anexo && { nome: window.__pedido.anexo.nome, tam: window.__pedido.anexo.base64.length, ini: window.__pedido.anexo.base64.slice(0, 8), b64: window.__pedido.anexo.base64 } }, rod: S.rodada && S.rodada.ticket }));
   ok(/Ticket #42 aberto para a fila do setor Implantação/.test(tk.txt) && /Ficha anexada/.test(tk.txt) && /não tem login/.test(tk.txt), `ticket aberto pelo pedido no banco, sem login vai para a fila do setor da solicitante (${tk.txt.replace(/\s+/g, ' ')})`);
-  ok(tk.ped.status === 'pedido' && tk.ped.setor === 'Implantação' && /^AE-2026-\d{4}$/.test(tk.ped.protocolo) && tk.ped.anexo && tk.ped.anexo.ini.startsWith('JVBER') && /\.pdf$/.test(tk.ped.anexo.nome), `pedido leva a ficha em PDF (${tk.ped.anexo && Math.round(tk.ped.anexo.tam * 3 / 4 / 1024)} KB, ${tk.ped.protocolo}, ${tk.ped.anexo && tk.ped.anexo.nome}, ${tk.ped.anexo && tk.ped.anexo.ini})`);
+  ok(tk.ped.status === 'pedido' && tk.ped.setor === 'Implantação' && /^AE-2026-\d{4}$/.test(tk.ped.protocolo) && tk.ped.anexo && tk.ped.anexo.ini.startsWith('JVBER') && /\.pdf$/.test(tk.ped.anexo.nome) && tk.ped.anexo.tam <= 180000, `pedido leva a ficha em PDF (${tk.ped.anexo && Math.round(tk.ped.anexo.tam * 3 / 4 / 1024)} KB, ${tk.ped.protocolo}, ${tk.ped.anexo && tk.ped.anexo.nome}, ${tk.ped.anexo && tk.ped.anexo.ini})`);
+  if(shots && tk.ped.anexo) fs.writeFileSync(path.join(shots, 'ficha-do-ticket.pdf'), Buffer.from(tk.ped.anexo.b64, 'base64'));
   ok(tk.rod && tk.rod.id === 42, 'número do ticket fica gravado na análise');
   await p.click('#modal [data-fechar]'); await p.waitForTimeout(200);
   await p.click('#btnTicketEditor'); await p.waitForTimeout(300);

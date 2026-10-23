@@ -73,7 +73,7 @@ async function enviarTicket(r, sol){
   const id = (r.protocolo || 'AE') + '-' + Date.now().toString(36);
   const ref = DB.doc(COLECOES.tickets + '/' + id);
   try{
-    try{ pedido.anexo = { nome: nomeFicha(r), base64: await blobBase64(await fichaPDFBlob(r)) }; }catch(_){ /* sem a ficha, o ticket sai sem anexo */ }
+    try{ pedido.anexo = { nome: nomeFicha(r), base64: await fichaParaTicket(r) }; }catch(_){ /* sem a ficha, o ticket sai sem anexo */ }
     try{ await ref.set(pedido); }
     catch(e){ if(!pedido.anexo) throw e; delete pedido.anexo; await ref.set(pedido); } /* ficha grande demais para a base: abre sem anexo */
     let d = null;
@@ -90,7 +90,17 @@ async function enviarTicket(r, sol){
     st.innerHTML = `<div class="erro">Não foi possível abrir o ticket (${esc(dbErr(e).replace(/^Falha ao acessar a base: /, ''))}). Use "Copiar texto" e abra o ticket no portal; a ficha você baixa pelo botão da análise.</div>`;
   }
 }
-async function fichaPDFBlob(r){
+/* a base do portal recusa documento grande: a ficha vai em qualidade menor até caber (texto continua legível) */
+const ANEXO_MAX_CHARS = 180000;   // ~135 KB de PDF; o maior documento já gravado pelo módulo tem ~190 mil caracteres
+async function fichaParaTicket(r){
+  for(const q of [{ scale: 1.5, quality: 0.82 }, { scale: 1.25, quality: 0.72 }, { scale: 1, quality: 0.65 }]){
+    const b64 = await blobBase64(await fichaPDFBlob(r, q));
+    if(b64.length <= ANEXO_MAX_CHARS) return b64;
+  }
+  throw new Error('ficha grande demais para anexar');
+}
+async function fichaPDFBlob(r, q){
+  q = q || { scale: 2, quality: 0.95 };
   const LARG = 1070, ALT_MAX = 740;
   const wrap = document.createElement('div'); wrap.style.cssText = `width:${LARG}px;background:#fff;overflow:hidden;margin:0`;
   const el = document.createElement('div'); el.className = 'ficha pdf'; el.style.cssText = `width:${LARG}px;border:0;border-radius:0;transform-origin:top left`;
@@ -98,6 +108,6 @@ async function fichaPDFBlob(r){
   try{
     await new Promise(res => setTimeout(res, 50));
     const h = el.offsetHeight; if(h > ALT_MAX){ const k = ALT_MAX / h; el.style.width = (LARG / k) + 'px'; el.style.transform = `scale(${k})`; } wrap.style.height = Math.min(h, ALT_MAX) + 'px';
-    return await html2pdf().set({ margin: 6, image: { type:'jpeg', quality: 0.95 }, html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0 }, jsPDF: { unit:'mm', format:'a4', orientation:'landscape' }, pagebreak: { mode: ['css'] } }).from(wrap).outputPdf('blob');
+    return await html2pdf().set({ margin: 6, image: { type:'jpeg', quality: q.quality }, html2canvas: { scale: q.scale, useCORS: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0 }, jsPDF: { unit:'mm', format:'a4', orientation:'landscape' }, pagebreak: { mode: ['css'] } }).from(wrap).outputPdf('blob');
   } finally { wrap.remove(); }
 }
