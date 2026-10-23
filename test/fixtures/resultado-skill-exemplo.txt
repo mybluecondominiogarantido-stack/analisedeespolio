@@ -1,0 +1,19 @@
+### 1. Resumo do relatório
+- Condomínio TESTE · Sistema Exemplo
+- Data de emissão: 15/07/2026 (página 1)
+- Detalhado por competência: sim · Traz o nome dos devedores: sim
+
+### 2. Lançamentos para colar no portal
+```
+Unidade;Titular;Documento;Competência;Tipo;Valor;Vencimento
+A - 101;FULANO UM;111.222.333-44;05/2026;Taxa ordinária;483,95;04/05/2026
+A - 101;FULANO UM;111.222.333-44;05/2026;Multa;9,68;
+A - 101;FULANO UM;111.222.333-44;05/2026;Outro;1,99;04/05/2026
+A - 101;FULANO UM;111.222.333-44;06/2026;Taxa ordinária;483,95;04/06/2026
+A - 101;FULANO UM;111.222.333-44;07/2026;Acordo;250,00;04/07/2026
+SALA 215;FULANO DOIS;;06/2026;Outro;1,99;04/06/2026
+SALA 215;FULANO DOIS;;06/2026;Água/gás;80,00;04/06/2026
+```
+
+### 3. Conferências da política (para o analista)
+- Validade: ok

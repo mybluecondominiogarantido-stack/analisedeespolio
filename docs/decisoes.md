@@ -122,3 +122,8 @@ Registro do que foi decidido com a Coordenação de Cobrança (out/2026) para a 
   - Cada contagem mostra a linha do PDF como evidência.
   - Validada nos dois relatórios reais (Palácio Progresso e MSA): mesmos números dos leitores dedicados.
   - Os formatos conhecidos, a planilha padrão e o formato da Análise de Crédito continuam como antes; a skill leitura-inadimplencia-myblue fica para PDF escaneado ou muito desorganizado.
+- **Resultado da skill leitura-inadimplencia-myblue (23/10)**: no documento "Inadimplência anterior" há o botão "ou colar o resultado da skill": cola-se a resposta inteira (ou só o bloco `Unidade;Titular;Documento;Competência;Tipo;Valor;Vencimento`) e o módulo lê os lançamentos.
+  - Pela coluna Tipo, contam Taxa ordinária, Taxa extra, Acordo e Fundo de reserva.
+  - Multa, Juros, Correção, Honorários, Água/gás e Outro (onde a skill põe a tarifa bancária) ficam fora da contagem; o aviso mostra quantos foram deixados de fora.
+  - Testado com o Palácio Progresso convertido nesse formato: mesmas contagens do leitor dedicado.
+  - Não é preciso criar uma skill nova nem o projeto "Formatador" no Claude.

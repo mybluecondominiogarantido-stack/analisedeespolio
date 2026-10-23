@@ -495,9 +495,13 @@ async function lerPlanilhaAnterior(file){
     const s = String(v || '').trim(); let m = s.match(/^(\d{1,2})\/(\d{4})$/); if(m) return m[1].padStart(2,'0') + '/' + m[2];
     m = s.match(/^(\d{4})-(\d{2})/); if(m) return m[2] + '/' + m[1]; m = s.match(/^\d{2}\/(\d{2})\/(\d{4})$/); if(m) return m[1] + '/' + m[2]; return ''; };
   const vencTxt = v => { if(v === '' || v === null || v === undefined) return ''; const d = excelData(v); return d ? d.slice(8,10) + '/' + d.slice(5,7) + '/' + d.slice(0,4) : ''; };
-  const porUnid = new Map(); let n = 0;
+  /* formato da skill (coluna Tipo, sem Descrição): só contam as taxas; multa, juros, correção, honorários, água/gás e "Outro" (tarifa etc.) ficam de fora */
+  const porTipo = c.d >= 0 && /^tipo/.test(head[c.d]);
+  const TIPO_CONTA = /^(taxa|acordo|fundo|rateio|arrecada|cota|condom)/i;
+  const porUnid = new Map(), ignorados = {}; let n = 0;
   for(const r of rows.slice(hi + 1)){
     const unid = String(r[c.u] ?? '').trim(); const comp = compTxt(r[c.comp]); if(!unid || !comp) continue;
+    if(porTipo){ const t = String(r[c.d] ?? '').trim(); if(!TIPO_CONTA.test(t)){ const k = t || 'sem tipo'; ignorados[k] = (ignorados[k] || 0) + 1; continue; } }
     const g = porUnid.get(unid) || { titular: String(c.t >= 0 ? r[c.t] ?? '' : '').trim(), cpf: String(c.cpf >= 0 ? r[c.cpf] ?? '' : '').trim(), linhas: [] };
     g.linhas.push(`${String(c.d >= 0 ? r[c.d] ?? '' : '').trim() || 'COBRANÇA'} | ${comp} | ${c.v >= 0 ? vencTxt(r[c.v]) : ''}`); n++;
     porUnid.set(unid, g);
@@ -505,7 +509,7 @@ async function lerPlanilhaAnterior(file){
   if(!porUnid.size) throw new Error('a planilha não tem linhas de cobrança (Unidade e Competência preenchidas)');
   const texto = ['RELATÓRIO ANTERIOR · PLANILHA PADRÃO · ' + file.name]
     .concat([...porUnid].flatMap(([u, g]) => [`Unidade: ${u} | Titular: ${g.titular}${g.cpf ? ' | ' + g.cpf : ''}`, ...g.linhas])).join('\n');
-  return { texto, unidades: porUnid.size, linhas: n };
+  return { texto, unidades: porUnid.size, linhas: n, ignorados };
 }
 async function lerExtracaoUnidades(file){
   const rows = await planilhaParaMatriz(file);

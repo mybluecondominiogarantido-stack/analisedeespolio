@@ -213,16 +213,31 @@ $('#docsGrade').addEventListener('change', async e => {
   const disp = { vouch: ['semVouch', '#semVouch'], ant: ['semAnterior', '#semAnterior'] }[origem];
   if(disp && S.rodada && S.rodada[disp[0]]){ S.rodada[disp[0]] = false; $(disp[1]).checked = false; }
   try{
-    if(origem === 'ant' && /\.(xlsx|xls|csv)$/i.test(f.name)){
-      const pl = await lerPlanilhaAnterior(f); processarTexto('ant', pl.texto, f.name);
-      const nCob = (S.dev.ant || []).reduce((s, d) => s + d.cobrancas.length, 0);
-      span.innerHTML = `Planilha padrão: <b>${pl.unidades} unidade(s)</b> e <b>${pl.linhas} linha(s)</b> lidas · ${nCob} competência(s) contadas. Confira com o total do relatório original.`;
-      return;
-    }
+    if(origem === 'ant' && /\.(xlsx|xls|csv)$/i.test(f.name)){ await carregarPlanilhaAnterior(f, span); return; }
     const txt = await pdfParaTexto(f); processarTexto(origem, txt, f.name);
   }
   catch(err){ span.textContent = 'Não deu para ler o arquivo: ' + err.message; inp.parentElement.classList.add('erro'); }
 });
+/* planilha do relatório anterior (padrão, formato da Análise de Crédito ou resultado colado da skill) */
+async function carregarPlanilhaAnterior(f, span){
+  const pl = await lerPlanilhaAnterior(f); processarTexto('ant', pl.texto, f.name);
+  const nCob = (S.dev.ant || []).reduce((s, d) => s + d.cobrancas.length, 0);
+  const ign = Object.entries(pl.ignorados || {}).map(([t, q]) => `${q} ${t.toLowerCase()}`).join(', ');
+  span.innerHTML = `Planilha: <b>${pl.unidades} unidade(s)</b> e <b>${pl.linhas} lançamento(s) de taxa</b> lidos · ${nCob} competência(s) contadas${ign ? ` · fora da contagem: ${esc(ign)}` : ''}. Confira com o total do relatório original.`;
+}
+$('#btnColarSkill').onclick = () => {
+  if(!S.rodada) return;
+  abrirModal('Colar o resultado da skill', `<p class="ajuda" style="margin:0 0 8px">No Claude, anexe o PDF da administradora anterior e peça a leitura com a skill <b>leitura-inadimplencia-myblue</b>. Copie a resposta inteira (ou só o bloco dos lançamentos) e cole aqui.</p>
+    <textarea id="txtSkill" style="min-height:220px;font-family:monospace;font-size:12px" placeholder="Unidade;Titular;Documento;Competência;Tipo;Valor;Vencimento"></textarea><div id="skillStatus"></div>`,
+    `<button class="btn mini" id="btnLerSkill">Ler lançamentos</button>`);
+  $('#btnLerSkill').onclick = async () => {
+    const linhas = $('#txtSkill').value.split(/\r?\n/), i = linhas.findIndex(l => /^\s*Unidade\s*;\s*Titular\s*;/i.test(l));
+    if(i < 0){ $('#skillStatus').innerHTML = '<div class="erro">Não encontrei a linha "Unidade;Titular;Documento;Competência;Tipo;Valor;Vencimento". Cole o bloco dos lançamentos da resposta.</div>'; return; }
+    const bloco = []; for(const l of linhas.slice(i)){ if(/^\s*```/.test(l) || !l.includes(';')) { if(bloco.length) break; else continue; } bloco.push(l.trim()); }
+    try{ await carregarPlanilhaAnterior(new File([bloco.join('\n')], 'resultado-da-skill.csv'), $('#docAnt span')); if(S.rodada.semAnterior){ S.rodada.semAnterior = false; $('#semAnterior').checked = false; recalcular(S.rodada, S.dev, relatoriosLidos()); renderEditorUnidades(true); renderFichaPreview(); renderSteps(); } fecharModal(); toast('Resultado da skill lido no relatório anterior.'); }
+    catch(e){ $('#skillStatus').innerHTML = `<div class="erro">Não deu para ler: ${esc(e.message)}</div>`; }
+  };
+};
 async function subirBaseBi(f){
   const ehPlanilha = /\.(xlsx|xls|csv)$/i.test(f.name);
   try{

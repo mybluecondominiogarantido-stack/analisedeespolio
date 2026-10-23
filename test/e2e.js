@@ -435,6 +435,23 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   ok(g['C - 101'].pend && /ambígua/.test(g['C - 101'].mot) && g['A - 909'].pend && /não encontrada/.test(g['A - 909'].mot), 'leitura guiada: unidade ambígua ou não encontrada fica pendente, nunca "sem débito"');
   ok(/lido pela unidade/.test(lg.diag) && /não encontrada\(s\): C - 101, A - 909/.test(lg.diag) && lg.manual.ant === 0 && !lg.manual.pend, `leitura guiada: aviso lista as não encontradas e a contagem manual resolve a pendência`);
 
+  /* 9b · resultado da skill leitura-inadimplencia-myblue colado no relatório anterior */
+  const sk = await p.evaluate(async txt => {
+    const r = novaRodada('implantacao', { nome: 'CONDOMINIO TESTE SKILL', cnpj: '', chave: 'teste-skill' });
+    [['A - 101', 'FULANO UM', '111.222.333-44'], ['SALA 215', 'FULANO DOIS', '']].forEach(([un, t, c]) => r.unidades.push(novaUnidade(un, t, c)));
+    await abrirEditor(r);
+    document.querySelector('#btnColarSkill').click(); document.querySelector('#txtSkill').value = txt; document.querySelector('#btnLerSkill').click();
+    await new Promise(res => setTimeout(res, 600));
+    const out = { a101: S.rodada.unidades[0].ant, s215: S.rodada.unidades[1].ant, msg: document.querySelector('#docAnt span').textContent, modal: !document.querySelector('#modal').hidden };
+    S.rodada = null; renderNovaLista(); return out;
+  }, fs.readFileSync(path.join(__dirname, 'fixtures', 'resultado-skill-exemplo.txt'), 'utf8'));
+  ok(sk.a101 === 3 && sk.s215 === 0 && !sk.modal && /fora da contagem: .*1 multa/.test(sk.msg) && /2 outro/.test(sk.msg) && /1 água\/gás/.test(sk.msg), `resultado da skill colado: conta taxa ordinária e acordo; multa, "Outro" (tarifa) e água/gás ficam de fora (${sk.a101}, ${sk.s215}, ${sk.msg})`);
+  const csvPal = path.join(pdfs, '..', 'skilltest', 'palacio-portal.csv');
+  if(fs.existsSync(csvPal)){
+    const pal = await p.evaluate(async csv => { const pl = await lerPlanilhaAnterior(new File([csv], 'p.csv')); const d = extrairDevedores(pl.texto, false); return Object.fromEntries(d.filter(x => ['SALA 401','SALA 601','SALA 701','SALA 215','SALA 717','SALA 1101','SALA 338'].includes(x.unidade)).map(x => [x.unidade, x.cobrancas.length])); }, fs.readFileSync(csvPal, 'utf8'));
+    ok(pal['SALA 401'] === 3 && pal['SALA 601'] === 3 && pal['SALA 701'] === 2 && pal['SALA 215'] === 1 && pal['SALA 717'] === 3 && pal['SALA 1101'] === 2 && !pal['SALA 338'], `Palácio Progresso convertido no formato da skill: mesmas contagens do leitor dedicado (${JSON.stringify(pal)})`);
+  }
+
   /* 9 · conferência dos filtros do relatório do Vouch */
   const filtros = async (nome, dataAnalise) => p.evaluate(async ([b64, dataAnalise]) => {
     const bin = atob(b64); const arr = new Uint8Array(bin.length); for(let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
