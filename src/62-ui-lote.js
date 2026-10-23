@@ -115,7 +115,7 @@ function montarRodadaDoItem(item, filaItem){
   item.fila = filaItem; item.rodada = r;
   recalcular(r, item.dev, { vouch: true, ant: false });
 }
-const resultadoAnterior = (it, u) => { const prev = (it.fila.rodada.unidades||[]).find(p => (p.cpf && u.cpf && soDigitos(p.cpf) === soDigitos(u.cpf)) || (normUnid(p.unid) === normUnid(u.unid) && (!p.titular || !u.titular || normNome(p.titular) === normNome(u.titular)))); return prev ? prev.resultado : null; };
+const resultadoAnterior = (it, u) => { const prev = (it.fila.unidades || it.fila.rodada.unidades || []).find(p => (p.cpf && u.cpf && soDigitos(p.cpf) === soDigitos(u.cpf)) || (normUnid(p.unid) === normUnid(u.unid) && (!p.titular || !u.titular || normNome(p.titular) === normNome(u.titular)))); return prev ? prev.resultado : null; };
 const ehExcecao = (it, u) => { const ant = resultadoAnterior(it, u); return (ant && ant !== u.resultado) || (u.cas.vouch && u.cas.vouch.modo === 'nome') || !u.cas.vouch || u.pendente || u.completar || !!u.titularAuto; };
 
 /* ---------- lista da reanálise em andamento ---------- */

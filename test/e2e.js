@@ -482,6 +482,26 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   });
   ok(dup.soma === 1 && dup.linhas === 1, `unidade da carga sem titular e da reanálise com titular conta uma vez só, no total e na evolução (${JSON.stringify(dup)})`);
 
+  /* 10b · opção B: análise nova num condomínio da fila não tira as unidades antigas; cada unidade tem o seu prazo */
+  const fb = await p.evaluate(() => {
+    const cond = { nome: 'CONDOMINIO TESTE OPCAO B', cnpj: '', chave: 'teste-opcao-b' };
+    const a1 = novaRodada('implantacao', cond); a1.id = 'b-1'; a1.status = 'concluida'; a1.dataAnalise = '2026-07-01'; a1.concluidaEm = '2026-07-01T12:00:00Z';
+    const u101 = novaUnidade('101', 'FULANO UM', ''); u101.resultado = 'PREVENTIVO'; u101.situacao = 'ativa'; a1.unidades = [u101];
+    const a2 = novaRodada('avulso', cond); a2.id = 'b-2'; a2.status = 'concluida'; a2.dataAnalise = '2026-09-20'; a2.concluidaEm = '2026-09-20T12:00:00Z';
+    const u305 = novaUnidade('305', 'FULANO DOIS', ''); u305.resultado = 'PREVENTIVO'; u305.situacao = 'ativa'; a2.unidades = [u305];
+    S.rodadas.push(a1, a2);
+    const it = fila().find(i => i.chave === 'teste-opcao-b');
+    const re = rodadaDeAcompanhamento(it.rodada);
+    const a3 = novaRodada('acompanhamento', cond); a3.id = 'b-3'; a3.status = 'concluida'; a3.dataAnalise = '2026-09-29'; a3.concluidaEm = '2026-09-29T12:00:00Z';
+    const x101 = novaUnidade('101', 'FULANO UM', ''); x101.resultado = 'EXCLUIR'; x101.situacao = 'excluida'; const x305 = novaUnidade('305', 'FULANO DOIS', ''); x305.resultado = 'REANÁLISE'; x305.situacao = 'ativa'; a3.unidades = [x101, x305];
+    S.rodadas.push(a3);
+    const it2 = fila().find(i => i.chave === 'teste-opcao-b');
+    S.rodadas = S.rodadas.filter(x => !['b-1', 'b-2', 'b-3'].includes(x.id));
+    return { unids: it.unidades.map(u => u.unid).sort().join(','), prazo: it.prazo, reUnids: re.unidades.map(u => u.unid).sort().join(','), depois: it2.unidades.map(u => u.unid).join(','), prazo2: it2.prazo };
+  });
+  ok(fb.unids === '101,305' && fb.prazo === '2026-09-29' && fb.reUnids === '101,305', `análise nova do mesmo condomínio não tira a unidade antiga da fila; prazo pela que vence primeiro; reanálise traz as duas (${JSON.stringify(fb)})`);
+  ok(fb.depois === '305' && fb.prazo2 === '2026-12-28', `depois da reanálise, a excluída sai e as que seguem vencem juntas (${fb.depois}, ${fb.prazo2})`);
+
   /* 10 · ficha da reanálise: tipo "Reanálise" e coluna de inadimplência anterior vinda da 1ª análise */
   const fr = await p.evaluate(() => {
     const imp = novaRodada('implantacao', { nome: 'CONDOMINIO TESTE ANTERIOR', cnpj: '', chave: 'teste-ant' }); imp.id = 'imp-teste'; imp.status = 'concluida';

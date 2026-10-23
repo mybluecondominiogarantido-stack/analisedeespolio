@@ -115,16 +115,28 @@ function ultimaRodadaPorCondominio(){
   });
   return mapa;
 }
-/* fila: um item por condomínio com unidades ativas (não excluídas, não encerradas) na última rodada concluída */
+/* unidades do condomínio em todas as análises concluídas, cada uma pelo resultado mais recente (opção B, 23/10).
+   Cada unidade guarda o próprio prazo (data da análise em que apareceu por último + 90 dias). */
+const ordemCrono = (a, b) => (a.dataAnalise + (a.concluidaEm || '')).localeCompare(b.dataAnalise + (b.concluidaEm || ''));
+function unidadesDoCondominio(chave, extra){
+  const rods = rodadasConcluidas().filter(r => r.condominio.chave === chave);
+  if(extra && !rods.some(r => r.id === extra.id)) rods.push(extra);
+  const m = new Map();
+  rods.sort(ordemCrono).forEach(r => (r.unidades || []).forEach(u => m.set(chaveUnidade(u), { u, r, prazo: r.proximaReanalise || somaDias(r.dataAnalise, PRAZO_REANALISE_DIAS) })));
+  return [...m.values()];
+}
+const emAcompanhamento = x => x.u.situacao === 'ativa' && x.u.resultado !== 'EXCLUIR';
+/* fila: um item por condomínio com unidades ativas em qualquer análise. O condomínio entra pelo prazo da unidade que
+   vence primeiro e a reanálise traz todas (o mesmo relatório do Vouch cobre o condomínio inteiro). */
 function fila(){
   const hoje = hojeISO();
   const itens = [];
-  ultimaRodadaPorCondominio().forEach(r => {
-    const ativas = (r.unidades || []).filter(u => u.situacao === 'ativa' && u.resultado !== 'EXCLUIR');
-    if(!ativas.length) return;
-    const prazo = r.proximaReanalise || somaDias(r.dataAnalise, PRAZO_REANALISE_DIAS);
+  ultimaRodadaPorCondominio().forEach((r, chave) => {
+    const lista = unidadesDoCondominio(chave).filter(emAcompanhamento);
+    if(!lista.length) return;
+    const prazo = lista.map(x => x.prazo).sort()[0];
     const emAberto = S.rodadas.find(x => x.status === 'rascunho' && x.condominio.chave === r.condominio.chave);
-    itens.push({ chave: r.condominio.chave, condominio: r.condominio, rodada: r, unidades: ativas, prazo, dias: diasEntre(hoje, prazo), vencida: prazo < hoje, rascunho: emAberto || null, completar: ativas.some(u => u.completar) });
+    itens.push({ chave: r.condominio.chave, condominio: r.condominio, rodada: r, unidades: lista.map(x => x.u), origem: lista, prazo, dias: diasEntre(hoje, prazo), vencida: prazo < hoje, rascunho: emAberto || null, completar: lista.some(x => x.u.completar) });
   });
   itens.sort((a,b) => a.prazo.localeCompare(b.prazo));
   return itens;
@@ -306,8 +318,9 @@ function rodadaDeAcompanhamento(anterior){
   r.anterior = anterior.id; r.idadeGarantia = null; r.analista = anterior.analista || '';
   r.semAnterior = true; r.semBi = true;
   informacaoReanalise(r);
-  r.unidades = (anterior.unidades || []).filter(u => u.situacao === 'ativa' && u.resultado !== 'EXCLUIR').map(u => {
-    const n = novaUnidade(u.unid, u.titular, u.cpf); n.obs = u.obs || ''; if(u.debAnterior) n.debAnterior = u.debAnterior; const ao = antOrigemDe(u, anterior); if(ao) n.antOrigem = ao; n.completar = !!u.completar; n.historicoVouch = (u.historicoVouch || []).concat([{ rodada: anterior.protocolo || anterior.id, data: anterior.dataAnalise, vouch: u.vouch }]); return n; });
+  /* todas as unidades em acompanhamento do condomínio, de qualquer análise, cada uma com os dados da análise em que apareceu por último */
+  r.unidades = unidadesDoCondominio(anterior.condominio.chave, anterior).filter(emAcompanhamento).map(({ u, r: ro }) => {
+    const n = novaUnidade(u.unid, u.titular, u.cpf); n.obs = u.obs || ''; if(u.debAnterior) n.debAnterior = u.debAnterior; const ao = antOrigemDe(u, ro); if(ao) n.antOrigem = ao; n.completar = !!u.completar; n.historicoVouch = (u.historicoVouch || []).concat([{ rodada: ro.protocolo || ro.id, data: ro.dataAnalise, vouch: u.vouch }]); return n; });
   return r;
 }
 

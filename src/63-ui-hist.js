@@ -7,7 +7,7 @@ const tipoRodadaTxt = r => r.origem === 'carga' ? 'Carga inicial' : r.tipo === '
 function foraDaFila(){
   const naFila = new Set(fila().map(i => i.chave));
   const out = [];
-  ultimaRodadaPorCondominio().forEach((r, chave) => { if(!naFila.has(chave)) out.push({ chave, condominio: r.condominio, rodada: r, unidades: r.unidades || [] }); });
+  ultimaRodadaPorCondominio().forEach((r, chave) => { if(!naFila.has(chave)) out.push({ chave, condominio: r.condominio, rodada: r, unidades: unidadesDoCondominio(chave).map(x => x.u) }); });
   return out.sort((a,b) => b.rodada.dataAnalise.localeCompare(a.rodada.dataAnalise));
 }
 
