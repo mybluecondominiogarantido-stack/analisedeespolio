@@ -13,7 +13,7 @@ function foraDaFila(){
 
 function evolucaoHTML(rods){
   if(!rods.length) return '<div class="vazio">Sem análises concluídas.</div>';
-  const chaveU = u => soDigitos(u.cpf) || (normUnid(u.unid) + '|' + normNome(u.titular));
+  const chaveU = chaveUnidade;
   const unidades = new Map();
   rods.forEach(r => (r.unidades||[]).forEach(u => { const k = chaveU(u); if(!unidades.has(k)) unidades.set(k, { unid: u.unid, titular: u.titular, por: {} }); unidades.get(k).por[r.id] = u; if(u.titular) unidades.get(k).titular = u.titular; if(u.unid) unidades.get(k).unid = u.unid; }));
   return `<div class="tabela-wrap"><table><thead><tr><th>Unidade</th><th>Titular</th>${rods.map(r => `<th>${esc(r.protocolo || 'carga')}<br><span style="font-weight:600;text-transform:none">${fmtData(r.dataAnalise)}</span></th>`).join('')}</tr></thead><tbody>${

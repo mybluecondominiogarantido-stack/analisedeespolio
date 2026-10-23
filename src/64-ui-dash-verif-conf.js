@@ -22,7 +22,9 @@ function renderDashboard(){
   $('#dashFila').querySelectorAll('[data-lote]').forEach(tr => tr.onclick = () => { S.lote.selecionados.add(tr.dataset.lote); mostrarAba('lote'); });
   const ano = hoje.slice(0,4);
   const porCond = new Map();
-  conc.filter(r => r.dataAnalise.startsWith(ano)).forEach(r => { const k = r.condominio.chave; const e = porCond.get(k) || { nome: r.condominio.nome, sin: 0, exc: 0, rod: 0 }; e.rod++; e.sin += (r.unidades||[]).length; e.exc += n(r.unidades||[], 'EXCLUIR'); porCond.set(k, e); });
+  /* unidades distintas por condomínio (a reanálise não conta a mesma unidade de novo) */
+  conc.filter(r => r.dataAnalise.startsWith(ano)).forEach(r => { const k = r.condominio.chave; const e = porCond.get(k) || { nome: r.condominio.nome, sinU: new Set(), excU: new Set(), rod: 0 }; e.rod++; (r.unidades || []).forEach(u => { e.sinU.add(chaveUnidade(u)); if(u.resultado === 'EXCLUIR') e.excU.add(chaveUnidade(u)); }); porCond.set(k, e); });
+  porCond.forEach(e => { e.sin = e.sinU.size; e.exc = e.excU.size; });
   const topExc = [...porCond.values()].sort((a,b) => b.exc - a.exc || b.sin - a.sin).slice(0, 8);
   $('#dashExclusoes').innerHTML = topExc.length ? `<table><thead><tr><th>Condomínio</th><th>Sinalizados</th><th>Excluídos</th><th>Análises</th></tr></thead><tbody>${topExc.map(e => `<tr><td>${esc(e.nome)}</td><td>${e.sin}</td><td><b>${e.exc}</b></td><td>${e.rod}</td></tr>`).join('')}</tbody></table>` : '<div class="corpo"><div class="vazio">Sem análises concluídas em ' + ano + '.</div></div>';
   if(!$('#resumoMes').value) $('#resumoMes').value = mes;

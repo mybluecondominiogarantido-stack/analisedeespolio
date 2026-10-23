@@ -468,6 +468,20 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   const fEco = await filtros('eco_way', '2026-10-10');
   ok(['CPF do morador', 'Telefone do morador', 'Apresentar unidades adimplentes', 'Apresentar vencimento para N.V'].every(x => fEco.includes(x)) && !fEco.includes('Nome do morador') && !fEco.includes('Mostrar valor total'), `relatório sem CPF, telefone, adimplentes e N.V é sinalizado nesses quatro (${fEco.join('; ')})`);
 
+  /* 10a · a mesma unidade não conta duas vezes quando o titular só aparece na reanálise */
+  const dup = await p.evaluate(() => {
+    const antes = panoramaUnidades().total;
+    const car = novaRodada('carga', { nome: 'CONDOMINIO TESTE DUPLICADO', cnpj: '', chave: 'teste-dup' }); car.origem = 'carga'; car.id = 'dup-carga'; car.status = 'concluida'; car.dataAnalise = '2026-07-01';
+    const u1 = novaUnidade('2A - 101', '', ''); u1.resultado = 'REANÁLISE'; u1.situacao = 'ativa'; car.unidades = [u1];
+    const re = novaRodada('acompanhamento', car.condominio); re.id = 'dup-re'; re.status = 'concluida'; re.dataAnalise = '2026-10-22';
+    const u2 = novaUnidade('2A-101', 'SONIA TESTE', '123.456.789-09'); u2.resultado = 'REANÁLISE'; u2.situacao = 'ativa'; re.unidades = [u2];
+    S.rodadas.push(car, re);
+    const depois = panoramaUnidades().total, linhas = (evolucaoHTML([car, re]).match(/<tr>/g) || []).length - 1;
+    S.rodadas = S.rodadas.filter(x => !['dup-carga', 'dup-re'].includes(x.id));
+    return { soma: depois - antes, linhas };
+  });
+  ok(dup.soma === 1 && dup.linhas === 1, `unidade da carga sem titular e da reanálise com titular conta uma vez só, no total e na evolução (${JSON.stringify(dup)})`);
+
   /* 10 · ficha da reanálise: tipo "Reanálise" e coluna de inadimplência anterior vinda da 1ª análise */
   const fr = await p.evaluate(() => {
     const imp = novaRodada('implantacao', { nome: 'CONDOMINIO TESTE ANTERIOR', cnpj: '', chave: 'teste-ant' }); imp.id = 'imp-teste'; imp.status = 'concluida';

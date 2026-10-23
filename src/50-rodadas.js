@@ -130,8 +130,12 @@ function fila(){
   return itens;
 }
 /* panorama acumulado por unidade (mesmo quadro da planilha antiga): total, sob análise, em análise, encerradas, excluídas */
+/* identidade da unidade dentro do condomínio: o número da unidade. O titular pode chegar vazio na carga e ser
+   preenchido depois (pelo Vouch), e o CPF pode aparecer só numa reanálise: nenhum dos dois serve de chave.
+   Sem número de unidade, usa o CPF e, por último, o nome. */
+const chaveUnidade = u => (normUnid(u.unid) && 'u:' + normUnid(u.unid)) || (soDigitos(u.cpf) && 'c:' + soDigitos(u.cpf)) || (normNome(u.titular) && 'n:' + normNome(u.titular)) || 'id:' + u.id;
 function panoramaUnidades(){
-  const chaveU = u => soDigitos(u.cpf) || (normUnid(u.unid) + '|' + normNome(u.titular)) || u.id;
+  const chaveU = chaveUnidade;
   const porCond = new Map();
   rodadasConcluidas().slice().sort((a,b) => (a.dataAnalise + (a.concluidaEm||'')).localeCompare(b.dataAnalise + (b.concluidaEm||''))).forEach(r => {
     const m = porCond.get(r.condominio.chave) || new Map(); porCond.set(r.condominio.chave, m);

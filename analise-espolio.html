@@ -1603,8 +1603,12 @@ function fila(){
   return itens;
 }
 /* panorama acumulado por unidade (mesmo quadro da planilha antiga): total, sob análise, em análise, encerradas, excluídas */
+/* identidade da unidade dentro do condomínio: o número da unidade. O titular pode chegar vazio na carga e ser
+   preenchido depois (pelo Vouch), e o CPF pode aparecer só numa reanálise: nenhum dos dois serve de chave.
+   Sem número de unidade, usa o CPF e, por último, o nome. */
+const chaveUnidade = u => (normUnid(u.unid) && 'u:' + normUnid(u.unid)) || (soDigitos(u.cpf) && 'c:' + soDigitos(u.cpf)) || (normNome(u.titular) && 'n:' + normNome(u.titular)) || 'id:' + u.id;
 function panoramaUnidades(){
-  const chaveU = u => soDigitos(u.cpf) || (normUnid(u.unid) + '|' + normNome(u.titular)) || u.id;
+  const chaveU = chaveUnidade;
   const porCond = new Map();
   rodadasConcluidas().slice().sort((a,b) => (a.dataAnalise + (a.concluidaEm||'')).localeCompare(b.dataAnalise + (b.concluidaEm||''))).forEach(r => {
     const m = porCond.get(r.condominio.chave) || new Map(); porCond.set(r.condominio.chave, m);
@@ -2617,7 +2621,7 @@ function foraDaFila(){
 
 function evolucaoHTML(rods){
   if(!rods.length) return '<div class="vazio">Sem análises concluídas.</div>';
-  const chaveU = u => soDigitos(u.cpf) || (normUnid(u.unid) + '|' + normNome(u.titular));
+  const chaveU = chaveUnidade;
   const unidades = new Map();
   rods.forEach(r => (r.unidades||[]).forEach(u => { const k = chaveU(u); if(!unidades.has(k)) unidades.set(k, { unid: u.unid, titular: u.titular, por: {} }); unidades.get(k).por[r.id] = u; if(u.titular) unidades.get(k).titular = u.titular; if(u.unid) unidades.get(k).unid = u.unid; }));
   return `<div class="tabela-wrap"><table><thead><tr><th>Unidade</th><th>Titular</th>${rods.map(r => `<th>${esc(r.protocolo || 'carga')}<br><span style="font-weight:600;text-transform:none">${fmtData(r.dataAnalise)}</span></th>`).join('')}</tr></thead><tbody>${
@@ -2686,7 +2690,9 @@ function renderDashboard(){
   $('#dashFila').querySelectorAll('[data-lote]').forEach(tr => tr.onclick = () => { S.lote.selecionados.add(tr.dataset.lote); mostrarAba('lote'); });
   const ano = hoje.slice(0,4);
   const porCond = new Map();
-  conc.filter(r => r.dataAnalise.startsWith(ano)).forEach(r => { const k = r.condominio.chave; const e = porCond.get(k) || { nome: r.condominio.nome, sin: 0, exc: 0, rod: 0 }; e.rod++; e.sin += (r.unidades||[]).length; e.exc += n(r.unidades||[], 'EXCLUIR'); porCond.set(k, e); });
+  /* unidades distintas por condomínio (a reanálise não conta a mesma unidade de novo) */
+  conc.filter(r => r.dataAnalise.startsWith(ano)).forEach(r => { const k = r.condominio.chave; const e = porCond.get(k) || { nome: r.condominio.nome, sinU: new Set(), excU: new Set(), rod: 0 }; e.rod++; (r.unidades || []).forEach(u => { e.sinU.add(chaveUnidade(u)); if(u.resultado === 'EXCLUIR') e.excU.add(chaveUnidade(u)); }); porCond.set(k, e); });
+  porCond.forEach(e => { e.sin = e.sinU.size; e.exc = e.excU.size; });
   const topExc = [...porCond.values()].sort((a,b) => b.exc - a.exc || b.sin - a.sin).slice(0, 8);
   $('#dashExclusoes').innerHTML = topExc.length ? `<table><thead><tr><th>Condomínio</th><th>Sinalizados</th><th>Excluídos</th><th>Análises</th></tr></thead><tbody>${topExc.map(e => `<tr><td>${esc(e.nome)}</td><td>${e.sin}</td><td><b>${e.exc}</b></td><td>${e.rod}</td></tr>`).join('')}</tbody></table>` : '<div class="corpo"><div class="vazio">Sem análises concluídas em ' + ano + '.</div></div>';
   if(!$('#resumoMes').value) $('#resumoMes').value = mes;
