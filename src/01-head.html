@@ -8,7 +8,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --teal:#199cb1;--teal-d:#147f90;--petrol:#0f5e73;--ink:#13323a;--ink-2:#3c5660;--muted:#6f8a94;--faint:#9db3bc;
+  --teal:#199cb1;--teal-d:#147f90;--petrol:#0f5e73;
+  /* cores da marca MyBlue (logo e timbrado): usadas nos arquivos gerados (fichas, resumo) */
+  --mb-azul:#1077bb;--mb-teal:#1b9cb1;--mb-claro:#e9f6f8;--mb-tinta:#1d2b32;--ink:#13323a;--ink-2:#3c5660;--muted:#6f8a94;--faint:#9db3bc;
   --surface:#fff;--surface-2:#f6fafb;--fundo:#eef4f7;--linha:#dde8ec;--borda:#cdddE3;
   --green:#1f9d6b;--green-bg:#e4f5ee;--amber:#d98a1b;--amber-bg:#fbf0db;--red:#d8463b;--red-bg:#fbe7e5;--prev-bg:#e4f3f6;
   --font:"Nunito Sans",system-ui,sans-serif;--display:"Quicksand",system-ui,sans-serif;
@@ -181,44 +183,44 @@ tr.clic{cursor:pointer}
 .lote-cond .corpo{padding:12px 16px}
 
 /* ===== ficha (deliverável impresso) ===== */
-.ficha{background:#fff;border:1px solid var(--linha);border-radius:14px;padding:26px 30px;color:#1d2b32;font-size:13px}
+.ficha{background:#fff;border:1px solid var(--linha);border-radius:14px;padding:26px 30px;color:var(--mb-tinta);font-size:13px}
 .f-logo{max-height:44px;display:block}
-.f-titulo{font-family:var(--display);font-size:26px;font-weight:700;color:var(--petrol);margin:12px 0 2px}
+.f-titulo{font-family:var(--display);font-size:26px;font-weight:700;color:var(--mb-azul);margin:12px 0 2px}
 .f-sub{font-size:12px;color:var(--muted);margin-bottom:14px;font-weight:600}
-.f-secao{font-size:11px;font-weight:800;letter-spacing:.7px;color:var(--petrol);text-transform:uppercase;border-left:4px solid var(--teal);padding-left:8px;margin:14px 0 8px}
-.f-id th{background:var(--prev-bg);color:var(--petrol);width:16%;border:1px solid var(--linha);text-transform:none;letter-spacing:0;font-size:12px;padding:7px 10px}
+.f-secao{font-size:11px;font-weight:800;letter-spacing:.7px;color:var(--mb-azul);text-transform:uppercase;border-left:4px solid var(--mb-teal);padding-left:8px;margin:14px 0 8px}
+.f-id th{background:var(--mb-claro);color:var(--mb-azul);width:16%;border:1px solid var(--linha);text-transform:none;letter-spacing:0;font-size:12px;padding:7px 10px}
 .f-id td{border:1px solid var(--linha);font-size:12.5px;padding:7px 10px}
 .f-destaques{display:flex;gap:14px;margin-top:12px;flex-wrap:wrap}
-.f-classif{flex:1 1 300px;background:#f2f7f9;border-left:5px solid var(--teal);padding:12px 16px;border-radius:0 10px 10px 0}
+.f-classif{flex:1 1 300px;background:var(--mb-claro);border-left:5px solid var(--mb-teal);padding:12px 16px;border-radius:0 10px 10px 0}
 .f-classif small{font-size:10.5px;letter-spacing:.8px;color:var(--muted);text-transform:uppercase;font-weight:800}
-.f-classif div{font-family:var(--display);font-size:18px;font-weight:700;color:var(--petrol);margin-top:4px}
-.f-resumo{flex:1 1 300px;background:var(--petrol);color:#fff;padding:12px 18px;border-radius:12px;display:flex;gap:26px}
+.f-classif div{font-family:var(--display);font-size:18px;font-weight:700;color:var(--mb-azul);margin-top:4px}
+.f-resumo{flex:1 1 300px;background:var(--mb-azul);color:#fff;padding:12px 18px;border-radius:12px;display:flex;gap:26px}
 .f-resumo small{font-size:10.5px;letter-spacing:.8px;opacity:.8;text-transform:uppercase;font-weight:800}
 .f-resumo strong{display:block;font-family:var(--display);font-size:16px;margin-top:4px}
 .f-nota{font-size:12px;color:#4a5f68;font-style:italic;margin-top:10px}
 .f-tab{width:100%;border-collapse:collapse;font-size:12px;margin-top:6px}
-.f-tab thead th{background:var(--petrol);color:#fff;padding:7px 8px;border:1px solid var(--petrol);font-size:10.5px}
+.f-tab thead th{background:var(--mb-azul);color:#fff;padding:7px 8px;border:1px solid var(--mb-azul);font-size:10.5px}
 .f-tab td{border:1px solid var(--linha);padding:6px 8px}
 .f-tab td.res{font-weight:800;text-align:center}
 .f-tab td.res small{display:block;font-weight:400;font-size:10px;opacity:.85}
-.res-PREV{background:#e4f3f6;color:#0f5e73}.res-REAN{background:#fdf4e3;color:#a9720f}.res-EXCLUIR{background:#fbecea;color:#a5301f}.res-ENC{background:#e9eef0;color:#4a6670}
+.res-PREV{background:var(--mb-claro);color:var(--mb-azul)}.res-REAN{background:#fdf4e3;color:#a9720f}.res-EXCLUIR{background:#fbecea;color:#a5301f}.res-ENC{background:#e9eef0;color:#4a6670}
 .f-legenda{display:flex;gap:16px;font-size:10.5px;color:var(--muted);margin-top:6px;flex-wrap:wrap;font-weight:600}
 .f-legenda span{display:flex;align-items:center;gap:5px}
 .f-legenda i{width:11px;height:11px;border-radius:2px;display:inline-block}
 .f-rodape-tab{font-size:10.5px;color:var(--muted);font-style:italic;margin-top:6px}
 .f-caixas{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
-.f-caixa h4{font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:var(--petrol);border-left:4px solid var(--teal);padding-left:8px;margin:0 0 6px}
-.f-caixa p{margin:0;background:#f5f9fb;border:1px solid var(--linha);padding:9px 11px;font-size:12px;min-height:50px;border-radius:9px}
+.f-caixa h4{font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:var(--mb-azul);border-left:4px solid var(--mb-teal);padding-left:8px;margin:0 0 6px}
+.f-caixa p{margin:0;background:var(--mb-claro);border:1px solid var(--linha);padding:9px 11px;font-size:12px;min-height:50px;border-radius:9px}
 .cx-EXCLUIR h4{border-left-color:var(--red)}.cx-REAN h4{border-left-color:var(--amber)}
 .f-rodape{margin-top:18px;padding-top:10px;border-top:1px solid var(--linha);font-size:10.5px;color:var(--muted);display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
 @media(max-width:700px){.f-caixas{grid-template-columns:1fr 1fr}}
 /* versão compacta usada na geração do PDF (1 página A4 paisagem) */
 .ficha.pdf{font-size:11.5px;padding:18px 26px}
 .ficha.pdf .f-logo{max-height:36px}.ficha.pdf .f-titulo{font-size:21px;margin:8px 0 0}.ficha.pdf .f-sub{margin-bottom:8px}
-.ficha.pdf .f-secao{margin:9px 0 5px}.ficha.pdf .f-id th,.ficha.pdf .f-id td{padding:4px 8px;font-size:11px}
-.ficha.pdf .f-destaques{margin-top:8px}.ficha.pdf .f-classif,.ficha.pdf .f-resumo{padding:8px 14px}.ficha.pdf .f-classif div{font-size:15px}.ficha.pdf .f-resumo strong{font-size:14px}
+.ficha.pdf .f-secao{margin:14px 0 7px}.ficha.pdf .f-id th,.ficha.pdf .f-id td{padding:4px 8px;font-size:11px}
+.ficha.pdf .f-destaques{margin-top:12px}.ficha.pdf .f-classif,.ficha.pdf .f-resumo{padding:8px 14px}.ficha.pdf .f-classif div{font-size:15px}.ficha.pdf .f-resumo strong{font-size:14px}
 .ficha.pdf .f-tab{font-size:11px}.ficha.pdf .f-tab thead th{padding:5px 7px}.ficha.pdf .f-tab td{padding:4px 7px}
-.ficha.pdf .f-caixas{margin-top:8px;gap:8px}.ficha.pdf .f-caixa p{min-height:34px;padding:6px 9px;font-size:11px}.ficha.pdf .f-rodape{margin-top:10px;padding-top:6px}
+.ficha.pdf .f-caixas{margin-top:16px;gap:10px}.ficha.pdf .f-caixa p{min-height:34px;padding:6px 9px;font-size:11px}.ficha.pdf .f-rodape{margin-top:16px;padding-top:8px}
 
 /* ===== modal ===== */
 .modal{position:fixed;inset:0;background:rgba(19,50,58,.45);display:grid;place-items:center;z-index:50;padding:20px}

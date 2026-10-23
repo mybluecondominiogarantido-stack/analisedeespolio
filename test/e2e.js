@@ -195,6 +195,7 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   ok((await p.$$eval('.tab', t => t.filter(x => !x.hidden).length)) === 5, 'gestão vê cinco abas: dashboard, solicitações, fila, acessos, configurações');
   await p.click('[data-tab="dash"]'); await p.click('#btnResumo'); await p.waitForTimeout(300);
   ok(/AE-2026-0001/.test(await p.$eval('#resumoMensal', e => e.textContent)), 'resumo mensal lista a rodada do mês');
+  if(shots){ const [dlR] = await Promise.all([p.waitForEvent('download', { timeout: 60000 }), p.click('#btnResumoPdf')]); await dlR.saveAs(path.join(shots, 'resumo-mensal.pdf')); }
   const tiles = await p.$eval('#dashTiles', e => e.textContent);
   ok(/Espólios sinalizados/.test(tiles) && /Pendentes/.test(tiles) && /Excluídas/.test(tiles) && /Análises do mês/.test(tiles) && /Implantação atrasada/.test(tiles) && (await p.$$eval('#dashTiles .tile', t => t.length)) === 5, 'dashboard mostra os cinco cartões, com a implantação atrasada');
   await shot('dashboard');

@@ -51,14 +51,16 @@ $('#btnResumo').onclick = () => {
   const us = conc.flatMap(r => r.unidades || []);
   const f = fila(); const venc = f.filter(i => i.vencida);
   const n = x => us.filter(u => u.resultado === x).length;
-  const html = `<div class="ficha" id="resumoFicha" style="padding:20px 24px"><div class="f-titulo" style="font-size:20px">Resumo mensal · Análise de Espólio · ${MESES_FULL[+mes.slice(5)-1]}/${mes.slice(0,4)}</div><div class="f-sub">Cobrança / Coordenação · gerado em ${fmtData(hojeISO())}</div>
+  const logo = $('.brand img') ? $('.brand img').getAttribute('src') : '';
+  const html = `<div class="ficha" id="resumoFicha" style="padding:20px 24px">${logo ? `<img src="${logo}" class="f-logo" alt="MyBlue">` : ''}<div class="f-titulo" style="font-size:20px">Resumo mensal · Análise de Espólio · ${MESES_FULL[+mes.slice(5)-1]}/${mes.slice(0,4)}</div><div class="f-sub">Cobrança / Coordenação · gerado em ${fmtData(hojeISO())}</div>
     <div class="f-secao">Análises concluídas no mês</div>
     <table class="f-tab"><thead><tr><th>Protocolo</th><th>Condomínio</th><th>Tipo</th><th>Data</th><th>Sinalizados</th><th>Excluídos</th><th>Em acompanhamento</th></tr></thead><tbody>${conc.length ? conc.map(r => { const s = r.resumo || resumoRodada(r); return `<tr><td>${esc(r.protocolo)}</td><td>${esc(r.condominio.nome)}</td><td>${tipoRodadaTxt(r)}</td><td>${fmtData(r.dataAnalise)}</td><td>${s.total}</td><td>${s.excluir}</td><td>${s.prev+s.rean}</td></tr>`; }).join('') : '<tr><td colspan="7" style="text-align:center">Nenhuma análise concluída no mês.</td></tr>'}</tbody></table>
     <div class="f-caixas" style="grid-template-columns:repeat(4,1fr)"><div class="f-caixa"><h4>Análises</h4><p>${conc.length}</p></div><div class="f-caixa cx-EXCLUIR"><h4>Excluídos</h4><p>${n('EXCLUIR')}</p></div><div class="f-caixa"><h4>Em acompanhamento</h4><p>${n('PREVENTIVO')+n('REANÁLISE')}</p></div><div class="f-caixa cx-REAN"><h4>Fila vencida hoje</h4><p>${venc.length} condomínio(s)</p></div></div>
-    ${venc.length ? `<div class="f-secao">Reanálises vencidas</div><p>${venc.map(i => `${esc(i.condominio.nome)} (desde ${fmtData(i.prazo)})`).join('; ')}</p>` : ''}</div>
+    ${venc.length ? `<div class="f-secao">Reanálises vencidas</div><p style="margin:0;line-height:1.6">${venc.map(i => `${esc(i.condominio.nome)} (desde ${fmtData(i.prazo)})`).join('; ')}</p>` : ''}
+    <div class="f-rodape"><span>MyBlue Condomínio Garantido | contato@myblue.com.br | www.myblue.com.br | 0800 085 9277</span><span>Resumo ${MESES_FULL[+mes.slice(5)-1]}/${mes.slice(0,4)} · gerado em ${fmtData(hojeISO())}</span></div></div>
     <div class="acoes" style="margin-top:10px"><button class="btn sec mini" id="btnResumoPdf">Baixar resumo em PDF</button></div>`;
   $('#resumoMensal').innerHTML = html;
-  $('#btnResumoPdf').onclick = async () => { const el = $('#resumoFicha'); if(typeof html2pdf === 'undefined'){ window.print(); return; } await html2pdf().set({ margin: 8, filename: `Resumo Espolio ${mes}.pdf`, html2canvas: { scale: 2, backgroundColor:'#fff' }, jsPDF: { unit:'mm', format:'a4', orientation:'landscape' } }).from(el).save(); };
+  $('#btnResumoPdf').onclick = async () => { if(typeof html2pdf === 'undefined'){ window.print(); return; } await baixarPDFdeHTML($('#resumoFicha').innerHTML, `Resumo Espolio ${mes}.pdf`); };
 };
 
 /* ---------- configurações ---------- */

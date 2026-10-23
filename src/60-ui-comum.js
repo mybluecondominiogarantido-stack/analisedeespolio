@@ -220,7 +220,7 @@ function fichaHTML(r){
     : `<tr><td colspan="6" style="text-align:center;color:#6b7f88">Sem unidades sinalizadas.</td></tr>`}
   </tbody></table>
   <div class="f-legenda">
-    <span><i style="background:#199CB1"></i> Em acompanhamento</span>
+    <span><i style="background:#1B9CB1"></i> Em acompanhamento</span>
     <span><i style="background:#C0392B"></i> Excluir</span>
   </div>
   <div class="f-rodape-tab">Inadimplência anterior = débito antes da garantia MyBlue${reanalise ? ', conforme a 1ª análise' : ''}. Vouch = sistema interno MyBlue. • Classificação conforme a Política de Análise de Espólio.</div>
@@ -231,11 +231,17 @@ const nomeFicha = r => nomeArquivoSeguro(`${r.status === 'concluida' && r.protoc
 
 async function baixarFichaPDF(r){
   if(typeof html2pdf === 'undefined'){ imprimirFicha(r); return; }
+  await baixarPDFdeHTML(fichaHTML(r), nomeFicha(r));
+  registrarHistorico('ficha', { rodadaId: r.id, protocolo: r.protocolo, condominio: r.condominio.nome, arquivo: nomeFicha(r) });
+}
+/* gera o PDF (A4 paisagem) de um conteúdo no estilo da ficha: usado pela ficha e pelo resumo mensal.
+   Monta uma cópia própria no fim da página, com rolagem zerada; capturar o elemento no meio da tela saía em branco. */
+async function baixarPDFdeHTML(html, nomeArquivo){
   // A4 paisagem com margem de 6 mm: 285 × 198 mm ≈ 1077 × 748 px a 96 dpi
   const LARG = 1070, ALT_MAX = 740;
   const wrap = document.createElement('div'); wrap.style.cssText = `width:${LARG}px;background:#fff;overflow:hidden;margin:0`;
   const el = document.createElement('div'); el.className = 'ficha pdf'; el.style.cssText = `width:${LARG}px;border:0;border-radius:0;transform-origin:top left`;
-  el.innerHTML = fichaHTML(r); wrap.appendChild(el); document.body.appendChild(wrap);
+  el.innerHTML = html; wrap.appendChild(el); document.body.appendChild(wrap);
   try{
     await new Promise(res => setTimeout(res, 50));
     const h = el.offsetHeight;
@@ -244,8 +250,7 @@ async function baixarFichaPDF(r){
     if(h > ALT_MAX && ALT_MAX / h >= K_MIN){ const k = ALT_MAX / h; el.style.width = (LARG / k) + 'px'; el.style.transform = `scale(${k})`; wrap.style.height = ALT_MAX + 'px'; }
     else if(h > ALT_MAX){ wrap.style.overflow = 'visible'; }
     else wrap.style.height = h + 'px';
-    await html2pdf().set({ margin: 6, filename: nomeFicha(r), image: { type:'jpeg', quality: 0.95 }, html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0 }, jsPDF: { unit:'mm', format:'a4', orientation:'landscape' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.f-destaques', '.f-legenda', '.f-nota', '.f-id'] } }).from(wrap).save();
-    registrarHistorico('ficha', { rodadaId: r.id, protocolo: r.protocolo, condominio: r.condominio.nome, arquivo: nomeFicha(r) });
+    await html2pdf().set({ margin: 6, filename: nomeArquivo, image: { type:'jpeg', quality: 0.95 }, html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0 }, jsPDF: { unit:'mm', format:'a4', orientation:'landscape' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.f-destaques', '.f-legenda', '.f-nota', '.f-id', '.f-caixas', '.f-secao'] } }).from(wrap).save();
   } finally { wrap.remove(); }
 }
 function imprimirFicha(r){
