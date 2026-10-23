@@ -59,6 +59,8 @@ Não faça análise de espólio nem classificação: só a conversão.
 3. Na análise, anexe o CSV no campo **Inadimplência anterior**. O módulo mostra quantas unidades e linhas leu, para você comparar com o resumo.
 4. Se preferir, copie os dados para o modelo `docs/modelos/Relatorio_anterior_padrao.xlsx` e anexe o Excel.
 
+**Antes de converter:** o módulo já tenta ler qualquer formato pela unidade (leitura guiada). Só converta quando o aviso mostrar unidades não encontradas que estão no PDF, ou quando o PDF for escaneado.
+
 **Alternativa já disponível:** a skill **leitura-inadimplencia-myblue**, da organização, converte o relatório de qualquer administradora para o formato do portal na Análise de Crédito (`unidade;titular;CPF/CNPJ;competência;tipo;valor;vencimento`). O módulo aceita esse arquivo direto no campo Inadimplência anterior.
 
 Os formatos de PDF que o módulo já lê direto continuam funcionando sem conversão: o relatório do Vouch, o "Contas a receber por condômino" e o "Inadimplências consolidadas" (MSA).

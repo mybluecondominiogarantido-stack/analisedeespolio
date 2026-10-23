@@ -26,6 +26,7 @@ function contagem(u, campo, dev, relatorioLido){
   const idx = u.esc ? u.esc[campo] : null;
   if(idx === null || idx === undefined) return relatorioLido ? 0 : null;
   const b = dev[campo] && dev[campo][idx];
+  if(b && b.naoEncontrada) return null;   // leitura guiada: unidade não encontrada fica pendente, não vira "sem débito"
   return b ? b.cobrancas.filter(c => c.incluir !== false).length : (relatorioLido ? 0 : null);
 }
 

@@ -115,3 +115,10 @@ Registro do que foi decidido com a Coordenação de Cobrança (out/2026) para a 
   - No PDF, essa parte começa em página nova quando a lista é longa, repetindo o cabeçalho da tabela a cada página.
 - **Texto dos documentos (23/10)**: títulos, seções e números em verde-petróleo #0F5A6E, igual ao Retorno de Análise de Crédito; o azul #1077BB fica só nos fundos (cabeçalho das tabelas e quadro de destaque).
 - **Relatório anterior no formato da Análise de Crédito (23/10)**: o campo "Inadimplência anterior" aceita também a planilha que a skill leitura-inadimplencia-myblue gera para o portal (unidade;titular;CPF/CNPJ;competência;tipo;valor;vencimento). A coluna "tipo" faz o papel da descrição: multa, juros, tarifa e honorários não contam.
+- **Leitura guiada pela unidade (23/10)**: quando o relatório anterior não é de nenhum formato conhecido, o módulo procura no texto só as unidades da análise e conta as competências (MM/AAAA) distintas de cada uma, na mesma linha ou abaixo do cabeçalho da unidade até a próxima unidade ou o "Total".
+  - Tarifa, multa, juros, correção, encargos, custas e honorários em linha própria não contam.
+  - Com bloco, procura primeiro "A - 101"; só pelo número se não achar, e o número em mais de uma unidade fica "ambígua".
+  - Unidade não encontrada ou ambígua fica **pendente**, nunca "sem débito"; a contagem manual em "Taxas anteriores (manual)" resolve.
+  - Cada contagem mostra a linha do PDF como evidência.
+  - Validada nos dois relatórios reais (Palácio Progresso e MSA): mesmos números dos leitores dedicados.
+  - Os formatos conhecidos, a planilha padrão e o formato da Análise de Crédito continuam como antes; a skill leitura-inadimplencia-myblue fica para PDF escaneado ou muito desorganizado.

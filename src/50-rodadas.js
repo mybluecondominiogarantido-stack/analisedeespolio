@@ -162,9 +162,25 @@ function contextoDe(r){
 /* recasa todas as unidades com os devedores lidos e reclassifica (muta r) */
 function recalcular(r, dev, lidos){
   const ctx = contextoDe(r);
+  /* relatório anterior lido sem unidade reconhecida e a análise ganhou unidades depois: tenta a leitura guiada */
+  if(!dev.antGuiada && typeof S !== 'undefined' && dev === S.dev && S.textos && S.textos.ant && S.textos.ant.trim() && !(dev.ant || []).length && r.unidades.some(u => u.unid)){
+    const g = leituraGuiada(S.textos.ant, r.unidades); if(g.some(d => !d.naoEncontrada)){ dev.ant = g; dev.antGuiada = true; }
+  }
+  if(dev.antGuiada && typeof S !== 'undefined' && S.textos && S.textos.ant){
+    /* leitura guiada: refaz a busca com as unidades atuais, mantendo as evidências desmarcadas */
+    const antes = dev.ant || [];
+    dev.ant = leituraGuiada(S.textos.ant, r.unidades).map(d => { const o = antes.find(x => x.uid === d.uid);
+      if(o) d.cobrancas.forEach(c => { const oc = (o.cobrancas || []).find(x => x.comp === c.comp); if(oc && oc.incluir === false) c.incluir = false; }); return d; });
+  }
   r.unidades.forEach(u => {
     ['vouch','ant'].forEach(campo => {
       if(u.esc[campo] === 'manual') return;
+      if(campo === 'ant' && dev.antGuiada){
+        const i = (dev.ant || []).findIndex(d => d.uid === u.id), b = i >= 0 ? dev.ant[i] : null;
+        u.esc.ant = b ? i : null;
+        u.cas.ant = b ? { nome: b.naoEncontrada ? (b.ambigua ? 'unidade ambígua no relatório' : 'não encontrada no relatório') : 'leitura pela unidade', unid: b.unidadeTxt, modo: b.naoEncontrada ? 'confira o PDF e informe à mão' : 'leitura guiada · ' + b.modoGuiado, score: 1 } : null;
+        return;
+      }
       const m = melhorDevedor(u, dev[campo]);
       u.esc[campo] = m ? m.i : null;
       const b = m ? dev[campo][m.i] : null;
@@ -181,6 +197,8 @@ function recalcular(r, dev, lidos){
     u.vouch = contagem(u, 'vouch', dev, lidos.vouch);
     u.ant = ctx.semAnt ? 0 : contagem(u, 'ant', dev, lidos.ant);
     const c = classificar(u, ctx, u.vouch, u.ant);
+    const bg = dev.antGuiada && u.esc.ant !== null && u.esc.ant !== 'manual' ? (dev.ant || [])[u.esc.ant] : null;
+    if(c.pendente && c.regra === '5.5' && bg && bg.naoEncontrada && u.ant === null) c.motivo = `Unidade ${bg.ambigua ? 'ambígua' : 'não encontrada'} no relatório anterior (leitura pela unidade: ${bg.porque}). Confira o PDF e informe a quantidade em "Taxas anteriores (manual)".`;
     u.resultado = c.r; u.regra = c.regra; u.motivo = c.motivo; u.pendente = !!c.pendente;
   });
 }

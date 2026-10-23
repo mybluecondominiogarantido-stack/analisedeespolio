@@ -413,6 +413,28 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
   const nR = await p.evaluate(() => S.rodadas.filter(r => r.status === 'concluida').length);
   ok(nR === 38, `rodadas persistidas após recarregar: ${nR} (35 carga + 3)`);
 
+  /* 9a · relatório anterior em formato novo: leitura guiada pela unidade */
+  const lg = await p.evaluate(async () => {
+    const txt = ['POSIÇÃO DE DÉBITOS · ADMINISTRADORA NOVA', 'A - 101 | FULANO UM', 'TAXA ORDINÁRIA | 03/2026 | 350,00', 'TAXA ORDINÁRIA | 04/2026 | 350,00', 'MULTA | 04/2026 | 7,00',
+      'B - 101 | FULANO DOIS', 'FUNDO DE RESERVA | 05/2026 | 35,00', 'Total | 742,00', 'Cobrança 06/2026 | SALA 0215 | 120,00'].join('\n');
+    const orig = extrairDevedores; extrairDevedores = () => [];   // força o caminho de formato desconhecido
+    const r = novaRodada('implantacao', { nome: 'CONDOMINIO TESTE GUIADA', cnpj: '', chave: 'teste-guiada' });
+    [['A - 101', 'FULANO UM'], ['SALA 215', 'FULANO TRES'], ['C - 101', 'FULANO QUATRO'], ['A - 909', 'FULANO CINCO']].forEach(([un, t]) => r.unidades.push(novaUnidade(un, t, '')));
+    r.idadeGarantia = 12; r.bi = { valor: 100, sinal: '+' };
+    await abrirEditor(r); S.textos.vouch = 'x'; S.dev.vouch = [{ nome: 'NINGUEM', unidade: '9999', cobrancas: [] }];
+    processarTexto('ant', txt, 'nova.pdf');
+    const us = () => S.rodada.unidades.map(u => ({ un: u.unid, ant: u.ant, pend: u.pendente, mot: u.motivo }));
+    const antes = us(), diag = document.querySelector('#diagnostico').textContent;
+    const u909 = S.rodada.unidades.find(x => x.unid === 'A - 909'); u909.manual.ant = 0; recalcular(S.rodada, S.dev, relatoriosLidos());
+    const depois = S.rodada.unidades.find(x => x.unid === 'A - 909');
+    extrairDevedores = orig; S.rodada = null; renderNovaLista();
+    return { antes, diag, manual: { ant: depois.ant, pend: depois.pendente } };
+  });
+  const g = Object.fromEntries(lg.antes.map(x => [x.un, x]));
+  ok(g['A - 101'].ant === 2 && !g['A - 101'].pend && g['SALA 215'].ant === 1, `leitura guiada: conta competências pela unidade (cabeçalho e mesma linha), multa não conta (A-101 ${g['A - 101'].ant}, SALA 215 ${g['SALA 215'].ant})`);
+  ok(g['C - 101'].pend && /ambígua/.test(g['C - 101'].mot) && g['A - 909'].pend && /não encontrada/.test(g['A - 909'].mot), 'leitura guiada: unidade ambígua ou não encontrada fica pendente, nunca "sem débito"');
+  ok(/lido pela unidade/.test(lg.diag) && /não encontrada\(s\): C - 101, A - 909/.test(lg.diag) && lg.manual.ant === 0 && !lg.manual.pend, `leitura guiada: aviso lista as não encontradas e a contagem manual resolve a pendência`);
+
   /* 9 · conferência dos filtros do relatório do Vouch */
   const filtros = async (nome, dataAnalise) => p.evaluate(async ([b64, dataAnalise]) => {
     const bin = atob(b64); const arr = new Uint8Array(bin.length); for(let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);

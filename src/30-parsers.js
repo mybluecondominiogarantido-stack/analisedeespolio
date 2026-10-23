@@ -417,6 +417,66 @@ function lerSinalizacao(txt){
 /* Planilha padrão do relatório anterior (Excel ou CSV): Unidade | Titular | CPF | Descrição | Competência | Vencimento,
    uma linha por cobrança em aberto. Vira o texto "Unidade: X - titular" que extrairDevedoresRotulados já lê,
    com as mesmas regras de contagem (competências distintas; tarifa, multa, juros e honorários soltos não contam). */
+/* ======================================================================
+   Leitura guiada pela unidade (relatório anterior em formato desconhecido)
+   Em vez de entender o relatório inteiro, procura no texto só as unidades da análise e conta as competências
+   (MM/AAAA) distintas: na mesma linha da unidade, ou nas linhas abaixo do cabeçalho dela até a próxima unidade ou o
+   "Total". Tarifa, multa, juros, correção e honorários em linha própria não contam. A unidade que não aparece fica
+   "não encontrada" (pendência, nunca "sem débito"); com bloco, tenta primeiro com o bloco e só depois pelo número,
+   e se o número aparecer em mais de um cabeçalho fica "ambígua". Cada contagem leva a linha do PDF como evidência.
+   ====================================================================== */
+const RE_NAO_TAXA = /^(tarifa|multa|juros|honor|corre|encargo|custas)/i;
+function leituraGuiada(txt, unidades){
+  const linhas = String(txt || '').split('\n');
+  const escRe = x => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  /* competência MM/AAAA numa célula, sozinha ou junto de texto ("Cobrança 06/2026"), sem pegar pedaço de data DD/MM/AAAA */
+  const compDe = c => (String(c).match(/(?<![\d\/])(\d{2}\/\d{4})(?![\d\/])/) || [])[1] || null;
+  const ehCabecalhoUnid = l => /^\s*(Unidade\s*:|[A-Za-zÀ-ú]{0,10}\s*[A-Za-z]?\s*-?\s*\d{1,5}\s*[A-Za-z]?\s*(\||$))/i.test(l);
+  const padroes = unid => {
+    const t = String(unid || '').trim().toUpperCase(); if(!t) return [];
+    const num = (t.match(/(\d+)\s*[A-Z]?$/) || [])[1] || '';
+    const pre = t.replace(/\s*\d+\s*[A-Z]?$/, '').replace(/[\s-]+$/, '');
+    const n = num.replace(/^0+/, '') || num;
+    const borda = alt => new RegExp('(?:^|[\\s|:])(?:' + alt + ')(?=$|[\\s|])', 'i');
+    const exato = escRe(t).replace(/\\?\s*-\\?\s*/g, '\\s*-?\\s*').replace(/\s+/g, '\\s*');
+    const comPre = pre && n ? escRe(pre).replace(/\s+/g, '\\s*') + '\\s*-?\\s*0*' + escRe(n) : exato;
+    return pre && n ? [borda(exato + '|' + comPre), borda('0*' + escRe(n))] : [borda(n ? '0*' + escRe(n) : exato)];
+  };
+  const procurar = re => {
+    const comps = new Map(), cabecalhos = []; let achou = false;
+    linhas.forEach((l, i) => {
+      if(!re.test(l)) return;
+      const cel = l.split('|').map(c => c.trim());
+      const cl = cel.map(compDe).find(Boolean);
+      if(cl){   // unidade na própria linha da cobrança
+        achou = true; const c = cl;
+        if(!RE_NAO_TAXA.test(cel[0]) && !comps.has(c)) comps.set(c, { comp: c, referencia: cel[0] || '', texto: l.trim(), incluir: true });
+        return;
+      }
+      if(!ehCabecalhoUnid(l)) return;
+      achou = true; cabecalhos.push(l.trim());
+      for(let j = i + 1; j < linhas.length; j++){
+        const lj = linhas[j]; if(ehCabecalhoUnid(lj) || /^\s*Total\b/i.test(lj)) break;
+        const cj = lj.split('|').map(c => c.trim()); const c = cj.map(compDe).find(Boolean);
+        if(c && !RE_NAO_TAXA.test(cj[0]) && !comps.has(c)) comps.set(c, { comp: c, referencia: cj[0] || '', texto: lj.trim(), incluir: true });
+      }
+    });
+    return { achou, comps: [...comps.values()], cabecalhos };
+  };
+  return (unidades || []).map(u => {
+    const base = { uid: u.id, unidade: u.unid || '', unidadeTxt: u.unid || '', nome: u.titular || '(unidade da análise)', cpf: u.cpf || '', cobrancas: [], guiada: true };
+    const res = padroes(u.unid);
+    if(!res.length) return { ...base, naoEncontrada: true, porque: 'sem número de unidade' };
+    let r = procurar(res[0]), modo = 'unidade';
+    if(!r.achou && res[1]){
+      r = procurar(res[1]); modo = 'só o número';
+      if(new Set(r.cabecalhos).size > 1) return { ...base, naoEncontrada: true, ambigua: true, porque: 'o número aparece em mais de uma unidade' };
+    }
+    if(!r.achou) return { ...base, naoEncontrada: true, porque: 'não aparece no relatório' };
+    return { ...base, cobrancas: r.comps, modoGuiado: modo };
+  });
+}
+
 async function lerPlanilhaAnterior(file){
   let rows;
   if(/\.csv$/i.test(file.name)){

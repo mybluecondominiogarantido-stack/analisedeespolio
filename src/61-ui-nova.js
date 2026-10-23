@@ -108,6 +108,11 @@ function renderDiagnostico(){
     const txt = campo === 'vouch' ? S.textos.vouch : S.textos.ant;
     if(!txt.trim()) return `<p class="ajuda"><b>${titulo}:</b> nenhum relatório carregado.</p>`;
     const lista = S.dev[campo] || [];
+    if(campo === 'ant' && S.dev.antGuiada){
+      const ach = lista.filter(d => !d.naoEncontrada), nao = lista.filter(d => d.naoEncontrada);
+      return `<div class="aviso"><b>${titulo}:</b> formato novo, lido pela unidade · ${ach.length} de ${lista.length} unidade(s) encontrada(s)${nao.length ? ` · <b>não encontrada(s): ${esc(nao.map(d => d.unidadeTxt || d.nome).join(', '))}</b> (ficam pendentes: confira o PDF e informe à mão)` : ''}. Confira as evidências de cada unidade.
+        <details style="margin-top:6px"><summary style="cursor:pointer;font-size:12.5px">Ver o que foi lido</summary><ul style="margin:6px 0 0;padding-left:18px;font-size:12.5px">${lista.map(d => `<li>${esc(d.unidadeTxt || '—')}: ${d.naoEncontrada ? esc(d.porque) : `<b>${d.cobrancas.filter(c => c.incluir !== false).length}</b> competência(s) · ${esc(d.cobrancas.map(c => c.comp).join(', ') || 'nenhuma cobrança')}`}</li>`).join('')}</ul></details></div>`;
+    }
     if(!lista.length) return `<div class="aviso"><b>${titulo}:</b> nenhum devedor reconhecido. Ou o PDF é escaneado (sem texto), ou o layout é diferente do previsto. Revise o texto extraído.</div>`;
     const casados = r.unidades.filter(u => u.esc[campo] !== null && u.esc[campo] !== undefined).length;
     const conf = campo === 'vouch' && r.vouch ? (r.vouch.conferido ? ` · conferido com o total do relatório (${r.vouch.totalTaxas} taxas em ${r.vouch.totalUnidades} unidades)` : ` · <b style="color:var(--red)">leitura divergente do total impresso (${r.vouch.lidas} lidas de ${r.vouch.totalTaxas})</b>`) : '';
@@ -169,11 +174,19 @@ function processarTexto(origem, txt, nomeArquivo){
     }
     aplicarBaseBi();
   } else if(origem === 'ant'){
-    S.textos.ant = txt; S.dev.ant = extrairDevedores(txt, $('#soValor').checked);
-    const suspeito = S.dev.ant.length <= 1 || S.dev.ant.some(d => d.cobrancas.length > 60);
-    span.innerHTML = !S.dev.ant.length ? '<b style="color:var(--red)">Formato não reconhecido: nenhuma unidade encontrada.</b> As unidades ficam com pendência (relatório anterior não lido), sem supor que não havia débito. Informe as taxas à mão ou envie o arquivo para incluirmos o formato.'
+    S.textos.ant = txt; S.dev.ant = extrairDevedores(txt, $('#soValor').checked); S.dev.antGuiada = false;
+    /* formato desconhecido: tenta a leitura guiada pelas unidades da análise */
+    if(!S.dev.ant.length && r.unidades.some(u => u.unid)){
+      const g = leituraGuiada(txt, r.unidades);
+      if(g.some(d => !d.naoEncontrada)){ S.dev.ant = g; S.dev.antGuiada = true; }
+    }
+    const nAchou = S.dev.antGuiada ? S.dev.ant.filter(d => !d.naoEncontrada).length : 0;
+    const suspeito = !S.dev.antGuiada && (S.dev.ant.length <= 1 || S.dev.ant.some(d => d.cobrancas.length > 60));
+    span.innerHTML = S.dev.antGuiada ? `<b style="color:#b57a12">Formato novo: lido pela unidade.</b> ${nAchou} de ${r.unidades.length} unidade(s) encontrada(s) no relatório${nAchou < r.unidades.length ? '; as demais ficam pendentes para conferir' : ''}. Confira as evidências em cada unidade.`
+      : !S.dev.ant.length ? '<b style="color:var(--red)">Formato não reconhecido: nenhuma unidade encontrada.</b> As unidades ficam com pendência (relatório anterior não lido), sem supor que não havia débito. Informe as taxas à mão ou envie o arquivo para incluirmos o formato.'
       : suspeito ? `<b style="color:#b57a12">${S.dev.ant.length} devedor(es) reconhecido(s) — leitura suspeita, confira as unidades.</b>` : `${S.dev.ant.length} devedor(es) reconhecido(s)`;
-    if(!S.dev.ant.length) toast('Relatório anterior: formato não reconhecido. As unidades ficam com pendência, sem supor ausência de débito.', 7000);
+    if(S.dev.antGuiada) toast(`Relatório anterior em formato novo: li pela unidade (${nAchou} de ${r.unidades.length} encontradas). Confira as evidências.`, 7000);
+    else if(!S.dev.ant.length) toast('Relatório anterior: formato não reconhecido. As unidades ficam com pendência, sem supor ausência de débito.', 7000);
   } else if(origem === 'email'){
     S.textos.email = txt;
     const e = lerEmail(txt);
