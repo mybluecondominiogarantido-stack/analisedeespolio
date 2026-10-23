@@ -1,5 +1,5 @@
 -- Ticket da ficha aberto pelo módulo Análise de Espólio · APLICADO em 22/10/2026 com aval da coordenação
--- 23/10/2026: a ficha passa a chegar em partes (anexo.partes[]), porque a base do portal limita o tamanho de cada campo
+-- 23/10/2026 (APLICADO no mesmo dia, com aval): a ficha passa a chegar em partes (anexo.partes[]), porque a base do portal limita o tamanho de cada campo
 --   (o PDF inteiro, ~150 mil caracteres, era recusado e o ticket abria sem anexo). Ainda aceita anexo.base64 inteiro.
 -- O módulo não alcança as tabelas de tickets do portal (RLS sem política: só o servidor do portal grava).
 -- Por isso, como no aviso do sino, o módulo grava um pedido em documentos (coleção "tickets") e esta regra
