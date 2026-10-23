@@ -1,4 +1,6 @@
 -- Ticket da ficha aberto pelo módulo Análise de Espólio · APLICADO em 22/10/2026 com aval da coordenação
+-- 23/10/2026: a ficha passa a chegar em partes (anexo.partes[]), porque a base do portal limita o tamanho de cada campo
+--   (o PDF inteiro, ~150 mil caracteres, era recusado e o ticket abria sem anexo). Ainda aceita anexo.base64 inteiro.
 -- O módulo não alcança as tabelas de tickets do portal (RLS sem política: só o servidor do portal grava).
 -- Por isso, como no aviso do sino, o módulo grava um pedido em documentos (coleção "tickets") e esta regra
 -- cria o ticket de verdade: tickets + ticket_eventos ("criado") + ticket_anexos (ficha em PDF) + aviso no sino.
@@ -36,6 +38,7 @@ DECLARE
   v_nome     text;
   v_cnpj     text;
   v_pdf      bytea;
+  v_b64      text;
 BEGIN
   IF new.modulo_slug <> 'analise-de-espolio' OR new.colecao <> 'tickets' OR d IS NULL OR coalesce(d->>'status', '') <> 'pedido' THEN
     RETURN new;
@@ -65,8 +68,11 @@ BEGIN
     VALUES (v_tid, autor, 'criado', jsonb_build_object('setor', v_setor.nome, 'interna', true, 'condominio', d->'condominio'->>'nome', 'prioridade', v_prio,
                                                       'origem', 'analise-de-espolio', 'protocolo', d->>'protocolo'));
 
-    IF coalesce(d->'anexo'->>'base64', '') <> '' THEN
-      v_pdf := decode(d->'anexo'->>'base64', 'base64');
+    /* a ficha chega inteira (base64) ou em partes (partes[]), porque a base do portal limita o tamanho de cada campo */
+    v_b64 := coalesce(nullif(d->'anexo'->>'base64', ''),
+      (SELECT string_agg(p, '' ORDER BY o) FROM jsonb_array_elements_text(CASE WHEN jsonb_typeof(d->'anexo'->'partes') = 'array' THEN d->'anexo'->'partes' ELSE '[]'::jsonb END) WITH ORDINALITY AS t(p, o)));
+    IF coalesce(v_b64, '') <> '' THEN
+      v_pdf := decode(v_b64, 'base64');
       INSERT INTO public.ticket_anexos (ticket_id, nome, tipo, tamanho, conteudo, interno, enviado_por)
       VALUES (v_tid, left(coalesce(nullif(d->'anexo'->>'nome', ''), 'Ficha.pdf'), 200), 'application/pdf', length(v_pdf), v_pdf, false, autor);
     END IF;

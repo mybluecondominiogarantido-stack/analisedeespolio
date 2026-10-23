@@ -127,3 +127,4 @@ Registro do que foi decidido com a Coordenação de Cobrança (out/2026) para a 
   - Multa, Juros, Correção, Honorários, Água/gás e Outro (onde a skill põe a tarifa bancária) ficam fora da contagem; o aviso mostra quantos foram deixados de fora.
   - Testado com o Palácio Progresso convertido nesse formato: mesmas contagens do leitor dedicado.
   - Não é preciso criar uma skill nova nem o projeto "Formatador" no Claude.
+- **Ficha do ticket em partes (23/10)**: o ticket #4 também saiu sem a ficha, já com a versão leve. Nos logs do banco não há erro; o pedido com o PDF é recusado antes, na camada do portal. O maior texto que o portal já aceitou num campo tem ~67 mil caracteres e a ficha tem ~150 mil. O módulo passa a mandar a ficha em partes de até 40 mil caracteres, a regra `espolio_ticket` junta as partes (testado em banco local: PDF idêntico ao original) e, se ainda assim o anexo falhar, o motivo fica gravado no pedido e aparece na mensagem.

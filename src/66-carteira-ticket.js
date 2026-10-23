@@ -73,9 +73,11 @@ async function enviarTicket(r, sol){
   const id = (r.protocolo || 'AE') + '-' + Date.now().toString(36);
   const ref = DB.doc(COLECOES.tickets + '/' + id);
   try{
-    try{ pedido.anexo = { nome: nomeFicha(r), base64: await fichaParaTicket(r) }; }catch(_){ /* sem a ficha, o ticket sai sem anexo */ }
+    /* a base do portal limita o tamanho de cada campo (o maior já aceito tem ~67 mil caracteres): a ficha vai em partes e a regra do banco junta */
+    try{ const b64 = await fichaParaTicket(r); pedido.anexo = { nome: nomeFicha(r), partes: b64.match(/.{1,40000}/g) }; }
+    catch(e){ pedido.anexoErro = 'ficha não gerada: ' + ((e && e.message) || e); }
     try{ await ref.set(pedido); }
-    catch(e){ if(!pedido.anexo) throw e; delete pedido.anexo; await ref.set(pedido); } /* ficha grande demais para a base: abre sem anexo */
+    catch(e){ if(!pedido.anexo) throw e; delete pedido.anexo; pedido.anexoErro = 'base recusou o anexo: ' + dbErr(e); await ref.set(pedido); } /* abre sem anexo e guarda o motivo */
     let d = null;
     for(let i = 0; i < 8; i++){ const snap = await ref.get(); d = snap.exists ? snap.data() : null; if(d && d.status !== 'pedido') break; await new Promise(res => setTimeout(res, 500)); }
     if(!d || d.status === 'pedido') throw new Error('o portal não confirmou o ticket. A regra do banco pode não estar ligada');
@@ -83,7 +85,7 @@ async function enviarTicket(r, sol){
     const para = d.responsavelId ? pedido.responsavelNome : 'a fila do setor ' + pedido.setor;
     registrarHistorico('ticket', { rodadaId: r.id, protocolo: r.protocolo, ticketId: d.ticketId, para });
     if(r.id){ r.ticket = { id: d.ticketId, para, em: nowISO() }; gravarDoc(COLECOES.rodadas + '/' + r.id, { ticket: r.ticket }); }
-    st.innerHTML = `<div class="ok">Ticket #${esc(d.ticketId)} aberto para ${esc(para)}.${d.anexado ? ' Ficha anexada.' : ' A ficha não foi anexada: anexe o PDF pelo portal.'}${!d.responsavelId && pedido.responsavelNome ? ` ${esc(pedido.responsavelNome)} não tem login no portal, então o ticket ficou com a liderança do setor.` : ''}</div>`;
+    st.innerHTML = `<div class="ok">Ticket #${esc(d.ticketId)} aberto para ${esc(para)}.${d.anexado ? ' Ficha anexada.' : ` <b>A ficha não foi anexada</b>${d.anexoErro ? ' (' + esc(d.anexoErro) + ')' : ''}: anexe o PDF pelo portal.`}${!d.responsavelId && pedido.responsavelNome ? ` ${esc(pedido.responsavelNome)} não tem login no portal, então o ticket ficou com a liderança do setor.` : ''}</div>`;
     bt.textContent = 'Aberto';
   }catch(e){
     bt.disabled = false;
@@ -95,7 +97,7 @@ const ANEXO_MAX_CHARS = 180000;   // ~135 KB de PDF; o maior documento já grava
 async function fichaParaTicket(r){
   for(const q of [{ scale: 1.5, quality: 0.82 }, { scale: 1.25, quality: 0.72 }, { scale: 1, quality: 0.65 }]){
     const b64 = await blobBase64(await fichaPDFBlob(r, q));
-    if(b64.length <= ANEXO_MAX_CHARS) return b64;
+    if(b64.length <= ANEXO_MAX_CHARS) return b64;   // em partes de 40 mil
   }
   throw new Error('ficha grande demais para anexar');
 }
