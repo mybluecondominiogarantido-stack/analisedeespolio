@@ -250,7 +250,7 @@ async function baixarPDFdeHTML(html, nomeArquivo){
     if(h > ALT_MAX && ALT_MAX / h >= K_MIN){ const k = ALT_MAX / h; el.style.width = (LARG / k) + 'px'; el.style.transform = `scale(${k})`; wrap.style.height = ALT_MAX + 'px'; }
     else if(h > ALT_MAX){ wrap.style.overflow = 'visible'; }
     else wrap.style.height = h + 'px';
-    await html2pdf().set({ margin: 6, filename: nomeArquivo, image: { type:'jpeg', quality: 0.95 }, html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0 }, jsPDF: { unit:'mm', format:'a4', orientation:'landscape' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.f-destaques', '.f-legenda', '.f-nota', '.f-id', '.f-caixas', '.f-secao'] } }).from(wrap).save();
+    await html2pdf().set({ margin: 6, filename: nomeArquivo, image: { type:'jpeg', quality: 0.95 }, html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0 }, jsPDF: { unit:'mm', format:'a4', orientation:'landscape' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.f-destaques', '.f-legenda', '.f-nota', '.f-id', '.f-caixas', '.f-kpis', '.f-secao'] } }).from(wrap).save();
   } finally { wrap.remove(); }
 }
 function imprimirFicha(r){

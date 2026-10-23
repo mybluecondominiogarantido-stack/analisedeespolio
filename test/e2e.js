@@ -100,6 +100,11 @@ const ok = (cond, msg) => { if(!cond){ console.error('FALHOU:', msg); process.ex
     return out;
   }, [fs.readFileSync(path.join(__dirname, 'fixtures', 'relatorio-anterior-padrao.csv'), 'utf8'), fs.readFileSync(path.join(root, 'docs', 'modelos', 'Relatorio_anterior_padrao.xlsx')).toString('base64')]);
   ok(padrao[0] === 'A - 101:3:cpf,SALA 215:1:-' && padrao[1] === 'A - 101:2:cpf,SALA 215:1:-', `planilha padrão do relatório anterior (CSV e modelo Excel): competências distintas, tarifa não conta (${padrao})`);
+  const credito = await p.evaluate(async csvTxt => {
+    const pl = await lerPlanilhaAnterior(new File([csvTxt], 'credito.csv')); const d = extrairDevedores(pl.texto, false);
+    return d.map(x => x.unidade + ':' + x.cobrancas.length + ':' + (x.cpf ? 'cpf' : '-')).join(',');
+  }, fs.readFileSync(path.join(__dirname, 'fixtures', 'relatorio-anterior-formato-credito.csv'), 'utf8'));
+  ok(credito === 'A - 101:3:cpf,B - 202:1:-', `relatório anterior no formato da Análise de Crédito (unidade;titular;CPF/CNPJ;competência;tipo;valor;vencimento): multa não conta, acordo conta (${credito})`);
   const ficha = await p.evaluate(() => fichaHTML(S.rodada));
   ok(!/f-caixa/.test(ficha), 'ficha sem as caixas de resumo por resultado');
   ok(/Em acompanhamento/.test(ficha) && !/Mantida|Sob análise|Preventivo|Reanálise \(|Exclu[ií]\S* da garantia/.test(ficha), 'ficha usa os nomes curtos: Excluir e Em acompanhamento');

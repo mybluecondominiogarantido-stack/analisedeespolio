@@ -429,7 +429,8 @@ async function lerPlanilhaAnterior(file){
   if(hi < 0) throw new Error('não encontrei as colunas da planilha padrão (Unidade, Titular, CPF, Descrição, Competência, Vencimento)');
   const head = rows[hi].map(c => String(c || '').toLowerCase().trim());
   const col = re => head.findIndex(h => re.test(h));
-  const c = { u: col(/^unidade$/), t: col(/titular|nome|cond[oô]mino|propriet/), cpf: col(/cpf|documento/), d: col(/descri/), comp: col(/compet/), v: col(/venc/) };
+  /* aceita também o formato do portal na Análise de Crédito (skill leitura-inadimplencia-myblue): unidade;titular;CPF/CNPJ;competência;tipo;valor;vencimento */
+  const c = { u: col(/^unidade$/), t: col(/titular|nome|cond[oô]mino|propriet/), cpf: col(/cpf|cnpj|documento/), d: col(/descri/) >= 0 ? col(/descri/) : col(/^tipo/), comp: col(/compet/), v: col(/venc/) };
   const compTxt = v => { if(typeof v === 'number'){ const d = excelData(v); return d ? d.slice(5,7) + '/' + d.slice(0,4) : ''; }
     const s = String(v || '').trim(); let m = s.match(/^(\d{1,2})\/(\d{4})$/); if(m) return m[1].padStart(2,'0') + '/' + m[2];
     m = s.match(/^(\d{4})-(\d{2})/); if(m) return m[2] + '/' + m[1]; m = s.match(/^\d{2}\/(\d{2})\/(\d{4})$/); if(m) return m[1] + '/' + m[2]; return ''; };

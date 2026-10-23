@@ -45,22 +45,56 @@ function renderGraficoMensal(conc){
   $('#dashGrafico').innerHTML = `<div class="legenda"><span><i style="background:#d8463b"></i>Excluir</span><span><i style="background:#199cb1"></i>Em acompanhamento</span></div>
     <svg class="graf" viewBox="0 0 ${W} ${H}" width="100%" aria-label="Unidades classificadas por mês"><g stroke="#e4ecef">${grade.map(v => `<line x1="${lw}" x2="${W-10}" y1="${y(v)}" y2="${y(v)}"/>`).join('')}</g>${grade.map(v => `<text x="${lw-6}" y="${y(v)+4}" text-anchor="end">${v}</text>`).join('')}${barras}</svg>`;
 }
-$('#btnResumo').onclick = () => {
-  const mes = $('#resumoMes').value; if(!mes) return;
+/* ---------- resumo mensal: números do mês (com o mês anterior), unidades excluídas, análises e a situação de hoje ---------- */
+function numerosDoMes(mes){
   const conc = rodadasConcluidas().filter(r => r.origem !== 'carga' && mesDe(r.dataAnalise) === mes);
   const us = conc.flatMap(r => r.unidades || []);
-  const f = fila(); const venc = f.filter(i => i.vencida);
-  const n = x => us.filter(u => u.resultado === x).length;
+  return { conc, recebidas: S.solicitacoes.filter(x => mesDe(x.criadaEm) === mes).length, atendidas: S.solicitacoes.filter(x => x.status === 'concluida' && mesDe(x.concluidaEm) === mes).length,
+           excluidas: us.filter(u => u.resultado === 'EXCLUIR').length, acomp: us.filter(u => u.resultado === 'PREVENTIVO' || u.resultado === 'REANÁLISE').length,
+           porTipo: t => conc.filter(r => r.tipo === t).length };
+}
+/* pdf: a "Situação hoje" começa em página nova quando a lista de vencidas é longa, e a tabela repete o cabeçalho a cada página */
+function htmlResumoMensal(mes, pdf){
+  const d = new Date(+mes.slice(0, 4), +mes.slice(5, 7) - 2, 1), mesAnt = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  const MES_CURTO = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'], antTxt = MES_CURTO[d.getMonth()] + '/' + d.getFullYear();
+  const a = numerosDoMes(mes), b = numerosDoMes(mesAnt);
+  const vari = (x, y) => { const df = x - y; return `<em>${df === 0 ? 'igual a ' + antTxt : (df > 0 ? '+' : '−') + Math.abs(df) + ' em relação a ' + antTxt}</em>`; };
+  const kpi = (rot, x, y, extra, cls) => `<div class="f-kpi ${cls || ''}"><small>${rot}</small><strong>${x}</strong>${extra ? `<em>${extra}</em>` : ''}${vari(x, y)}</div>`;
+  const tipos = [['implantacao', 'implantação'], ['avulso', 'avulso'], ['acompanhamento', 'reanálise']].map(([t, n]) => `${a.porTipo(t)} ${n}`).join(' · ');
+  const excl = a.conc.flatMap(r => (r.unidades || []).filter(u => u.resultado === 'EXCLUIR').map(u => ({ r, u })));
+  const f = fila(), venc = f.filter(i => i.vencida), em30 = f.filter(i => !i.vencida && i.dias <= 30), noPrazo = f.length - venc.length - em30.length;
   const logo = $('.brand img') ? $('.brand img').getAttribute('src') : '';
-  const html = `<div class="ficha" id="resumoFicha" style="padding:20px 24px">${logo ? `<img src="${logo}" class="f-logo" alt="MyBlue">` : ''}<div class="f-titulo" style="font-size:20px">Resumo mensal · Análise de Espólio · ${MESES_FULL[+mes.slice(5)-1]}/${mes.slice(0,4)}</div><div class="f-sub">Cobrança / Coordenação · gerado em ${fmtData(hojeISO())}</div>
+  const vazio = (n, txt) => `<tr><td colspan="${n}" style="text-align:center;color:#6b7f88">${txt}</td></tr>`;
+  const QUEBRA = '<div class="html2pdf__page-break"></div>', LONGA = 6, POR_PAGINA = [19, 25];
+  const quebraHoje = pdf && venc.length > LONGA ? QUEBRA : '';
+  const tabVenc = lista => `<table class="f-tab" style="margin-top:12px"><thead><tr><th>Reanálise vencida · condomínio</th><th style="width:11%">Unidades</th><th style="width:13%">Venceu em</th><th style="width:13%">Dias de atraso</th><th style="width:24%">Analista de cobrança</th></tr></thead><tbody>${
+      lista.map(i => `<tr><td>${esc(i.condominio.nome)}</td><td>${i.unidades.length}</td><td>${fmtData(i.prazo)}</td><td><b>${-i.dias}</b></td><td>${esc((carteiraDe(i.condominio) || {}).analistaCobranca || '—')}</td></tr>`).join('')}</tbody></table>`;
+  const partes = []; if(pdf && venc.length > LONGA){ let k = 0; while(k < venc.length){ const n = POR_PAGINA[partes.length ? 1 : 0]; partes.push(venc.slice(k, k + n)); k += n; } } else if(venc.length) partes.push(venc);
+  const tabelaVencidas = partes.map(tabVenc).join(QUEBRA);
+  return `<div class="ficha" id="resumoFicha" style="padding:20px 24px">${logo ? `<img src="${logo}" class="f-logo" alt="MyBlue">` : ''}
+    <div class="f-titulo" style="font-size:20px">Resumo mensal · Análise de Espólio · ${MESES_FULL[+mes.slice(5) - 1]}/${mes.slice(0, 4)}</div>
+    <div class="f-sub">Cobrança / Coordenação · gerado em ${fmtData(hojeISO())}</div>
+    <div class="f-secao">Números do mês</div>
+    <div class="f-kpis">${kpi('Solicitações recebidas', a.recebidas, b.recebidas, `${a.atendidas} atendida(s) no mês`)}${kpi('Análises concluídas', a.conc.length, b.conc.length, tipos)}${kpi('Unidades excluídas', a.excluidas, b.excluidas, '', 'exc')}${kpi('Unidades em acompanhamento', a.acomp, b.acomp, 'nas análises do mês')}</div>
+    <div class="f-secao">Unidades excluídas no mês</div>
+    <table class="f-tab"><thead><tr><th style="width:24%">Condomínio</th><th style="width:10%">Unidade</th><th style="width:24%">Titular</th><th style="width:13%">Protocolo</th><th style="width:10%">Tipo</th><th>Motivo</th></tr></thead><tbody>${
+      excl.length ? excl.map(({ r, u }) => `<tr><td>${esc(r.condominio.nome)}</td><td><b>${esc(u.unid || '—')}</b></td><td>${esc(u.titular || '—')}</td><td>${esc(r.protocolo)}</td><td>${tipoRodadaTxt(r)}</td><td>${esc(motivoCurto(u, r))}</td></tr>`).join('') : vazio(6, 'Nenhuma unidade excluída no mês.')}</tbody></table>
     <div class="f-secao">Análises concluídas no mês</div>
-    <table class="f-tab"><thead><tr><th>Protocolo</th><th>Condomínio</th><th>Tipo</th><th>Data</th><th>Sinalizados</th><th>Excluídos</th><th>Em acompanhamento</th></tr></thead><tbody>${conc.length ? conc.map(r => { const s = r.resumo || resumoRodada(r); return `<tr><td>${esc(r.protocolo)}</td><td>${esc(r.condominio.nome)}</td><td>${tipoRodadaTxt(r)}</td><td>${fmtData(r.dataAnalise)}</td><td>${s.total}</td><td>${s.excluir}</td><td>${s.prev+s.rean}</td></tr>`; }).join('') : '<tr><td colspan="7" style="text-align:center">Nenhuma análise concluída no mês.</td></tr>'}</tbody></table>
-    <div class="f-caixas" style="grid-template-columns:repeat(4,1fr)"><div class="f-caixa"><h4>Análises</h4><p>${conc.length}</p></div><div class="f-caixa cx-EXCLUIR"><h4>Excluídos</h4><p>${n('EXCLUIR')}</p></div><div class="f-caixa"><h4>Em acompanhamento</h4><p>${n('PREVENTIVO')+n('REANÁLISE')}</p></div><div class="f-caixa cx-REAN"><h4>Fila vencida hoje</h4><p>${venc.length} condomínio(s)</p></div></div>
-    ${venc.length ? `<div class="f-secao">Reanálises vencidas</div><p style="margin:0;line-height:1.6">${venc.map(i => `${esc(i.condominio.nome)} (desde ${fmtData(i.prazo)})`).join('; ')}</p>` : ''}
-    <div class="f-rodape"><span>MyBlue Condomínio Garantido | contato@myblue.com.br | www.myblue.com.br | 0800 085 9277</span><span>Resumo ${MESES_FULL[+mes.slice(5)-1]}/${mes.slice(0,4)} · gerado em ${fmtData(hojeISO())}</span></div></div>
-    <div class="acoes" style="margin-top:10px"><button class="btn sec mini" id="btnResumoPdf">Baixar resumo em PDF</button></div>`;
-  $('#resumoMensal').innerHTML = html;
-  $('#btnResumoPdf').onclick = async () => { if(typeof html2pdf === 'undefined'){ window.print(); return; } await baixarPDFdeHTML($('#resumoFicha').innerHTML, `Resumo Espolio ${mes}.pdf`); };
+    <table class="f-tab"><thead><tr><th style="width:13%">Protocolo</th><th>Condomínio</th><th style="width:11%">Tipo</th><th style="width:11%">Data</th><th style="width:9%">Unidades</th><th style="width:9%">Excluir</th><th style="width:15%">Em acompanhamento</th></tr></thead><tbody>${
+      a.conc.length ? a.conc.map(r => { const s = r.resumo || resumoRodada(r); return `<tr><td>${esc(r.protocolo)}</td><td>${esc(r.condominio.nome)}</td><td>${tipoRodadaTxt(r)}</td><td>${fmtData(r.dataAnalise)}</td><td>${s.total}</td><td>${s.excluir}</td><td>${s.prev + s.rean}</td></tr>`; }).join('') : vazio(7, 'Nenhuma análise concluída no mês.')}</tbody></table>
+    ${quebraHoje}<div class="f-secao">Situação hoje · ${fmtData(hojeISO())}</div>
+    <div class="f-kpis hoje"><div class="f-kpi exc"><small>Reanálises vencidas</small><strong>${venc.length}</strong></div><div class="f-kpi aviso"><small>Vencem em até 30 dias</small><strong>${em30.length}</strong></div><div class="f-kpi"><small>No prazo</small><strong>${noPrazo}</strong></div><div class="f-kpi"><small>Solicitações aguardando análise</small><strong>${solicitacoesEmAberto().length}</strong></div></div>
+    ${tabelaVencidas}
+    <div class="f-rodape"><span>MyBlue Condomínio Garantido | contato@myblue.com.br | www.myblue.com.br | 0800 085 9277</span><span>Resumo ${MESES_FULL[+mes.slice(5) - 1]}/${mes.slice(0, 4)} · gerado em ${fmtData(hojeISO())}</span></div></div>`;
+}
+$('#btnResumo').onclick = () => {
+  const mes = $('#resumoMes').value; if(!mes) return;
+  $('#resumoMensal').innerHTML = htmlResumoMensal(mes, false) + `<div class="acoes" style="margin-top:10px"><button class="btn sec mini" id="btnResumoPdf">Baixar resumo em PDF</button></div>`;
+  $('#btnResumoPdf').onclick = async () => {
+    if(typeof html2pdf === 'undefined'){ window.print(); return; }
+    const t = document.createElement('div'); t.innerHTML = htmlResumoMensal(mes, true);
+    await baixarPDFdeHTML(t.firstElementChild.innerHTML, `Resumo Espolio ${mes}.pdf`);
+  };
 };
 
 /* ---------- configurações ---------- */
